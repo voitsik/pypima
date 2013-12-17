@@ -8,4 +8,4 @@ Created on Fri Dec 13 17:50:20 2013
 
 import pima
 
-p = pima.Pima('raes03rj', 'k')
+p = pima.Pima('raes03aa', 'c')
