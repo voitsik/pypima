@@ -241,7 +241,35 @@ class Pima:
             print('DEBUG: antab -> {}'.format(self.antab))
 
         log_name = self.exper + '_' + self.band + '_load.log'
-        opts = ['STA_REF:', 'BADARY']
+        opts = ['BANDPASS_FILE:', 'NO',
+                'POLARCAL_FILE:', 'NO']
         ret = self._exec('load', log_name=log_name, options=opts)
         if ret:
             raise Exception('load failed with code {}'.format(ret))
+
+    def coarse(self):
+        log_name = self.exper + '_' + self.band + '_coarse.log'
+        fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
+                   self.band)
+        if os.path.isfile(fri_file):
+            os.remove(fri_file)
+        frr_file = '{}/{}_{}_nobps.frr'.format(self.work_dir, self.exper,
+                   self.band)
+        if os.path.isfile(frr_file):
+            os.remove(frr_file)
+
+        opts = ['FRINGE_FILE:',             fri_file,
+                'FRIRES_FILE:',             frr_file,
+                'BANDPASS_USE:',            'NO',
+                'BANDPASS_FILE:',           'NO',
+                'POLARCAL_FILE:',           'NO',
+                'FRIB.OVERSAMPLE_MD:',      '1',
+                'FRIB.OVERSAMPLE_RT:',      '1',
+                'FRIB.SECONDARY_SNR_MIN:',   '0.0',
+                'FRIB.SECONDARY_MAX_TRIES:', '0',
+                'FRIB.FINE_SEARCH:', 'PAR',
+                'MKDB.FRINGE_ALGORITHM:',   'DRF',
+                'STA_REF:', 'BADARY']
+        ret = self._exec('frib', opts, log_name)
+        if ret:
+            raise Exception('coarse failed with code {}'.format(ret))
