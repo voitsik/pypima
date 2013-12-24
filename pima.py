@@ -8,7 +8,7 @@ Created on Tue Dec 10 17:21:29 2013
 
 import datetime
 import os.path
-#import subprocess
+import subprocess
 import psycopg2
 import urllib.request
 
@@ -34,11 +34,38 @@ def get_orbit_url(exper_name):
     return orbit
 
 
+def get_antab(exper_name, band, dist_dir):
+    """Download antab-file for the experiment and return path"""
+    antab_path = None
+
+    conn = psycopg2.connect(database='ra_results', user='guest', host='odin',
+                            password='tufJoorit3')
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    cur.execute("SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
+        FROM vex_files WHERE exper_name = %s;", (exper_name,))
+    date = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if date:
+        date = date[0]
+        date1 = date[0:7]
+        url = 'ftp://radik:Zap069_qq@webinet.asc.rssi.ru/radioastron/ampcal/'+\
+            date1 + '/' + date + '_' + exper_name + '/' + exper_name + band + \
+            '.antab'
+        filename = dist_dir + '/' + exper_name + band + '.antab'
+        antab_path, _ = urllib.request.urlretrieve(url, filename)
+
+    return antab_path
+
+
 class Pima:
     data_base = '/home/voitsik/data/VLBI/RA/ASC_results/'
     ftp_base = 'ftp://quasars:JcSzi5_k@archive.asc.rssi.ru'
 
-    def __init__(self, exper, band, uv_fits=None, url=None):
+    def __init__(self, exper, band, uv_fits=None, url=None, orbit=None):
         # First, set common variables
         self.exper = exper.lower()
         self.band = band.lower()
@@ -52,6 +79,8 @@ class Pima:
         self.exp_dir = os.getenv('pima_exp_dir')
         if not self.exp_dir:
             raise Exception("Environment variable $pima_exp_dir is not set")
+
+        self.pima_scr = os.getenv('pima_scr_dir')
 
         # Create working directory and symlink
         work_dir = self.exp_dir + '/' + self.exper + '_auto'
@@ -69,18 +98,25 @@ class Pima:
         self.work_dir = work_dir_link
         os.chdir(self.work_dir)
 
+        # Make directory for antabs
+        antab_dir = self.work_dir + '/antab'
+        if not os.path.exists(antab_dir):
+            os.mkdir(antab_dir)
+        self.antab = antab_dir + '/' + self.exper + self.band + '.antab'
+
         self.cnt_file_name = self.work_dir + '/' + \
             self.exper + '_' + self.band + '_' + 'pima.cnt'
 
         # Prepare data paths
         self.url = url
         self.uv_fits = uv_fits
+        self.orbit = orbit
 
         self.data_dir = self.data_base + self.exper
         if not self.uv_fits:
             self._set_fits_name()
-        self.orbit = ''
-        self._get_orbit()
+        if not self.orbit:
+            self._get_orbit()
         self._mk_cnt()
 
     def _set_fits_name(self):
@@ -116,6 +152,8 @@ class Pima:
                 line = line.replace('CDATE', str(datetime.datetime.now()))
             elif line.startswith('SESS_CODE:'):
                 line = 'SESS_CODE:      ' + self.exper + '_' + self.band + '\n'
+            elif line.startswith('EXPER_DIR:'):
+                line = line.replace('SCRDIR', self.pima_scr)
             elif line.startswith('UV_FITS:'):
                 line = 'UV_FITS:            ' + self.uv_fits + '\n'
             elif line.startswith('BANDPASS_FILE:') or \
@@ -170,8 +208,40 @@ class Pima:
         else:
             print('Info: file {} already exists'.format(self.orbit))
 
+    def _exec(self, operation, options=None, log_name=None):
+        """Execute PIMA binary"""
+        cmd_line = [self.pima_exec, self.cnt_file_name, operation]
+        if options:
+            cmd_line.extend(options)
+        print('DEBUG: cmd_line = {}'.format(cmd_line))
+
+        if log_name is None:
+            log_name = self.exper + '_' + self.band + '_' + operation + '.log'
+
+        log = open(log_name, 'w')
+        log.write(str(datetime.datetime.now()) + '\n\n')
+        log.flush()
+
+        ret = subprocess.call(cmd_line, stdout=log, universal_newlines=True)
+
+        log.write('\n' + str(datetime.datetime.now()) + '\n\n')
+        log.close()
+
+        return ret
+
     def load(self):
         if not os.path.exists(self.uv_fits):
             self._download_fits()
 
-        return
+        if not os.path.isfile(self.antab):
+            self.antab = get_antab(self.exper, self.band, self.work_dir +
+                '/antab')
+            if self.antab is None:
+                raise Exception('Could not get antab-file')
+            print('DEBUG: antab -> {}'.format(self.antab))
+
+        log_name = self.exper + '_' + self.band + '_load.log'
+        opts = ['STA_REF:', 'BADARY']
+        ret = self._exec('load', log_name=log_name, options=opts)
+        if ret:
+            raise Exception('load failed with code {}'.format(ret))
