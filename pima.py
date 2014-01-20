@@ -13,10 +13,13 @@ import subprocess
 
 class Pima(object):
     """Pima class is analog of pima_fringe.csh script"""
-    def __init__(self, experiment_code, band):
+    def __init__(self, experiment_code, band, work_dir=None):
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
+        self.work_dir = work_dir
+        if work_dir is None:
+            self.work_dir = os.getcwd()
 
         self.pima_dir = os.getenv('PIMA_DIR')
         if not os.path.isdir(self.pima_dir):
@@ -27,7 +30,8 @@ class Pima(object):
             raise Exception('Could not find pima executable')
 
         # PIMA control file path
-        self.cnt_file_name = self.exper + '_' + self.band + '_' + 'pima.cnt'
+        self.cnt_file_name = '{}/{}_{}_pima.cnt'.format(self.work_dir,
+                             self.exper, self.band)
 
         if not os.path.isfile(self.cnt_file_name):
             raise Exception('Could not find control file \
@@ -53,6 +57,20 @@ class Pima(object):
         old_cnt.close()
         new_cnt.close()
         os.rename(self.cnt_file_name + '.new', self.cnt_file_name)
+
+    def get_cnt_params(self, opts):
+        """Get parameters name list 'opts' and return dictionary"""
+        ret = dict()
+
+        with open(self.cnt_file_name, 'r') as f:
+            for line in f:
+                if line.startswith('#') or len(line) < 8:
+                    continue
+                key, val = line.strip().split(None, 1)
+                if key in opts:
+                    ret[key] = val
+
+        return ret
 
     def _exec(self, operation, options=None, log_name=None):
         """Execute PIMA binary"""
@@ -84,13 +102,16 @@ class Pima(object):
         if ret:
             raise Exception('load failed with code {}'.format(ret))
 
-    def coarse(self):
+    def coarse(self, params=None):
         """Do coarse fringe fitting"""
-        log_name = self.exper + '_' + self.band + '_coarse.log'
-        fri_file = '{}_{}_nobps.fri'.format(self.exper, self.band)
+        log_name = '{}/{}_{}_coarse.log'.format(self.work_dir, self.exper,
+                   self.band)
+        fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
+                   self.band)
         if os.path.isfile(fri_file):
             os.remove(fri_file)
-        frr_file = '{}_{}_nobps.frr'.format(self.exper, self.band)
+        frr_file = '{}/{}_{}_nobps.frr'.format(self.work_dir, self.exper,
+                   self.band)
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
@@ -105,22 +126,56 @@ class Pima(object):
                 'FRIB.SECONDARY_MAX_TRIES:', '0',
                 'FRIB.FINE_SEARCH:', 'PAR',
                 'MKDB.FRINGE_ALGORITHM:', 'DRF']
+        if params:
+            opts.extend(params)
         ret = self._exec('frib', opts, log_name)
         if ret:
             raise Exception('coarse failed with code {}'.format(ret))
 
-    def fine(self):
+    def fine(self, params=None):
         """Do file fringe fitting"""
-        log_name = self.exper + '_' + self.band + '_fine.log'
-        fri_file = '{}_{}.fri'.format(self.exper, self.band)
+        log_name = '{}/{}_{}_fine.log'.format(self.work_dir, self.exper,
+                   self.band)
+        fri_file = '{}/{}_{}.fri'.format(self.work_dir, self.exper, self.band)
         if os.path.isfile(fri_file):
             os.remove(fri_file)
-        frr_file = '{}_{}.frr'.format(self.exper, self.band)
+        frr_file = '{}/{}_{}.frr'.format(self.work_dir, self.exper, self.band)
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
-        opts = ['FRINGE_FILE:', fri_file,
-                'FRIRES_FILE:', frr_file]
-        ret = self._exec('frib', opts, log_name)
+        self.update_cnt({'FRINGE_FILE:': fri_file,
+                         'FRIRES_FILE:': frr_file})
+        ret = self._exec('frib', params, log_name=log_name)
         if ret:
             raise Exception('fine failed with code {}'.format(ret))
+
+    def bpas(self, params=None):
+        """Do bandpass calibration"""
+        pass
+
+    def split(self, tim_mseg=1, params=None):
+        """Do SPLIT"""
+        opts = ['SPLT.TIM_MSEG:', str(tim_mseg)]
+        if params:
+            opts.extend(params)
+        ret = self._exec('splt', opts)
+
+        if ret:
+            raise Exception('splt failed with code {}'.format(ret))
+
+    # Additional useful utilites
+    def ap_minmax(self):
+        """Get minimum accummulation period in experiment"""
+        params = self.get_cnt_params(['EXPER_DIR:', 'SESS_CODE:'])
+
+        stt_file = '{}/{}.stt'.format(params['EXPER_DIR:'],
+                   params['SESS_CODE:'])
+
+        with open(stt_file, 'r') as f:
+            for line in f:
+                if line.startswith('Accummulation period length_min'):
+                    ap_min = float(line.split()[3])
+                elif line.startswith('Accummulation period length_max'):
+                    ap_max = float(line.split()[3])
+
+        return ap_min, ap_max

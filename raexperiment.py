@@ -142,7 +142,7 @@ class RaExperiment(object):
             self._get_orbit()
         self._mk_cnt()
 
-        self.pima = pima.Pima(self.exper, self.band)
+        self.pima = pima.Pima(self.exper, self.band, self.work_dir)
 
     def _mk_cnt(self):
         """Make new cnt-file from template"""
@@ -238,6 +238,11 @@ class RaExperiment(object):
 
         self.pima.load()
 
-    def fringe_fitting(self, bandpass=None):
+    def fringe_fitting(self, bandpass=False):
         """Do fringe fitting"""
         self.pima.coarse()
+        if bandpass:
+            self.pima.bpas()
+        else:
+            self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+        self.pima.fine()
