@@ -94,6 +94,7 @@ data')
                           final_fits_name)
         print('Info: move output FITS file to {}'.format(final_fits_path))
         move(pima_fits_path, final_fits_path)
+        pypima.fits_to_txt(final_fits_path)
 
 
 def main():

@@ -47,7 +47,7 @@ class Pima(object):
         """Read cnt-file and update cnt_params dictionary"""
         with open(self.cnt_file_name, 'r') as cnt_file:
             for line in cnt_file:
-                line = line.split('#')[0]
+                line = line.split('#')[0].strip()
                 if len(line) < 8:
                     continue
                 key, val = line.split()
@@ -116,7 +116,7 @@ class Pima(object):
         auxiliary_files = glob.glob('{}/{}*'.format(
                                     self.cnt_params['EXPER_DIR:'],
                                     self.cnt_params['SESS_CODE:']))
-        print('DEBUG: auxiliary_files = {}'.format(auxiliary_files))
+#        print('DEBUG: auxiliary_files = {}'.format(auxiliary_files))
         for aux_file in auxiliary_files:
             if os.path.isfile(aux_file):
                 os.remove(aux_file)
@@ -251,3 +251,12 @@ class Pima(object):
                     ap_max = float(line.split()[3])
 
         return ap_min, ap_max
+
+
+def fits_to_txt(fits_file):
+    """Dump visibilites from 'fits_file' using fits_to_radplot utility"""
+    txt_file = fits_file.replace('.fits', '.txt')
+    cmd_line = ['fits_to_radplot', '-o', txt_file, fits_file]
+    out = subprocess.check_output(cmd_line, universal_newlines=True)
+
+    return out
