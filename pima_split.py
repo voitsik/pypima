@@ -68,7 +68,7 @@ data')
         ivs_name, j2000_name, b1950_name = source_names(source, so_names_file)
 
     if nocl:
-        pima_opts.extend(['PIMAVAR_SPLT_SUB_SRT', 'YES'])
+        pima_opts.extend(['PIMAVAR_SPLT_SUB_SRT:', 'YES'])
 
     pima_opts.extend(['SPLT.WEIGHT_TYPE:', 'RMS'])
     pima.split(tim_mseg=mseg, params=pima_opts)
@@ -86,8 +86,9 @@ data')
                 pima_fits_path))
             return
 
-        final_fits_name = '{}_{}_{}_{}s_uva.fits'.format(b1950_name,
-                          params['SESS_CODE:'], params['POLAR:'], int(aver))
+        final_fits_name = '{}_{}_{}_{}_{}s_uva.fits'.format(b1950_name,
+                          pima.exper, pima.band.upper(), params['POLAR:'],
+                          int(aver))
         if nocl:
             final_fits_name = final_fits_name.replace('_uva', '_noclosure_uva')
         final_fits_path = '{}/{}/{}'.format(out_dir, b1950_name,
