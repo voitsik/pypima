@@ -8,7 +8,7 @@ Created on Mon Jan 20 15:21:54 2014
 
 import os
 #import sys
-from shutil import copy2
+from shutil import move
 import pima as pypima
 from optparse import OptionParser
 
@@ -28,10 +28,12 @@ def source_names(name, source_names_file):
 
 
 def pima_split(pima, aver=0.0, nocl=False, source=None, polar=None,
-               pima_opts=None):
+               _pima_opts=None):
     """PIMA SPLIT: do not averaging if aver is None"""
-    if pima_opts is None:
-        pima_opts = []
+    pima_opts = []
+    if _pima_opts is not None:
+        pima_opts.extend(_pima_opts)
+
     ap_min, ap_max = pima.ap_minmax()
     if ap_min != ap_max:
         print('Warning: different accummulation periods during \
@@ -44,14 +46,21 @@ def pima_split(pima, aver=0.0, nocl=False, source=None, polar=None,
 
     if polar:
         if polar != pima.cnt_params['POLAR:']:
+            print('Info: Polarization differs from previous one: recalibrate \
+data')
             pima.update_cnt({'POLAR:': polar, 'SPLT.POLAR:': polar})
             try:
-                pima.load()
+#                pima.load()
                 pima.coarse()
                 pima.bpas()
                 pima.fine()
+#                antab_file = '{}/{}{}.antab'.format(pima.work_dir, pima.exper,
+#                             pima.band)
+#                pima.load_gains(antab_file)
+#                pima.load_tsys(antab_file)
             except Exception as ex:
                 print('PIMA Error: {}'.format(ex))
+                return
 
     if source:
         pima_opts.extend(['SPLT.SOU_NAME:', source])
@@ -83,7 +92,8 @@ def pima_split(pima, aver=0.0, nocl=False, source=None, polar=None,
             final_fits_name = final_fits_name.replace('_uva', '_noclosure_uva')
         final_fits_path = '{}/{}/{}'.format(out_dir, b1950_name,
                           final_fits_name)
-        copy2(pima_fits_path, final_fits_path)
+        print('Info: move output FITS file to {}'.format(final_fits_path))
+        move(pima_fits_path, final_fits_path)
 
 
 def main():
