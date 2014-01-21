@@ -37,6 +37,20 @@ class Pima(object):
             raise Exception('Could not find control file \
                 {}'.format(self.cnt_file_name))
 
+        # Dictionary with all parameters from cnt-file
+        self.cnt_params = {}
+        self._update_cnt_params()
+
+    def _update_cnt_params(self):
+        """Read cnt-file and update cnt_params dictionary"""
+        with open(self.cnt_file_name, 'r') as cnt_file:
+            for line in cnt_file:
+                line = line.split('#')[0]
+                if len(line) < 8:
+                    continue
+                key, val = line.split()
+                self.cnt_params[key] = val
+
     def update_cnt(self, opts):
         """Update pima cnt-file according 'opts' dictionary"""
         if opts is None:
@@ -57,6 +71,7 @@ class Pima(object):
         old_cnt.close()
         new_cnt.close()
         os.rename(self.cnt_file_name + '.new', self.cnt_file_name)
+        self._update_cnt_params()
 
     def get_cnt_params(self, opts):
         """Get parameters name list 'opts' and return dictionary"""
@@ -151,7 +166,25 @@ class Pima(object):
 
     def bpas(self, params=None):
         """Do bandpass calibration"""
-        pass
+        fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
+                   self.band)
+        log_file = '{}/{}_{}_bps.log'.format(self.work_dir, self.exper,
+                   self.band)
+        exc_obs_file = '{}/{}_{}_bpas_obs.exc'.format(self.work_dir,
+                       self.exper, self.band)
+
+        opts = ['FRINGE_FILE:', fri_file,
+                'DEBUG_LEVEL:', '3']
+
+        if os.path.isfile(exc_obs_file):
+            opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
+
+        if self.cnt_params['POLAR:'] in ['I', 'RPL']:
+            opts.extend(['POLAR:', 'RR'])
+
+        ret = self._exec('bpas', opts, log_file)
+        if ret:
+            raise Exception('bpas failed with code {}'.format(ret))
 
     def split(self, tim_mseg=1, params=None):
         """Do SPLIT"""
