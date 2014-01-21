@@ -27,9 +27,11 @@ def source_names(name, source_names_file):
           source_names_file))
 
 
-def pima_split(pima, aver=0.0, nocl=False, source=None, pima_opts=[]):
+def pima_split(pima, aver=0.0, nocl=False, source=None, polar=None,
+               pima_opts=None):
     """PIMA SPLIT: do not averaging if aver is None"""
-
+    if pima_opts is None:
+        pima_opts = []
     ap_min, ap_max = pima.ap_minmax()
     if ap_min != ap_max:
         print('Warning: different accummulation periods during \
@@ -39,6 +41,17 @@ def pima_split(pima, aver=0.0, nocl=False, source=None, pima_opts=[]):
         mseg = int(aver / ap_min)
     else:
         aver = ap_min
+
+    if polar:
+        if polar != pima.cnt_params['POLAR:']:
+            pima.update_cnt({'POLAR:': polar, 'SPLT.POLAR:': polar})
+            try:
+                pima.load()
+                pima.coarse()
+                pima.bpas()
+                pima.fine()
+            except Exception as ex:
+                print('PIMA Error: {}'.format(ex))
 
     if source:
         pima_opts.extend(['SPLT.SOU_NAME:', source])
@@ -96,6 +109,12 @@ def main():
                       default='',
                       help='Source name (by default ALL)')
 
+    parser.add_option("-p", "--polar", action="store",
+                      dest="polar",
+                      metavar='POL',
+                      default='',
+                      help='Polarization')
+
     opts, args = parser.parse_args()
 
     if len(args) < 2:
@@ -106,6 +125,11 @@ def main():
     noclosure = opts.noclosure
     pima_opts = opts.pima_opts.split()
     source = opts.source
+    polar = opts.polar
+
+    if len(pima_opts) % 2:
+        print('Error: The number of pima arguments should be even, but you \
+               specified {}'.format(len(pima_opts)))
 
     exp_dir = os.getenv('pima_exp_dir')
     work_dir = '{}/{}'.format(exp_dir, exper)
@@ -118,7 +142,7 @@ def main():
         aver_list = args[2].split(',')
 
     for aver in aver_list:
-        pima_split(pim, float(aver), noclosure, source, pima_opts)
+        pima_split(pim, float(aver), noclosure, source, polar, pima_opts)
 
 if __name__ == "__main__":
     main()
