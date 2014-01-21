@@ -255,6 +255,9 @@ class Pima(object):
 
 def fits_to_txt(fits_file):
     """Dump visibilites from 'fits_file' using fits_to_radplot utility"""
+    if not os.path.isfile(fits_file):
+        raise IOError(2, 'No such file: {}'.format(fits_file))
+
     txt_file = fits_file.replace('.fits', '.txt')
     cmd_line = ['fits_to_radplot', '-o', txt_file, fits_file]
     out = subprocess.check_output(cmd_line, universal_newlines=True)
