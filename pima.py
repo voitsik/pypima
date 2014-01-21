@@ -7,7 +7,9 @@ Created on Tue Dec 10 17:21:29 2013
 """
 
 import datetime
+import glob
 import os.path
+import shutil
 import subprocess
 
 
@@ -110,6 +112,17 @@ class Pima(object):
 
     def load(self):
         """Run pima load"""
+        # Delete existing PIMA auxiliary files
+        auxiliary_files = glob.glob('{}/{}*'.format(
+                                    self.cnt_params['EXPER_DIR:'],
+                                    self.cnt_params['SESS_CODE:']))
+        print('DEBUG: auxiliary_files = {}'.format(auxiliary_files))
+        for aux_file in auxiliary_files:
+            if os.path.isfile(aux_file):
+                os.remove(aux_file)
+            elif os.path.isdir(aux_file):
+                shutil.rmtree(aux_file)
+
         log_name = self.exper + '_' + self.band + '_load.log'
         opts = ['BANDPASS_FILE:', 'NO',
                 'POLARCAL_FILE:', 'NO']
@@ -195,6 +208,32 @@ class Pima(object):
 
         if ret:
             raise Exception('splt failed with code {}'.format(ret))
+
+    def load_gains(self, gain_file, params=None):
+        """Load Gains from gain_file"""
+        opts = ['evn_gain', gain_file, 'DEBUG_LEVEL:', '6']
+        if params:
+            opts.extend(params)
+
+        log_file = '{}/{}_{}_gain.log'.format(self.work_dir, self.exper,
+                   self.band)
+
+        ret = self._exec('gean', opts, log_file)
+        if ret:
+            raise Exception('evn_gain failed with code {}'.format(ret))
+
+    def load_tsys(self, tsys_file, params=None):
+        """Load Tsys from tsys_file"""
+        opts = ['vlba_log_file', tsys_file, 'DEBUG_LEVEL:', '1']
+        if params:
+            opts.extend(params)
+
+        log_file = '{}/{}_{}_tsys.log'.format(self.work_dir, self.exper,
+                   self.band)
+
+        ret = self._exec('gean', opts, log_file)
+        if ret:
+            raise Exception('vlba_log_file failed with code {}'.format(ret))
 
     # Additional useful utilites
     def ap_minmax(self):
