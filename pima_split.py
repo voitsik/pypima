@@ -91,8 +91,10 @@ data')
                           int(aver))
         if nocl:
             final_fits_name = final_fits_name.replace('_uva', '_noclosure_uva')
-        final_fits_path = '{}/{}/{}'.format(out_dir, b1950_name,
-                          final_fits_name)
+        final_fits_dir = '{}/{}'.format(out_dir, b1950_name)
+        if not os.path.isdir(final_fits_dir):
+            os.mkdir(final_fits_dir)
+        final_fits_path = '{}/{}'.format(final_fits_dir, final_fits_name)
         print('Info: move output FITS file to {}'.format(final_fits_path))
         move(pima_fits_path, final_fits_path)
         pypima.fits_to_txt(final_fits_path)
