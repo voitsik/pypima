@@ -67,7 +67,7 @@ class Pima(object):
                 line = '{:<20}{}\n'.format(key, opts[key])
             elif line.startswith('# Last update on'):
                 line = '# Last update on  \
-                    {}\n'.format(str(datetime.datetime.now()))
+{}\n'.format(str(datetime.datetime.now()))
             new_cnt.write(line)
 
         old_cnt.close()
@@ -94,7 +94,7 @@ class Pima(object):
         cmd_line = [self.pima_exec, self.cnt_file_name, operation]
         if options:
             cmd_line.extend(options)
-        print('DEBUG: cmd_line = {}'.format(cmd_line))
+#        print('DEBUG: cmd_line = {}'.format(cmd_line))
 
         if log_name is None:
             log_name = self.exper + '_' + self.band + '_' + operation + '.log'
@@ -129,6 +129,7 @@ class Pima(object):
         ret = self._exec('load', log_name=log_name, options=opts)
         if ret:
             raise Exception('load failed with code {}'.format(ret))
+        print('Info: {}({}) load ok'.format(self.exper, self.band))
 
     def coarse(self, params=None):
         """Do coarse fringe fitting"""
@@ -159,6 +160,7 @@ class Pima(object):
         ret = self._exec('frib', opts, log_name)
         if ret:
             raise Exception('coarse failed with code {}'.format(ret))
+        print('Info: {}({}) coarse ok'.format(self.exper, self.band))
 
     def fine(self, params=None):
         """Do file fringe fitting"""
@@ -176,6 +178,7 @@ class Pima(object):
         ret = self._exec('frib', params, log_name=log_name)
         if ret:
             raise Exception('fine failed with code {}'.format(ret))
+        print('Info: {}({}) fine ok'.format(self.exper, self.band))
 
     def bpas(self, params=None):
         """Do bandpass calibration"""
@@ -185,6 +188,11 @@ class Pima(object):
                    self.band)
         exc_obs_file = '{}/{}_{}_bpas_obs.exc'.format(self.work_dir,
                        self.exper, self.band)
+
+        if self.cnt_params['BANDPASS_FILE:'] == 'NO':
+            bps_file = '{}/{}_{}.bps'.format(self.work_dir, self.exper,
+                       self.band)
+            self.update_cnt({'BANDPASS_FILE:': bps_file})
 
         opts = ['FRINGE_FILE:', fri_file,
                 'DEBUG_LEVEL:', '3']
@@ -198,6 +206,7 @@ class Pima(object):
         ret = self._exec('bpas', opts, log_file)
         if ret:
             raise Exception('bpas failed with code {}'.format(ret))
+        print('Info: {}({}) bpas ok'.format(self.exper, self.band))
 
     def split(self, tim_mseg=1, params=None):
         """Do SPLIT"""
@@ -208,6 +217,7 @@ class Pima(object):
 
         if ret:
             raise Exception('splt failed with code {}'.format(ret))
+        print('Info: {}({}) split ok'.format(self.exper, self.band))
 
     def load_gains(self, gain_file, params=None):
         """Load Gains from gain_file"""
@@ -238,10 +248,9 @@ class Pima(object):
     # Additional useful utilites
     def ap_minmax(self):
         """Get minimum accummulation period in experiment"""
-        params = self.get_cnt_params(['EXPER_DIR:', 'SESS_CODE:'])
 
-        stt_file = '{}/{}.stt'.format(params['EXPER_DIR:'],
-                   params['SESS_CODE:'])
+        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
+                   self.cnt_params['SESS_CODE:'])
 
         with open(stt_file, 'r') as f:
             for line in f:
@@ -251,6 +260,19 @@ class Pima(object):
                     ap_max = float(line.split()[3])
 
         return ap_min, ap_max
+
+    def sta_list(self):
+        """Get station list"""
+        sta_file = '{}/{}.sta'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+
+        sta_l = []
+        with open(sta_file, 'r') as f:
+            for line in f:
+                toks = line.split()
+                sta_l.append(toks[3])
+
+        return sta_l
 
 
 def fits_to_txt(fits_file):
