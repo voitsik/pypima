@@ -294,14 +294,18 @@ class RaExperiment(object):
                 try:
                     print('Info: Start downloading file {}'.format(antab_url))
                     self.antab, _ = urllib.request.urlretrieve(antab_url,
-                        filename=self.antab)
+                                    filename=self.antab)
                 except urllib.error.URLError as ex:
-                    print('Warning: could not download file: {}'.format(
-                        ex.reason))
+                    print('Warning: could not download file {}: {}'.format(
+                        antab_url, ex.reason))
 #            print('DEBUG: antab -> {}'.format(self.antab))
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
         self.pima.load()
+        if self.pima.obs_number() == 0:
+            raise Exception('Error: ZERO observations loaded')
+        if not 'RADIO-AS' in self.pima.sta_list():
+            raise Exception('Error: there is no RA in station list')
 
     def fringe_fitting(self, bandpass=False):
         """Do fringe fitting"""

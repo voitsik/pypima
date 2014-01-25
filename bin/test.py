@@ -8,6 +8,7 @@ Created on Fri Dec 13 17:50:20 2013
 
 import sys
 sys.path.insert(0, '/home/voitsik/prog/pypima')
+import pypima.pima
 from pypima.raexperiment import RaExperiment
 
 if len(sys.argv) != 3:
@@ -15,11 +16,14 @@ if len(sys.argv) != 3:
     sys.exit(1)
 
 try:
-    RaExperiment(sys.argv[1], sys.argv[2])
+    p = RaExperiment(sys.argv[1], sys.argv[2])
     p.load()
     #print(p.pima.sta_list())
     p.fringe_fitting(True)
     p.fringes2db()
+except pypima.pima.Error as err:
+    print('PIMA Error: {}'.format(err))
+    sys.exit(1)
 except Exception as ex:
     print('Exception: {}'.format(ex))
-    sys.exit(1)
+    sys.exit(2)

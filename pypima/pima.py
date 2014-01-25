@@ -13,6 +13,17 @@ import shutil
 import subprocess
 
 
+class Error(Exception):
+    """Raised when PIMA error occurs"""
+    def __init__(self, exper, band, msg):
+        self.exper = exper
+        self.band = band
+        self.msg = msg
+
+    def __str__(self):
+        return '{}({}): {}'.format(self.exper, self.band, self.msg)
+
+
 class Pima(object):
     """Pima class is analog of pima_fringe.csh script"""
     def __init__(self, experiment_code, band, work_dir=None):
@@ -25,19 +36,20 @@ class Pima(object):
 
         self.pima_dir = os.getenv('PIMA_DIR')
         if not os.path.isdir(self.pima_dir):
-            raise Exception('Could not find PIMA directory. \
-                Please, set $PIMA_DIR environment variable.')
+            raise Error(self.exper, self.band, 'Could not find PIMA directory.\
+ Please, set $PIMA_DIR environment variable.')
         self.pima_exec = self.pima_dir + '/bin/pima'
         if not os.path.isfile(self.pima_exec):
-            raise Exception('Could not find pima executable')
+            raise Error(self.exper, self.band, 'Could not find pima \
+executable')
 
         # PIMA control file path
         self.cnt_file_name = '{}/{}_{}_pima.cnt'.format(self.work_dir,
                              self.exper, self.band)
 
         if not os.path.isfile(self.cnt_file_name):
-            raise Exception('Could not find control file \
-                {}'.format(self.cnt_file_name))
+            raise Error(self.exper, self.band, 'Could not find control file \
+{}'.format(self.cnt_file_name))
 
         # Dictionary with all parameters from cnt-file
         self.cnt_params = {}
@@ -110,6 +122,14 @@ class Pima(object):
 
         return ret
 
+    def _print_info(self, msg):
+        """Print some information"""
+        print('Info: {}({}): {}'.format(self.exper, self.band, msg))
+
+    def _error(self, msg):
+        """Raise pima.Error exception"""
+        raise Error(self.exper, self.band, msg)
+
     def load(self):
         """Run pima load"""
         # Delete existing PIMA auxiliary files
@@ -128,8 +148,9 @@ class Pima(object):
                 'POLARCAL_FILE:', 'NO']
         ret = self._exec('load', log_name=log_name, options=opts)
         if ret:
-            raise Exception('load failed with code {}'.format(ret))
-        print('Info: {}({}) load ok'.format(self.exper, self.band))
+            self._error('load failed with code {}'.format(ret))
+
+        self._print_info('load ok')
 
     def coarse(self, params=None):
         """Do coarse fringe fitting"""
@@ -159,8 +180,9 @@ class Pima(object):
             opts.extend(params)
         ret = self._exec('frib', opts, log_name)
         if ret:
-            raise Exception('coarse failed with code {}'.format(ret))
-        print('Info: {}({}) coarse ok'.format(self.exper, self.band))
+            self._error('coarse failed with code {}'.format(ret))
+
+        self._print_info('coarse ok')
 
     def fine(self, params=None):
         """Do file fringe fitting"""
@@ -177,8 +199,9 @@ class Pima(object):
                          'FRIRES_FILE:': frr_file})
         ret = self._exec('frib', params, log_name=log_name)
         if ret:
-            raise Exception('fine failed with code {}'.format(ret))
-        print('Info: {}({}) fine ok'.format(self.exper, self.band))
+            self._error('fine failed with code {}'.format(ret))
+
+        self._print_info('fine ok')
 
     def bpas(self, params=None):
         """Do bandpass calibration"""
@@ -205,8 +228,9 @@ class Pima(object):
 
         ret = self._exec('bpas', opts, log_file)
         if ret:
-            raise Exception('bpas failed with code {}'.format(ret))
-        print('Info: {}({}) bpas ok'.format(self.exper, self.band))
+            self._error('bpas failed with code {}'.format(ret))
+
+        self._print_info('bpas ok')
 
     def split(self, tim_mseg=1, params=None):
         """Do SPLIT"""
@@ -216,8 +240,9 @@ class Pima(object):
         ret = self._exec('splt', opts)
 
         if ret:
-            raise Exception('splt failed with code {}'.format(ret))
-        print('Info: {}({}) split ok'.format(self.exper, self.band))
+            self._error('splt failed with code {}'.format(ret))
+
+        self._print_info('split ok')
 
     def load_gains(self, gain_file, params=None):
         """Load Gains from gain_file"""
@@ -230,7 +255,7 @@ class Pima(object):
 
         ret = self._exec('gean', opts, log_file)
         if ret:
-            raise Exception('evn_gain failed with code {}'.format(ret))
+            self._error('evn_gain failed with code {}'.format(ret))
 
     def load_tsys(self, tsys_file, params=None):
         """Load Tsys from tsys_file"""
@@ -243,21 +268,22 @@ class Pima(object):
 
         ret = self._exec('gean', opts, log_file)
         if ret:
-            raise Exception('vlba_log_file failed with code {}'.format(ret))
+            self._error('vlba_log_file failed with code {}'.format(ret))
 
     # Additional useful utilites
     def ap_minmax(self):
         """Get minimum accummulation period in experiment"""
-
+        ap_min = ap_max = 0
         stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
                    self.cnt_params['SESS_CODE:'])
 
-        with open(stt_file, 'r') as f:
-            for line in f:
-                if line.startswith('Accummulation period length_min'):
-                    ap_min = float(line.split()[3])
-                elif line.startswith('Accummulation period length_max'):
-                    ap_max = float(line.split()[3])
+        if os.path.isfile(stt_file):
+            with open(stt_file, 'r') as f:
+                for line in f:
+                    if line.startswith('Accummulation period length_min'):
+                        ap_min = float(line.split()[3])
+                    elif line.startswith('Accummulation period length_max'):
+                        ap_max = float(line.split()[3])
 
         return ap_min, ap_max
 
@@ -267,12 +293,28 @@ class Pima(object):
                                       self.cnt_params['SESS_CODE:'])
 
         sta_l = []
-        with open(sta_file, 'r') as f:
-            for line in f:
-                toks = line.split()
-                sta_l.append(toks[3])
+        if os.path.isfile(sta_file):
+            with open(sta_file, 'r') as f:
+                for line in f:
+                    toks = line.split()
+                    sta_l.append(toks[3])
 
         return sta_l
+
+    def obs_number(self):
+        """Get number of observation in experiment"""
+        num = 0
+        obs_file = '{}/{}.obs'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+
+        if os.path.isfile(obs_file):
+            with open(obs_file, 'r') as fil:
+                for line in fil:
+                    if line.startswith('#'):
+                        continue
+                    num = num + 1
+
+        return num
 
 
 def fits_to_txt(fits_file):
