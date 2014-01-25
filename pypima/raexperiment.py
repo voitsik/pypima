@@ -11,8 +11,8 @@ import os.path
 import psycopg2
 #import re
 import urllib.request
-import fri
-import pima
+from pypima.fri import Fri
+from pypima.pima import Pima
 
 
 class DB:
@@ -195,7 +195,7 @@ class RaExperiment(object):
 
         self._mk_cnt()
 
-        self.pima = pima.Pima(self.exper, self.band, self.work_dir)
+        self.pima = Pima(self.exper, self.band, self.work_dir)
 
     def _mk_cnt(self):
         """Make new cnt-file from template"""
@@ -354,4 +354,4 @@ bandpass calibration')
         if not os.path.isfile(fri_file):
             return
 
-        self.db.fri2db(fri.Fri(fri_file))
+        self.db.fri2db(Fri(fri_file))
