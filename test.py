@@ -18,6 +18,7 @@ try:
     p.load()
     #print(p.pima.sta_list())
     p.fringe_fitting(True)
+    p.fringes2db()
 except Exception as ex:
     print('Exception: {}'.format(ex))
     sys.exit(1)
