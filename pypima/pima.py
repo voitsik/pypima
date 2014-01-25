@@ -287,6 +287,19 @@ executable')
 
         return ap_min, ap_max
 
+    def number_of_deselected_points(self):
+        """Total number of deselected points"""
+        num = 9999999
+        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+        if os.path.isfile(stt_file):
+            with open(stt_file, 'r') as fil:
+                for line in fil:
+                    if line.startswith('Total number of deselected points:'):
+                        num = int(line.split(':')[1])
+
+        return num
+
     def sta_list(self):
         """Get station list"""
         sta_file = '{}/{}.sta'.format(self.cnt_params['EXPER_DIR:'],

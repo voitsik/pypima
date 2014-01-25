@@ -306,6 +306,9 @@ class RaExperiment(object):
             raise Exception('Error: ZERO observations loaded')
         if not 'RADIO-AS' in self.pima.sta_list():
             raise Exception('Error: there is no RA in station list')
+        desel_nam = self.pima.number_of_deselected_points()
+        if desel_nam > 10:
+            print('Warning: Total number of deselected points is ', desel_nam)
 
     def fringe_fitting(self, bandpass=False):
         """Do fringe fitting"""
@@ -331,18 +334,21 @@ class RaExperiment(object):
                     elif sta2 == 'RADIO-AS':
                         snrs.append((float(snr), sta1))
 
+            if len(snrs) == 0:
+                raise Exception('Error: could not select reference station: \
+List of RADIO-AS observations is empty')
+
             self.sta_ref = sorted(snrs, reverse=True)[0][1]
             max_snr = sorted(snrs, reverse=True)[0][0]
             snr = max(5.5, min(10.0, max_snr-0.1))
 
-            if not self.sta_ref:
-                raise Exception('Error: could not select reference station')
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
                                   'BPS.SNR_MIN_FINE:': str(snr)})
 
-            print('Info: new reference station is {}'.format(self.sta_ref))
-            print('Info: set SNR_MIN to {:.1f}'.format(snr))
+            self.pima._print_info('new reference station is {}'.format(
+                self.sta_ref))
+            self.pima._print_info('set SNR_MIN to {:.1f}'.format(snr))
 
             if max_snr < 5.5:
                 print('Warning: SNR on space baselines is too low for \
