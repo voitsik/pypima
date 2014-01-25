@@ -9,9 +9,9 @@ import datetime
 import netrc
 import os.path
 import psycopg2
-import re
+#import re
 import urllib.request
-
+import fri
 import pima
 
 
@@ -20,7 +20,9 @@ class DB:
     def __init__(self):
         self.conn = psycopg2.connect(database='ra_results', user='guest',
                                      host='odin', password='tufJoorit3')
-        self.conn.autocommit = True
+        self.connw = psycopg2.connect(database='ra_results', user='editor',
+                                      host='odin', password='BoldautJo')
+#        self.conn.autocommit = True
 
         nrc = netrc.netrc()
         self.web_login = nrc.authenticators('webinet.asc.rssi.ru')[0]
@@ -36,7 +38,7 @@ class DB:
 
         with self.conn.cursor() as cursor:
             cursor.execute('SELECT path FROM fits_files WHERE exper_name = %s \
-                            AND band = %s ORDER BY corr_date DESC;',
+AND band = %s ORDER BY corr_date DESC, path DESC;',
                           (exper_name, band.upper()))
             path = cursor.fetchone()
 
@@ -84,6 +86,56 @@ ampcal'.format(self.web_login, self.web_passw)
                   exper, band)
 
         return url
+
+    def _check_and_delete(self, exper, band, polar):
+        with self.connw.cursor() as cursor:
+            cursor.execute("SELECT * FROM pima_observations WHERE \
+exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
+            test = cursor.fetchone()
+            if test:
+                cursor.execute("DELETE FROM pima_observations WHERE \
+exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
+
+    def fri2db(self, fri_file):
+        exper, band = fri_file[0]['session_code'].split('_')
+        band = band.upper()
+        polar = fri_file[0]['polar']
+
+#        self.connw.autocommit = False
+
+        self._check_and_delete(exper, band, polar)
+
+        cur = self.connw.cursor()
+        print(fri_file)
+
+        for rec in fri_file:
+            obs = rec['obs']
+            start_time = rec['start_time']
+            stop_time = rec['stop_time']
+        #        exper, band = rec['session_code'].split('_')
+            source = rec['source']
+            sta1 = rec['sta1']
+            sta2 = rec['sta2']
+            snr = rec['SNR']
+            delay = rec['delay']
+            rate = rec['rate']
+            accel = rec['accel']
+            ampl = rec['ampl_lsq']
+            dur = rec['duration']
+            u = rec['U']
+            v = rec['V']
+            uv_rad_ed = rec['uv_rad_ed']
+            freq = rec['ref_freq']
+
+            query = "INSERT INTO pima_observations (obs, start_time, \
+stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
+snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
+%s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+            cur.execute(query, (obs, start_time, stop_time, exper,  band,
+                                source, polar, sta1, sta2, delay, rate, accel,
+                                snr, ampl, dur, u, v, uv_rad_ed, freq))
+        self.connw.commit()
+        cur.close()
 
 
 class RaExperiment(object):
@@ -247,7 +299,8 @@ class RaExperiment(object):
                     print('Warning: could not download file: {}'.format(
                         ex.reason))
 #            print('DEBUG: antab -> {}'.format(self.antab))
-
+        if self.band == 'p':
+            self.pima.update_cnt({'END_FRQ:': '1'})
         self.pima.load()
 
     def fringe_fitting(self, bandpass=False):
@@ -294,3 +347,11 @@ bandpass calibration')
                 self.pima.bpas()
 
         self.pima.fine()
+
+    def fringes2db(self):
+        """Put fringes information to DB"""
+        fri_file = self.pima.cnt_params['FRINGE_FILE:']
+        if not os.path.isfile(fri_file):
+            return
+
+        self.db.fri2db(fri.Fri(fri_file))
