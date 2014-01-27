@@ -62,7 +62,7 @@ executable')
                 line = line.split('#')[0].strip()
                 if len(line) < 8:
                     continue
-                key, val = line.split()
+                key, val = line.split(None, 1)
                 self.cnt_params[key] = val
 
     def update_cnt(self, opts):
@@ -271,6 +271,14 @@ executable')
             self._error('vlba_log_file failed with code {}'.format(ret))
 
     # Additional useful utilites
+    def set_polar(self, polar):
+        """Set polarization"""
+        if polar not in ['RR', 'RL', 'LR', 'LL', 'I']:
+            self._error('Wrong polarization: ', polar)
+
+        self._print_info('Set polarization to ' + polar)
+        self.update_cnt(({'POLAR:': polar, 'SPLT.POLAR:': polar}))
+
     def ap_minmax(self):
         """Get minimum accummulation period in experiment"""
         ap_min = ap_max = 0

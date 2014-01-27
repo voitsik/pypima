@@ -15,6 +15,17 @@ from pypima.fri import Fri
 from pypima.pima import Pima
 
 
+class Error(Exception):
+    """Raised when RaExperiment error occurs"""
+    def __init__(self, exper, band, msg):
+        self.exper = exper
+        self.band = band
+        self.msg = msg
+
+    def __str__(self):
+        return '{}({}): {}'.format(self.exper, self.band, self.msg)
+
+
 class DB:
     """Interface to ra_results DataBase"""
     def __init__(self):
@@ -22,7 +33,7 @@ class DB:
                                      host='odin', password='tufJoorit3')
         self.connw = psycopg2.connect(database='ra_results', user='editor',
                                       host='odin', password='BoldautJo')
-#        self.conn.autocommit = True
+        self.conn.autocommit = True
 
         nrc = netrc.netrc()
         self.web_login = nrc.authenticators('webinet.asc.rssi.ru')[0]
@@ -88,6 +99,7 @@ ampcal'.format(self.web_login, self.web_passw)
         return url
 
     def _check_and_delete(self, exper, band, polar):
+        """Delete records if exists"""
         with self.connw.cursor() as cursor:
             cursor.execute("SELECT * FROM pima_observations WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
@@ -101,41 +113,38 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         band = band.upper()
         polar = fri_file[0]['polar']
 
-#        self.connw.autocommit = False
-
         self._check_and_delete(exper, band, polar)
 
-        cur = self.connw.cursor()
         print(fri_file)
+        with self.connw.cursor() as cur:
+            for rec in fri_file:
+                obs = rec['obs']
+                start_time = rec['start_time']
+                stop_time = rec['stop_time']
+            #        exper, band = rec['session_code'].split('_')
+                source = rec['source']
+                sta1 = rec['sta1']
+                sta2 = rec['sta2']
+                snr = rec['SNR']
+                delay = rec['delay']
+                rate = rec['rate']
+                accel = rec['accel']
+                ampl = rec['ampl_lsq']
+                dur = rec['duration']
+                u = rec['U']
+                v = rec['V']
+                uv_rad_ed = rec['uv_rad_ed']
+                freq = rec['ref_freq']
 
-        for rec in fri_file:
-            obs = rec['obs']
-            start_time = rec['start_time']
-            stop_time = rec['stop_time']
-        #        exper, band = rec['session_code'].split('_')
-            source = rec['source']
-            sta1 = rec['sta1']
-            sta2 = rec['sta2']
-            snr = rec['SNR']
-            delay = rec['delay']
-            rate = rec['rate']
-            accel = rec['accel']
-            ampl = rec['ampl_lsq']
-            dur = rec['duration']
-            u = rec['U']
-            v = rec['V']
-            uv_rad_ed = rec['uv_rad_ed']
-            freq = rec['ref_freq']
-
-            query = "INSERT INTO pima_observations (obs, start_time, \
+                query = "INSERT INTO pima_observations (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
 snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
 %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-            cur.execute(query, (obs, start_time, stop_time, exper,  band,
-                                source, polar, sta1, sta2, delay, rate, accel,
-                                snr, ampl, dur, u, v, uv_rad_ed, freq))
+                cur.execute(query, (obs, start_time, stop_time, exper,  band,
+                                    source, polar, sta1, sta2, delay, rate,
+                                    accel, snr, ampl, dur, u, v, uv_rad_ed,
+                                    freq))
         self.connw.commit()
-        cur.close()
 
 
 class RaExperiment(object):
@@ -151,17 +160,17 @@ class RaExperiment(object):
             self.sta_ref = 'RADIO-AS'
 
         if not self.band in ['p', 'l', 'c', 'k']:
-            raise Exception('Error: unknown band {}'.format(band))
+            self._error('unknown band {}'.format(band))
 
         self.pima_dir = os.getenv('PIMA_DIR')
         self.exp_dir = os.getenv('pima_exp_dir')
         if not self.exp_dir:
-            raise Exception("Environment variable $pima_exp_dir is not set")
+            self._error("Environment variable $pima_exp_dir is not set")
 
         self.pima_scr = os.getenv('pima_scr_dir')
 
         # Create working directory and symlink
-        work_dir = self.exp_dir + '/' + self.exper + '_auto'
+        work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
         if not os.path.exists(work_dir):
             os.mkdir(work_dir)
 
@@ -177,14 +186,14 @@ class RaExperiment(object):
         os.chdir(self.work_dir)
 
         # Make directory for antabs
-        antab_dir = self.work_dir + '/antab'
+        antab_dir = os.path.join(self.work_dir, 'antab')
         if not os.path.exists(antab_dir):
             os.mkdir(antab_dir)
-        self.antab = antab_dir + '/' + self.exper + self.band + '.antab'
+        self.antab = os.path.join(antab_dir, self.exper + self.band + '.antab')
 
         # PIMA control file path
-        self.cnt_file_name = self.work_dir + '/' + \
-            self.exper + '_' + self.band + '_' + 'pima.cnt'
+        self.cnt_file_name = os.path.join(self.work_dir, '{}_{}_pima.cnt'.
+                                          format(self.exper, self.band))
 
         # Prepare data paths
         self.uv_fits = uv_fits
@@ -199,8 +208,9 @@ class RaExperiment(object):
 
     def _mk_cnt(self):
         """Make new cnt-file from template"""
-        cnt_templ_name = self.pima_dir + '/share/pima/EXPER_' + self.band + \
-            '_pima.cnt'
+        cnt_templ_name = os.path.join(self.pima_dir, 'share/pima',
+                                      'EXPER_{}_pima.cnt'.format(self.band))
+
         cnt_templ = open(cnt_templ_name, 'r')
         cnt_file = open(self.cnt_file_name, 'w')
 
@@ -235,21 +245,22 @@ class RaExperiment(object):
         data_dir = '/home/voitsik/data/VLBI/RA/ASC_results/' + self.exper
         fits_url = self.db.get_uvfits_url(self.exper, self.band)
         if not fits_url:
-            raise Exception('Error: Could not find FITS file name in DB for \
- the experiment {}({})'.format(self.exper, self.band))
+            self._error('Could not find FITS file name in DB')
 
+        # Delete spaces in filename
         self.uv_fits = '{}/{}'.format(data_dir,
-                                      os.path.basename(fits_url))
+                                      os.path.basename(fits_url).replace(
+                                          ' ', ''))
 
         if not os.path.isfile(self.uv_fits):
             if not os.path.isdir(data_dir):
                 os.mkdir(data_dir)
-            print('Info: Start downloading file {}...'.format(fits_url))
+            self._print_info('Start downloading file {}...'.format(fits_url))
             self.uv_fits, _ = urllib.request.urlretrieve(fits_url,
                                                          filename=self.uv_fits)
-            print('Info: Done')
+            self._print_info('Done')
         else:
-            print('Info: file {} already exists'.format(self.uv_fits))
+            self._print_info('file {} already exists'.format(self.uv_fits))
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
 
@@ -258,13 +269,12 @@ class RaExperiment(object):
         orbit_url = self.db.get_orbit_url(self.exper)
 
         if not orbit_url:
-            raise Exception("Can't find reconstructed orbit for experiment \
-{}".format(self.exper))
+            self._error('Could not find reconstructed orbit')
 
-        self.orbit = self.work_dir + '/' + os.path.basename(orbit_url)
+        self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
 
         if not os.path.isfile(self.orbit):
-            print('Info: Start downloading orbit file {} ...'.format(
+            self._print_info('Start downloading orbit file {} ...'.format(
                 orbit_url))
             with urllib.request.urlopen(orbit_url) as orb_request:
                 orb_data = orb_request.read().decode().replace('\r\n', '\n')
@@ -272,11 +282,23 @@ class RaExperiment(object):
                 if not orb_data.startswith('CCSDS_OEM_VERS'):
                     orb_file.write('CCSDS_OEM_VERS = 2.0\n')
                 orb_file.write(orb_data)
-            print('Info: Done.')
+            self._print_info('Done')
         else:
-            print('Info: file {} already exists'.format(self.orbit))
+            self._print_info('file {} already exists'.format(self.orbit))
 
         self.pima.update_cnt({'EPHEMERIDES_FILE:': self.orbit})
+
+    def _print_info(self, msg):
+        """Print some information"""
+        print('Info: {}({}): {}'.format(self.exper, self.band, msg))
+
+    def _print_warn(self, msg):
+        """Print warning"""
+        print('Warning: {}({}): {}'.format(self.exper, self.band, msg))
+
+    def _error(self, msg):
+        """Raise pima.Error exception"""
+        raise Error(self.exper, self.band, msg)
 
     def load(self):
         """Download data and run pima load"""
@@ -289,26 +311,28 @@ class RaExperiment(object):
         if not os.path.isfile(self.antab):
             antab_url = self.db.get_antab_url(self.exper, self.band)
             if antab_url is None:
-                print('Warning: Could not get antab file url')
+                self._print_warn('Could not get antab file url')
             else:
                 try:
-                    print('Info: Start downloading file {}'.format(antab_url))
+                    self._print_info('Start downloading file {}'.format(
+                                     antab_url))
                     self.antab, _ = urllib.request.urlretrieve(antab_url,
                                     filename=self.antab)
                 except urllib.error.URLError as ex:
-                    print('Warning: could not download file {}: {}'.format(
+                    self._print_warn('Could not download file {}: {}'.format(
                         antab_url, ex.reason))
 #            print('DEBUG: antab -> {}'.format(self.antab))
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
         self.pima.load()
         if self.pima.obs_number() == 0:
-            raise Exception('Error: ZERO observations loaded')
+            self._error('ZERO observations have been loaded')
         if not 'RADIO-AS' in self.pima.sta_list():
-            raise Exception('Error: there is no RA in station list')
+            self._error('RADIO-AS is not in station list')
         desel_nam = self.pima.number_of_deselected_points()
         if desel_nam > 10:
-            print('Warning: Total number of deselected points is ', desel_nam)
+            self._print_warn('Total number of deselected points is ' +
+                             desel_nam)
 
     def fringe_fitting(self, bandpass=False):
         """Do fringe fitting"""
@@ -319,8 +343,8 @@ class RaExperiment(object):
             coarse_log_file = '{}/{}_{}_coarse.log'.format(self.work_dir,
                               self.exper, self.band)
             snrs = []
-            with open(coarse_log_file, 'r') as f:
-                for line in f:
+            with open(coarse_log_file, 'r') as fil:
+                for line in fil:
                     if not line.startswith(
                             self.pima.cnt_params['SESS_CODE:']):
                         continue
@@ -335,7 +359,7 @@ class RaExperiment(object):
                         snrs.append((float(snr), sta1))
 
             if len(snrs) == 0:
-                raise Exception('Error: could not select reference station: \
+                self._error('Could not select reference station: \
 List of RADIO-AS observations is empty')
 
             self.sta_ref = sorted(snrs, reverse=True)[0][1]
@@ -346,12 +370,12 @@ List of RADIO-AS observations is empty')
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
                                   'BPS.SNR_MIN_FINE:': str(snr)})
 
-            self.pima._print_info('new reference station is {}'.format(
+            self._print_info('new reference station is {}'.format(
                 self.sta_ref))
-            self.pima._print_info('set SNR_MIN to {:.1f}'.format(snr))
+            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
 
             if max_snr < 5.5:
-                print('Warning: SNR on space baselines is too low for \
+                self._print_warn('SNR on space baselines is too low for \
 bandpass calibration')
             else:
                 self.pima.bpas()
@@ -365,3 +389,8 @@ bandpass calibration')
             return
 
         self.db.fri2db(Fri(fri_file))
+
+    def delete_fits(self):
+        """Delete FITS file"""
+        if os.path.isfile(self.uv_fits):
+            os.remove(self.uv_fits)
