@@ -30,9 +30,9 @@ class DB:
     """Interface to ra_results DataBase"""
     def __init__(self):
         self.conn = psycopg2.connect(database='ra_results', user='guest',
-                                     host='odin', password='tufJoorit3')
+                                     host='odin')
         self.connw = psycopg2.connect(database='ra_results', user='editor',
-                                      host='odin', password='BoldautJo')
+                                      host='odin')
         self.conn.autocommit = True
 
         nrc = netrc.netrc()
