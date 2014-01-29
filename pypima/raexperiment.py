@@ -44,20 +44,22 @@ class DB:
     def get_uvfits_url(self, exper_name, band):
         """Get FITS-file url from DB for given experiment and band"""
         url = None
+        size = 0
         url_base = 'ftp://{}:{}@archive.asc.rssi.ru'.format(self.arc_login,
                    self.arc_passw)
 
         with self.conn.cursor() as cursor:
-            cursor.execute('SELECT path FROM fits_files WHERE exper_name = %s \
-AND band = %s ORDER BY corr_date DESC, path DESC;',
+            cursor.execute('SELECT path, size FROM fits_files WHERE \
+exper_name = %s AND band = %s ORDER BY corr_date DESC, path DESC;',
                           (exper_name, band.upper()))
-            path = cursor.fetchone()
+            repl = cursor.fetchone()
 
-        if path:
-            path = path[0]
+        if repl:
+            path = repl[0]
+            size = repl[1]
             url = url_base + path
 
-        return url
+        return url, size
 
     def get_orbit_url(self, exper_name):
         """Returns orbit file url for given experiment"""
@@ -243,7 +245,7 @@ class RaExperiment(object):
     def _download_fits(self):
         """Download FITS-file from remote place"""
         data_dir = '/home/voitsik/data/VLBI/RA/ASC_results/' + self.exper
-        fits_url = self.db.get_uvfits_url(self.exper, self.band)
+        fits_url, size = self.db.get_uvfits_url(self.exper, self.band)
         if not fits_url:
             self._error('Could not find FITS file name in DB')
 
@@ -252,15 +254,16 @@ class RaExperiment(object):
                                       os.path.basename(fits_url).replace(
                                           ' ', ''))
 
-        if not os.path.isfile(self.uv_fits):
+        if os.path.isfile(self.uv_fits) and \
+                os.path.getsize(self.uv_fits) == size:
+            self._print_info('file {} already exists'.format(self.uv_fits))
+        else:
             if not os.path.isdir(data_dir):
                 os.mkdir(data_dir)
             self._print_info('Start downloading file {}...'.format(fits_url))
             self.uv_fits, _ = urllib.request.urlretrieve(fits_url,
                                                          filename=self.uv_fits)
             self._print_info('Done')
-        else:
-            self._print_info('file {} already exists'.format(self.uv_fits))
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
 
@@ -336,6 +339,11 @@ class RaExperiment(object):
 
     def fringe_fitting(self, bandpass=False):
         """Do fringe fitting"""
+        if self.pima.chan_number() > 512:
+            self._print_warn('Too many spectral channels for bandpass: {}'.
+                             format(self.pima.chan_number()))
+            bandpass = False
+
         if bandpass:
             self.pima.coarse()
 
