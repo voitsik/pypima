@@ -91,8 +91,8 @@ executable')
         """Get parameters name list 'opts' and return dictionary"""
         ret = dict()
 
-        with open(self.cnt_file_name, 'r') as f:
-            for line in f:
+        with open(self.cnt_file_name, 'r') as fil:
+            for line in fil:
                 if line.startswith('#') or len(line) < 8:
                     continue
                 key, val = line.strip().split(None, 1)
@@ -109,7 +109,8 @@ executable')
 #        print('DEBUG: cmd_line = {}'.format(cmd_line))
 
         if log_name is None:
-            log_name = self.exper + '_' + self.band + '_' + operation + '.log'
+            log_name = os.path.join(self.work_dir, '{}_{}_{}.log'.format(
+                self.exper, self.band, operation))
 
         log = open(log_name, 'w')
         log.write(str(datetime.datetime.now()) + '\n\n')
@@ -226,6 +227,9 @@ executable')
         if self.cnt_params['POLAR:'] in ['I', 'RPL']:
             opts.extend(['POLAR:', 'RR'])
 
+        if params:
+            opts.extend(params)
+
         ret = self._exec('bpas', opts, log_file)
         if ret:
             self._error('bpas failed with code {}'.format(ret))
@@ -274,7 +278,7 @@ executable')
     def set_polar(self, polar):
         """Set polarization"""
         if polar not in ['RR', 'RL', 'LR', 'LL', 'I']:
-            self._error('Wrong polarization: ', polar)
+            self._error('Wrong polarization: ' + polar)
 
         self._print_info('Set polarization to ' + polar)
         self.update_cnt(({'POLAR:': polar, 'SPLT.POLAR:': polar}))
@@ -286,8 +290,8 @@ executable')
                    self.cnt_params['SESS_CODE:'])
 
         if os.path.isfile(stt_file):
-            with open(stt_file, 'r') as f:
-                for line in f:
+            with open(stt_file, 'r') as fil:
+                for line in fil:
                     if line.startswith('Accummulation period length_min'):
                         ap_min = float(line.split()[3])
                     elif line.startswith('Accummulation period length_max'):
@@ -315,8 +319,8 @@ executable')
 
         sta_l = []
         if os.path.isfile(sta_file):
-            with open(sta_file, 'r') as f:
-                for line in f:
+            with open(sta_file, 'r') as fil:
+                for line in fil:
                     toks = line.split()
                     sta_l.append(toks[3])
 
@@ -334,6 +338,19 @@ executable')
                     if line.startswith('#'):
                         continue
                     num = num + 1
+
+        return num
+
+    def chan_number(self):
+        """Number of spectral channels"""
+        num = 0
+        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+        if os.path.isfile(stt_file):
+            with open(stt_file, 'r') as fil:
+                for line in fil:
+                    if line.startswith('Number of spectral channels:'):
+                        num = int(line.split(':')[1])
 
         return num
 
