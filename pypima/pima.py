@@ -218,7 +218,21 @@ executable')
         self._print_info('load ok')
 
     def coarse(self, params=None):
-        """Do coarse fringe fitting"""
+        """
+        Do coarse fringe fitting.
+
+        Parameters
+        ----------
+        params : list, optional
+            List of the optional parameters to pima. Must have even number of
+            the elements
+
+        Returns
+        -------
+        fri_file : str
+            Name of the fri-file
+
+        """
         log_name = '{}/{}_{}_coarse.log'.format(self.work_dir, self.exper,
                    self.band)
         fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
@@ -248,6 +262,8 @@ executable')
             self._error('coarse failed with code {}'.format(ret))
 
         self._print_info('coarse ok')
+
+        return fri_file
 
     def fine(self, params=None):
         """Do file fringe fitting"""
