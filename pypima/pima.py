@@ -6,7 +6,7 @@ Created on Tue Dec 10 17:21:29 2013
 @author: Petr Voytsik
 """
 
-import datetime
+from datetime import datetime
 import glob
 import os.path
 import shutil
@@ -22,6 +22,66 @@ class Error(Exception):
 
     def __str__(self):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
+
+
+class ExperInfo:
+    def __init__(self, stt_file=None):
+        self.sp_chann_num = None
+        self.time_epochs_num = None
+        self.scans_num = None
+        self.obs_num = None
+        self.uv_points_num = None
+        self.uv_points_used_num = None
+        self.deselected_points_num = None
+        self.no_auto_points_num = None
+        self.accum_length = None
+        self.utc_minus_tai = None
+        self.nominal_start = None
+        self.nominal_end = None
+
+        if stt_file:
+            self.update(stt_file)
+
+    def update(self, stt_file):
+        with open(stt_file, 'r') as fil:
+            for line in fil:
+                if line.startswith('Number of spectral channels:'):
+                    self.sp_chann_num = int(line.split()[4])
+                elif line.startswith('Number of time epochs:'):
+                    self.time_epochs_num = int(line.split()[4])
+                elif line.startswith('Number of scans:'):
+                    self.scans_num = int(line.split()[3])
+                elif line.startswith('Number of observations:'):
+                    self.obs_num = int(line.split()[3])
+                elif line.startswith('Total number of UV points:'):
+                    self.uv_points_num = int(line.split()[5])
+                elif line.startswith('Total number of used UV points:'):
+                    self.uv_points_used_num = int(line.split()[6])
+                elif line.startswith('Total number of deselected points:'):
+                    self.deselected_points_num = int(line.split(':')[1])
+                elif line.startswith('Number of cross-correl NO_AUTO_1 \
+deselected points:'):
+                    no_auto1 = int(line.split(':')[1])
+                elif line.startswith('Number of cross-correl NO_AUTO_2 \
+deselected points:'):
+                    no_auto2 = int(line.split(':')[1])
+                elif line.startswith('Accummulation period length_min:'):
+                    acc_min = float(line.split(':')[1])
+                elif line.startswith('Accummulation period length_max:'):
+                    acc_max = float(line.split(':')[1])
+                elif line.startswith('UTC_minus_TAI:'):
+                    self.utc_minus_tai = float(line.split(':')[1])
+                elif line.startswith('Experiment nominal start:'):
+                    self.nominal_start = datetime.strptime(
+                        line.split(':', 1)[1].strip()[:23],
+                        '%Y.%m.%d-%H:%M:%S.%f')
+                elif line.startswith('Experiment nominal end:'):
+                    self.nominal_end = datetime.strptime(
+                        line.split(':', 1)[1].strip()[:23],
+                        '%Y.%m.%d-%H:%M:%S.%f')
+
+        self.accum_length = (acc_min + acc_max) / 2.
+        self.no_auto_points_num = no_auto1 + no_auto2
 
 
 class Pima(object):
@@ -54,6 +114,7 @@ executable')
         # Dictionary with all parameters from cnt-file
         self.cnt_params = {}
         self._update_cnt_params()
+        self.exper_info = ExperInfo()
 
     def _update_cnt_params(self):
         """Read cnt-file and update cnt_params dictionary"""
@@ -78,8 +139,7 @@ executable')
             if key in opts.keys():
                 line = '{:<20}{}\n'.format(key, opts[key])
             elif line.startswith('# Last update on'):
-                line = '# Last update on  \
-{}\n'.format(str(datetime.datetime.now()))
+                line = '# Last update on  {}\n'.format(str(datetime.now()))
             new_cnt.write(line)
 
         old_cnt.close()
@@ -113,12 +173,12 @@ executable')
                 self.exper, self.band, operation))
 
         log = open(log_name, 'w')
-        log.write(str(datetime.datetime.now()) + '\n\n')
+        log.write(str(datetime.now()) + '\n\n')
         log.flush()
 
         ret = subprocess.call(cmd_line, stdout=log, universal_newlines=True)
 
-        log.write('\n' + str(datetime.datetime.now()) + '\n\n')
+        log.write('\n' + str(datetime.now()) + '\n\n')
         log.close()
 
         return ret
@@ -150,6 +210,10 @@ executable')
         ret = self._exec('load', log_name=log_name, options=opts)
         if ret:
             self._error('load failed with code {}'.format(ret))
+
+        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+        self.exper_info.update(stt_file)
 
         self._print_info('load ok')
 
@@ -301,16 +365,7 @@ executable')
 
     def number_of_deselected_points(self):
         """Total number of deselected points"""
-        num = 9999999
-        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
-        if os.path.isfile(stt_file):
-            with open(stt_file, 'r') as fil:
-                for line in fil:
-                    if line.startswith('Total number of deselected points:'):
-                        num = int(line.split(':')[1])
-
-        return num
+        return self.exper_info.deselected_points_num
 
     def sta_list(self):
         """Get station list"""
@@ -328,31 +383,11 @@ executable')
 
     def obs_number(self):
         """Get number of observation in experiment"""
-        num = 0
-        obs_file = '{}/{}.obs'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
-
-        if os.path.isfile(obs_file):
-            with open(obs_file, 'r') as fil:
-                for line in fil:
-                    if line.startswith('#'):
-                        continue
-                    num = num + 1
-
-        return num
+        return self.exper_info.obs_num
 
     def chan_number(self):
         """Number of spectral channels"""
-        num = 0
-        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
-        if os.path.isfile(stt_file):
-            with open(stt_file, 'r') as fil:
-                for line in fil:
-                    if line.startswith('Number of spectral channels:'):
-                        num = int(line.split(':')[1])
-
-        return num
+        return self.exper_info.sp_chann_num
 
 
 def fits_to_txt(fits_file):

@@ -6,7 +6,7 @@ Created on Wed Jan 15 19:52:28 2014
 @author: Petr Voytsik
 """
 
-import datetime
+from datetime import datetime
 import math
 
 ED = 2. * 6371e5  # Earth diameter
@@ -41,10 +41,10 @@ class Fri(object):
         started = False
         header = {}
 
-        with open(fri_file, 'r') as f:
-            if not f.readline().startswith('# PIMA Fringe results  v  1.00'):
+        with open(fri_file, 'r') as fil:
+            if not fil.readline().startswith('# PIMA Fringe results  v  1.00'):
                 raise Exception('{} is not PIMA fri-file'.format(fri_file))
-            for line in f:
+            for line in fil:
                 if line.startswith('# PIMA_FRINGE started'):
                     started = True
                     header.clear()
@@ -78,12 +78,10 @@ class Fri(object):
                     self.records[-1]['sta1'] = toks[4]
                     self.records[-1]['sta2'] = toks[5]
                     self.records[-1]['SNR'] = float(toks[7])
-                    self.records[-1]['start_time'] = \
-                        datetime.datetime.strptime(toks[11],
-                                                   '%Y.%m.%d-%H:%M:%S.%f,')
-                    self.records[-1]['stop_time'] = \
-                        datetime.datetime.strptime(toks[12],
-                                                   '%Y.%m.%d-%H:%M:%S.%f')
+                    self.records[-1]['start_time'] = datetime.strptime(
+                        toks[11], '%Y.%m.%d-%H:%M:%S.%f,')
+                    self.records[-1]['stop_time'] = datetime.strptime(
+                        toks[12], '%Y.%m.%d-%H:%M:%S.%f')
                     self.records[-1]['ampl_lsq'] = \
                         float(toks[15].replace('D', 'e'))
                     self.records[-1]['delay'] = \

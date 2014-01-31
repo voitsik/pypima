@@ -5,7 +5,8 @@ Created on Sun Dec 29 04:02:35 2013
 
 @author: Petr Voytsik
 """
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import netrc
 import os.path
 import psycopg2
@@ -115,7 +116,7 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
     def fri2db(self, fri_file):
         exper, band = fri_file[0]['session_code'].split('_')
-        band = band.upper()
+
         polar = fri_file[0]['polar']
 
         self._check_and_delete(exper, band, polar)
@@ -149,6 +150,37 @@ snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
                                     source, polar, sta1, sta2, delay, rate,
                                     accel, snr, ampl, dur, u, v, uv_rad_ed,
                                     freq))
+        self.connw.commit()
+
+    def exper_info2db(self, exper_info, uv_fits):
+        with self.connw.cursor() as cursor:
+            cursor.execute("SELECT exper_name, band FROM pima_experiments \
+WHERE exper_name = %s AND band = %s", (self.exper, self.band))
+            test = cursor.fetchone()
+            if test is None:
+                cursor.execute("INSERT INTO pima_experiments (exper_name, \
+band) VALUES (%s, %s);", (self.exper, self.band))
+
+        query = 'UPDATE pima_experiments SET fits_idi = %s, sp_chann_num = %s,\
+ time_epochs_num = %s, scans_num = %s, obs_num = %s, uv_points_num = %s, \
+uv_points_used_num = %s, deselected_points_num = %s, no_auto_points_num = %s, \
+accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s \
+WHERE exper_name = %s AND band = %s'
+        with self.connw.cursor() as cursor:
+            cursor.execute(query, (uv_fits, exper_info.sp_chann_num,
+                                   exper_info.time_epochs_num,
+                                   exper_info.scans_num,
+                                   exper_info.obs_num,
+                                   exper_info.uv_points_num,
+                                   exper_info.uv_points_used_num,
+                                   exper_info.deselected_points_num,
+                                   exper_info.no_auto_points_num,
+                                   exper_info.accum_length,
+                                   timedelta(seconds=exper_info.utc_minus_tai),
+                                   exper_info.nominal_start,
+                                   exper_info.nominal_end,
+                                   self.exper, self.band))
+
         self.connw.commit()
 
 
@@ -221,7 +253,7 @@ class RaExperiment(object):
 
         for line in cnt_templ:
             if 'CDATE' in line:
-                line = line.replace('CDATE', str(datetime.datetime.now()))
+                line = line.replace('CDATE', str(datetime.now()))
             elif line.startswith('SESS_CODE:'):
                 line = '{:<20}{}_{}\n'.format('SESS_CODE:', self.exper,
                        self.band)
@@ -330,7 +362,12 @@ class RaExperiment(object):
 #            print('DEBUG: antab -> {}'.format(self.antab))
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
+
         self.pima.load()
+
+        self.db.exper_info2db(self.pima.exper_info,
+                              os.path.basename(self.uv_fits))
+
         if self.pima.obs_number() == 0:
             self._error('ZERO observations have been loaded')
         if not 'RADIO-AS' in self.pima.sta_list():
