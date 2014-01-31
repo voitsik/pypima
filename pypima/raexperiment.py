@@ -28,7 +28,10 @@ class Error(Exception):
 
 class DB:
     """Interface to ra_results DataBase"""
-    def __init__(self):
+    def __init__(self, exper, band):
+        self.exper = exper
+        self.band = band
+
         self.conn = psycopg2.connect(database='ra_results', user='guest',
                                      host='odin')
         self.connw = psycopg2.connect(database='ra_results', user='editor',
@@ -41,7 +44,7 @@ class DB:
         self.arc_login = nrc.authenticators('archive.asc.rssi.ru')[0]
         self.arc_passw = nrc.authenticators('archive.asc.rssi.ru')[2]
 
-    def get_uvfits_url(self, exper_name, band):
+    def get_uvfits_url(self):
         """Get FITS-file url from DB for given experiment and band"""
         url = None
         size = 0
@@ -51,7 +54,7 @@ class DB:
         with self.conn.cursor() as cursor:
             cursor.execute('SELECT path, size FROM fits_files WHERE \
 exper_name = %s AND band = %s ORDER BY corr_date DESC, path DESC;',
-                          (exper_name, band.upper()))
+                          (self.exper, self.band.upper()))
             repl = cursor.fetchone()
 
         if repl:
@@ -61,7 +64,7 @@ exper_name = %s AND band = %s ORDER BY corr_date DESC, path DESC;',
 
         return url, size
 
-    def get_orbit_url(self, exper_name):
+    def get_orbit_url(self):
         """Returns orbit file url for given experiment"""
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
@@ -71,7 +74,7 @@ oddata/reconstr/'.format(self.web_login, self.web_passw)
             cursor.execute("SELECT scf_files.file_name FROM scf_files, \
 vex_files WHERE vex_files.exper_name = %s AND \
 scf_files.start_time <= vex_files.exper_nominal_start AND \
-scf_files.stop_time >= vex_files.exper_nominal_stop;", (exper_name,))
+scf_files.stop_time >= vex_files.exper_nominal_stop;", (self.exper,))
             orbit = cursor.fetchone()
 
         if orbit:
@@ -80,7 +83,7 @@ scf_files.stop_time >= vex_files.exper_nominal_stop;", (exper_name,))
 
         return url
 
-    def get_antab_url(self, exper, band):
+    def get_antab_url(self):
         """Download antab-file for the experiment and return path"""
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
@@ -89,14 +92,14 @@ ampcal'.format(self.web_login, self.web_passw)
         with self.conn.cursor() as cursor:
             cursor.execute("SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
                             FROM vex_files WHERE exper_name = %s;",
-                          (exper,))
+                          (self.exper,))
             date = cursor.fetchone()
 
         if date:
             date = date[0]
             date1 = date[0:7]
             url = '{0}/{1}/{2}_{3}/{3}{4}.antab'.format(url_base, date1, date,
-                  exper, band)
+                  self.exper, self.band)
 
         return url
 
@@ -202,7 +205,7 @@ class RaExperiment(object):
         self.orbit = orbit
 
         # Connect to DB
-        self.db = DB()
+        self.db = DB(self.exper, self.band)
 
         self._mk_cnt()
 
@@ -245,7 +248,7 @@ class RaExperiment(object):
     def _download_fits(self):
         """Download FITS-file from remote place"""
         data_dir = '/home/voitsik/data/VLBI/RA/ASC_results/' + self.exper
-        fits_url, size = self.db.get_uvfits_url(self.exper, self.band)
+        fits_url, size = self.db.get_uvfits_url()
         if not fits_url:
             self._error('Could not find FITS file name in DB')
 
@@ -269,7 +272,7 @@ class RaExperiment(object):
 
     def _get_orbit(self):
         """Download reconstructed orbit file from FTP"""
-        orbit_url = self.db.get_orbit_url(self.exper)
+        orbit_url = self.db.get_orbit_url()
 
         if not orbit_url:
             self._error('Could not find reconstructed orbit')
@@ -312,7 +315,7 @@ class RaExperiment(object):
             self._get_orbit()
 
         if not os.path.isfile(self.antab):
-            antab_url = self.db.get_antab_url(self.exper, self.band)
+            antab_url = self.db.get_antab_url()
             if antab_url is None:
                 self._print_warn('Could not get antab file url')
             else:
@@ -390,6 +393,9 @@ bandpass calibration')
 
         self.pima.fine()
 
+    def split(self, source=None):
+        pass
+
     def fringes2db(self):
         """Put fringes information to DB"""
         fri_file = self.pima.cnt_params['FRINGE_FILE:']
@@ -398,7 +404,7 @@ bandpass calibration')
 
         self.db.fri2db(Fri(fri_file))
 
-    def delete_fits(self):
-        """Delete FITS file"""
+    def delete_uvfits(self):
+        """Delete UV-FITS file"""
         if os.path.isfile(self.uv_fits):
             os.remove(self.uv_fits)
