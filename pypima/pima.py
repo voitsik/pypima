@@ -367,12 +367,16 @@ executable')
         """Total number of deselected points"""
         return self.exper_info.deselected_points_num
 
-    def sta_list(self):
-        """Get station list"""
+    def station_list(self):
+        """
+        Return a list of the station names.
+
+        """
+
+        sta_l = []
         sta_file = '{}/{}.sta'.format(self.cnt_params['EXPER_DIR:'],
                                       self.cnt_params['SESS_CODE:'])
 
-        sta_l = []
         if os.path.isfile(sta_file):
             with open(sta_file, 'r') as fil:
                 for line in fil:
@@ -380,6 +384,29 @@ executable')
                     sta_l.append(toks[3])
 
         return sta_l
+
+    def source_list(self):
+        """
+        Return a list of the source names.
+
+        Returns
+        -------
+        out : list
+            Each item in the out is a list of 3 names: IVS, J2000, B1950
+
+        """
+
+        sou_list = []
+        sou_file = '{}/{}.sou'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+
+        if os.path.isfile(sou_file):
+            with open(sou_file) as fil:
+                for line in fil:
+                    toks = line.split()
+                    sou_list.append([toks[2], toks[3], toks[4]])
+
+        return sou_list
 
     def obs_number(self):
         """Get number of observation in experiment"""
