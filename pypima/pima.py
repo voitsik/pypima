@@ -266,23 +266,46 @@ executable')
         return fri_file
 
     def fine(self, params=None):
-        """Do file fringe fitting"""
+        """
+        Do file fringe fitting.
+
+        This function runs 'pima frib' with parameters from cnt-file plus user
+        defined params.
+
+        Parameters
+        ----------
+        params : list, optional
+            List of the optional parameters to pima. Must have even number of
+            the elements
+
+        Returns
+        -------
+        fri_file : str
+            Name of the fri-file.
+
+        Notes
+        -----
+        Pima.fine() uses fri-file name from the cnt-file. Set it befor run.
+
+        """
         log_name = '{}/{}_{}_fine.log'.format(self.work_dir, self.exper,
                    self.band)
-        fri_file = '{}/{}_{}.fri'.format(self.work_dir, self.exper, self.band)
+
+        fri_file = self.cnt_params['FRINGE_FILE:']
         if os.path.isfile(fri_file):
             os.remove(fri_file)
-        frr_file = '{}/{}_{}.frr'.format(self.work_dir, self.exper, self.band)
+
+        frr_file = self.cnt_params['FRIRES_FILE:']
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
-        self.update_cnt({'FRINGE_FILE:': fri_file,
-                         'FRIRES_FILE:': frr_file})
         ret = self._exec('frib', params, log_name=log_name)
         if ret:
             self._error('fine failed with code {}'.format(ret))
 
         self._print_info('fine ok')
+
+        return fri_file
 
     def bpas(self, params=None):
         """Do bandpass calibration"""
