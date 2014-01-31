@@ -355,7 +355,7 @@ class RaExperiment(object):
                     self._print_info('Start downloading file {}'.format(
                                      antab_url))
                     self.antab, _ = urllib.request.urlretrieve(antab_url,
-                                    filename=self.antab)
+                       filename=self.antab)
                 except urllib.error.URLError as ex:
                     self._print_warn('Could not download file {}: {}'.format(
                         antab_url, ex.reason))
@@ -370,7 +370,7 @@ class RaExperiment(object):
 
         if self.pima.obs_number() == 0:
             self._error('ZERO observations have been loaded')
-        if not 'RADIO-AS' in self.pima.sta_list():
+        if 'RADIO-AS' not in self.pima.station_list():
             self._error('RADIO-AS is not in station list')
         desel_nam = self.pima.number_of_deselected_points()
         if desel_nam > 10:
@@ -378,7 +378,16 @@ class RaExperiment(object):
                              desel_nam)
 
     def fringe_fitting(self, bandpass=False):
-        """Do fringe fitting"""
+        """
+        Do fringe fitting.
+
+        Parameters
+        ----------
+        bandpass : bool
+            If True try to do bandpass calibration. Default is False.
+
+        """
+
         if self.pima.chan_number() > 512:
             self._print_warn('Too many spectral channels for bandpass: {}'.
                              format(self.pima.chan_number()))

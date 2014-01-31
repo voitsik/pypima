@@ -409,20 +409,50 @@ executable')
         return sou_list
 
     def obs_number(self):
-        """Get number of observation in experiment"""
+        """
+        Return number of the observations in the experiment
+
+        """
+
         return self.exper_info.obs_num
 
     def chan_number(self):
-        """Number of spectral channels"""
+        """
+        Return number of the spectral channels in uv-data
+
+        """
+
         return self.exper_info.sp_chann_num
 
 
 def fits_to_txt(fits_file):
-    """Dump visibilites from 'fits_file' using fits_to_radplot utility"""
+    """
+    Dump visibilites from the uvf file using the fits_to_radplot utility.
+
+    fits_to_radplot reads visibility data from the input file and write
+    amplitude, phase, and weight for each baseline to the text file.
+
+    Parameters
+    ----------
+    fits_file : str
+        Name of the input FITS file. FITS file must be in uvf format.
+
+    Returns
+    -------
+    out : str
+        Returns the stdout of the fits_to_radplot utility.
+
+    """
+
     if not os.path.isfile(fits_file):
         raise IOError(2, 'No such file: {}'.format(fits_file))
 
     txt_file = fits_file.replace('.fits', '.txt')
+
+    # If fits_file has extention other than .fits
+    if txt_file == fits_file:
+        txt_file = fits_file + '.txt'
+
     cmd_line = ['fits_to_radplot', '-o', txt_file, fits_file]
     out = subprocess.check_output(cmd_line, universal_newlines=True)
 
