@@ -108,11 +108,32 @@ class Fri(object):
                     self.records[-1]['uv_rad_ed'] = \
                         self.records[-1]['uv_rad'] * wave_len / ED
 
-    def max_snr(self):
-        # Sort by SNR
-        res = sorted(self.records, key=lambda rec: rec['SNR'], reverse=True)[0]
+    def max_snr(self, station=None):
+        """
+        Return observation record with maximum SNR.
 
-        return res
+        Parameters
+        ----------
+        station : str, optional
+            If station name is given select observation with this station only.
+
+        Returns
+        -------
+        rec : dict
+            Returns fri-record -- dictionary with parameters of the selected
+            observation.
+
+        """
+
+        if station:
+            records = filter(lambda rec: station in [rec['sta1'], rec['sta2']],
+                             self.records)
+        else:
+            records = self.records
+
+        rec = sorted(records, key=lambda rec: rec['SNR'], reverse=True)[0]
+
+        return rec
 
     def append(self, rec):
         self.records.append(rec)
