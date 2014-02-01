@@ -370,12 +370,57 @@ class RaExperiment(object):
 
         if self.pima.obs_number() == 0:
             self._error('ZERO observations have been loaded')
+
         if 'RADIO-AS' not in self.pima.station_list():
-            self._error('RADIO-AS is not in station list')
+            self._print_warn('RADIO-AS is not in station list')
+            self.sta_ref = self.pima.station_list()[0]
+            self.pima.update_cnt({'STA_REF:': self.sta_ref})
+
         desel_nam = self.pima.number_of_deselected_points()
         if desel_nam > 10:
             self._print_warn('Total number of deselected points is ' +
                              desel_nam)
+
+    def _select_ref_sta(self, fri_file):
+        """
+        Select reference station for bandpass calibration.
+        """
+        fri = Fri(fri_file)
+        self.sta_ref = None
+        snr = 0
+        obs = fri.max_snr('RADIO-AS')
+
+        if len(obs):
+            if obs['SNR'] < 5.6:
+                self._print_warn('SNR is too low on space baseline for \
+bandpass: ' + str(obs['SNR']))
+            else:
+                if obs['sta1'] == 'RADIO-AS':
+                    self.sta_ref = obs['sta2']
+                elif obs['sta2'] == 'RADIO-AS':
+                    self.sta_ref = obs['sta1']
+        else:
+            self._print_info('There is no scans with RADIO-AS')
+
+        if self.sta_ref is None:
+            obs = fri.max_snr()
+            if obs['SNR'] < 5.6:
+                self._print_warn('SNR is too low for bandpass: ' +
+                                 str(obs['SNR']))
+            else:
+                self.sta_ref = obs['sta1']
+
+        if self.sta_ref:
+            snr = min(10.0, obs['SNR']-0.1)
+            self.pima.update_cnt({'STA_REF:': self.sta_ref,
+                                  'BPS.SNR_MIN_ACCUM:': str(snr),
+                                  'BPS.SNR_MIN_FINE:': str(snr)})
+            self._print_info('new reference station is {}'.format(
+                             self.sta_ref))
+            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
+            return True
+        else:
+            return False
 
     def fringe_fitting(self, bandpass=False):
         """
@@ -394,48 +439,50 @@ class RaExperiment(object):
             bandpass = False
 
         if bandpass:
-            self.pima.coarse()
+            fri_file = self.pima.coarse()
 
             # Now auto select reference station
-            coarse_log_file = '{}/{}_{}_coarse.log'.format(self.work_dir,
-                              self.exper, self.band)
-            snrs = []
-            with open(coarse_log_file, 'r') as fil:
-                for line in fil:
-                    if not line.startswith(
-                            self.pima.cnt_params['SESS_CODE:']):
-                        continue
-#                        print('DEBUG: line = {}'.format(line))
-                    sta1 = line.split('/')[0].split()[-1]
-                    sta2 = line.split('/')[1].split()[0]
-                    snr = float(line.split('SNR=')[1])
-
-                    if sta1 == 'RADIO-AS':
-                        snrs.append((float(snr), sta2))
-                    elif sta2 == 'RADIO-AS':
-                        snrs.append((float(snr), sta1))
-
-            if len(snrs) == 0:
-                self._error('Could not select reference station: \
-List of RADIO-AS observations is empty')
-
-            self.sta_ref = sorted(snrs, reverse=True)[0][1]
-            max_snr = sorted(snrs, reverse=True)[0][0]
-            snr = max(5.5, min(10.0, max_snr-0.1))
-
-            self.pima.update_cnt({'STA_REF:': self.sta_ref,
-                                  'BPS.SNR_MIN_ACCUM:': str(snr),
-                                  'BPS.SNR_MIN_FINE:': str(snr)})
-
-            self._print_info('new reference station is {}'.format(
-                self.sta_ref))
-            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
-
-            if max_snr < 5.5:
-                self._print_warn('SNR on space baselines is too low for \
-bandpass calibration')
-            else:
+            if self._select_ref_sta(fri_file):
                 self.pima.bpas()
+#            coarse_log_file = '{}/{}_{}_coarse.log'.format(self.work_dir,
+#                              self.exper, self.band)
+#            snrs = []
+#            with open(coarse_log_file, 'r') as fil:
+#                for line in fil:
+#                    if not line.startswith(
+#                            self.pima.cnt_params['SESS_CODE:']):
+#                        continue
+##                        print('DEBUG: line = {}'.format(line))
+#                    sta1 = line.split('/')[0].split()[-1]
+#                    sta2 = line.split('/')[1].split()[0]
+#                    snr = float(line.split('SNR=')[1])
+#
+#                    if sta1 == 'RADIO-AS':
+#                        snrs.append((float(snr), sta2))
+#                    elif sta2 == 'RADIO-AS':
+#                        snrs.append((float(snr), sta1))
+#
+#            if len(snrs) == 0:
+#                self._error('Could not select reference station: \
+#List of RADIO-AS observations is empty')
+#
+#            self.sta_ref = sorted(snrs, reverse=True)[0][1]
+#            max_snr = sorted(snrs, reverse=True)[0][0]
+#            snr = max(5.5, min(10.0, max_snr-0.1))
+#
+#            self.pima.update_cnt({'STA_REF:': self.sta_ref,
+#                                  'BPS.SNR_MIN_ACCUM:': str(snr),
+#                                  'BPS.SNR_MIN_FINE:': str(snr)})
+#
+#            self._print_info('new reference station is {}'.format(
+#                self.sta_ref))
+#            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
+#
+#            if max_snr < 5.5:
+#                self._print_warn('SNR on space baselines is too low for \
+#bandpass calibration')
+#            else:
+#                self.pima.bpas()
 
         self.pima.fine()
 

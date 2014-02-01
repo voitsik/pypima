@@ -285,7 +285,7 @@ executable')
 
         Notes
         -----
-        Pima.fine() uses fri-file name from the cnt-file. Set it befor run.
+        Pima.fine() uses fri-file name from the cnt-file. Set up it befor run.
 
         """
         log_name = '{}/{}_{}_fine.log'.format(self.work_dir, self.exper,

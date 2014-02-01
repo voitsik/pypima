@@ -124,14 +124,18 @@ class Fri(object):
             observation.
 
         """
+        rec = {}
 
         if station:
-            records = filter(lambda rec: station in [rec['sta1'], rec['sta2']],
-                             self.records)
+            records = list(filter(lambda rec: station in [rec['sta1'],
+                                                          rec['sta2']],
+                                  self.records))
         else:
             records = self.records
 
-        rec = sorted(records, key=lambda rec: rec['SNR'], reverse=True)[0]
+        records = sorted(records, key=lambda rec: rec['SNR'], reverse=True)
+        if len(records) > 0:
+            rec = records[0]
 
         return rec
 
