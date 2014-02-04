@@ -12,6 +12,7 @@ import os.path
 import psycopg2
 #import re
 import urllib.request
+import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
 
@@ -449,46 +450,12 @@ bandpass: ' + str(obs['SNR']))
 
             # Now auto select reference station
             if self._select_ref_sta(fri_file):
-                self.pima.bpas()
-#            coarse_log_file = '{}/{}_{}_coarse.log'.format(self.work_dir,
-#                              self.exper, self.band)
-#            snrs = []
-#            with open(coarse_log_file, 'r') as fil:
-#                for line in fil:
-#                    if not line.startswith(
-#                            self.pima.cnt_params['SESS_CODE:']):
-#                        continue
-##                        print('DEBUG: line = {}'.format(line))
-#                    sta1 = line.split('/')[0].split()[-1]
-#                    sta2 = line.split('/')[1].split()[0]
-#                    snr = float(line.split('SNR=')[1])
-#
-#                    if sta1 == 'RADIO-AS':
-#                        snrs.append((float(snr), sta2))
-#                    elif sta2 == 'RADIO-AS':
-#                        snrs.append((float(snr), sta1))
-#
-#            if len(snrs) == 0:
-#                self._error('Could not select reference station: \
-#List of RADIO-AS observations is empty')
-#
-#            self.sta_ref = sorted(snrs, reverse=True)[0][1]
-#            max_snr = sorted(snrs, reverse=True)[0][0]
-#            snr = max(5.5, min(10.0, max_snr-0.1))
-#
-#            self.pima.update_cnt({'STA_REF:': self.sta_ref,
-#                                  'BPS.SNR_MIN_ACCUM:': str(snr),
-#                                  'BPS.SNR_MIN_FINE:': str(snr)})
-#
-#            self._print_info('new reference station is {}'.format(
-#                self.sta_ref))
-#            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
-#
-#            if max_snr < 5.5:
-#                self._print_warn('SNR on space baselines is too low for \
-#bandpass calibration')
-#            else:
-#                self.pima.bpas()
+                try:
+                    self.pima.bpas()
+                except pypima.pima.Error as err:
+                    print(err)
+                    self._print_info('Try INIT bandpass')
+                    self.pima.bpas(['BPS.MODE:', 'INIT'])
 
         self.pima.fine()
 
