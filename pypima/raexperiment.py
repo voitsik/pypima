@@ -408,7 +408,13 @@ bandpass: ' + str(obs['SNR']))
                 self._print_warn('SNR is too low for bandpass: ' +
                                  str(obs['SNR']))
             else:
-                self.sta_ref = obs['sta1']
+                good_stations = ['ARECIBO', 'GBT-VLBA', 'EFLSBERG']
+                for sta in good_stations:
+                    if sta in [obs['sta1'], obs['sta2']]:
+                        self.sta_ref = sta
+                        break
+                if self.sta_ref is None:
+                    self.sta_ref = obs['sta1']
 
         if self.sta_ref:
             snr = min(10.0, obs['SNR']-0.1)
