@@ -8,8 +8,10 @@ Created on Fri Dec 13 17:50:20 2013
 
 from __future__ import print_function
 import sys
-sys.path.insert(0, '/home/voitsik/prog/pypima')
-import pypima.pima
+import os.path
+path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+sys.path.insert(0, path)
+import pypima
 from pypima.raexperiment import RaExperiment
 
 if len(sys.argv) != 3:
