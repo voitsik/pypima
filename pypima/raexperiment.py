@@ -295,7 +295,7 @@ class RaExperiment(object):
             self._print_info('file {} already exists'.format(self.uv_fits))
         else:
             if not os.path.isdir(data_dir):
-                os.mkdir(data_dir)
+                os.makedirs(data_dir)
             self._print_info('Start downloading file {}...'.format(fits_url))
             self.uv_fits, _ = urllib.request.urlretrieve(fits_url,
                                                          filename=self.uv_fits)
