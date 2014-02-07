@@ -435,7 +435,7 @@ bandpass: ' + str(obs['SNR']))
 
         Parameters
         ----------
-        bandpass : bool
+        bandpass : bool, optional
             If True try to do bandpass calibration. Default is False.
 
         """

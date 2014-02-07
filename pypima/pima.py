@@ -221,10 +221,16 @@ executable')
         """
         Do coarse fringe fitting.
 
+        This function runs 'pima frib' with spetial parameters:
+        1. Disable bandpass
+        2. Disable oversampling
+        3. Use fast algorithm for fringe search
+        4. Set fri-file name
+
         Parameters
         ----------
         params : list, optional
-            List of the optional parameters to pima. Must have even number of
+            List of the optional pima parameters. Must have even number of
             the elements
 
         Returns
@@ -275,8 +281,8 @@ executable')
         Parameters
         ----------
         params : list, optional
-            List of the optional parameters to pima. Must have even number of
-            the elements
+            List of the optional pima parameters. Must have even number of
+            elements.
 
         Returns
         -------
@@ -308,7 +314,18 @@ executable')
         return fri_file
 
     def bpas(self, params=None):
-        """Do bandpass calibration"""
+        """
+        Do bandpass calibration.
+
+        This function runs 'pima bpas'.
+
+        Parameters
+        ----------
+        params : list, optional
+            List of the optional pima parameters. Must have even number of
+            elements.
+
+        """
         fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
                    self.band)
         log_file = '{}/{}_{}_bps.log'.format(self.work_dir, self.exper,
@@ -340,7 +357,21 @@ executable')
         self._print_info('bpas ok')
 
     def split(self, tim_mseg=1, params=None):
-        """Do SPLIT"""
+        """
+        Do SPLIT.
+
+        This function runs 'pima splt' with given integration time.
+
+        Parameters
+        ----------
+        tim_mseg : int
+            Number of time segments to integrate.
+
+        params : list, optional
+            List of the optional pima parameters. Must have even number of
+            elements.
+
+        """
         opts = ['SPLT.TIM_MSEG:', str(tim_mseg)]
         if params:
             opts.extend(params)
