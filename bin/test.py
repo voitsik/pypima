@@ -26,6 +26,7 @@ try:
         p.pima.set_polar(polar)
         p.fringe_fitting(True, True)
         p.fringes2db()
+        p.delete_uvfits()
 except pypima.pima.Error as err:
     print('PIMA Error: ', err)
     sys.exit(1)
