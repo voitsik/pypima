@@ -12,6 +12,7 @@ import math
 ED = 2. * 6371e5  # Earth diameter
 C = 2.99792458e10  # Speed of light
 
+
 # PIMA fri-file obs fields
 #  0 -> Obs #
 #  1 -> Sca #
@@ -25,13 +26,19 @@ C = 2.99792458e10  # Speed of light
 # 15 -> Ampl_lsq
 # 23 -> Gr_del_lsq value
 # 31 -> Ph_rat_lsq value
+# 37 -> Ph_acc value
 # 79 -> Duration of scan
 # 84 -> U
 # 85 -> V
 # 94 -> Reference frequency
-
-
 class Fri(object):
+    """
+    This class represents PIMA fringe file.
+
+    """
+    ver100 = '# PIMA Fringe results  v  1.00  Format version of 2010.04.05'
+    ver101 = '# PIMA Fringe results  v  1.01  Format version of 2014.02.08'
+
     def __init__(self, fri_file=None):
         self.records = []
         self.index = 0
@@ -42,7 +49,9 @@ class Fri(object):
         header = {}
 
         with open(fri_file, 'r') as fil:
-            if not fil.readline().startswith('# PIMA Fringe results  v  1.00'):
+            line = fil.readline()
+            if not (line.startswith(self.ver100) or
+                    line.startswith(self.ver101)):
                 raise Exception('{} is not PIMA fri-file'.format(fri_file))
             for line in fil:
                 if line.startswith('# PIMA_FRINGE started'):
@@ -64,8 +73,12 @@ class Fri(object):
                         header['exper_code'] = toks[-1]
                     elif toks[1] == 'Session':
                         header['session_code'] = toks[-1]
+                    elif toks[1] == 'FRINGE_FITTING_STYLE:':
+                        header['FRINGE_FITTING_STYLE'] = toks[-1]
                     elif toks[1] == 'FRIB.POLAR:':
                         header['polar'] = toks[2]
+                    elif toks[1] == 'FRIB.FINE_SEARCH:':
+                        header['FRIB.FINE_SEARCH'] = toks[-1]
                     elif toks[1] == 'PHASE_ACCELERATION:':
                         header['accel'] = float(toks[2].replace('D', 'e'))
                 elif toks[6] != 'FAILURE':
@@ -88,6 +101,8 @@ class Fri(object):
                         float(toks[23].replace('D', 'e'))
                     self.records[-1]['rate'] = \
                         float(toks[31].replace('D', 'e'))
+                    self.records[-1]['ph_acc'] = \
+                        float(toks[37].replace('D', 'e'))
                     self.records[-1]['duration'] = \
                         float(toks[79].replace('D', 'e'))
                     self.records[-1]['U'] = \
@@ -126,6 +141,7 @@ class Fri(object):
         """
         rec = {}
 
+        # Select observations with 'station'
         if station:
             records = list(filter(lambda rec: station in [rec['sta1'],
                                                           rec['sta2']],
@@ -133,6 +149,7 @@ class Fri(object):
         else:
             records = self.records
 
+        # Sort records b SNR
         records = sorted(records, key=lambda rec: rec['SNR'], reverse=True)
         if len(records) > 0:
             rec = records[0]
@@ -140,16 +157,24 @@ class Fri(object):
         return rec
 
     def append(self, rec):
+        """
+        Append fri-file record to the end of the list
+
+        """
         self.records.append(rec)
 
     def __str__(self):
         out = "#Obs Timecode   Source      Sta1/Sta2         SNR    Delay    \
 Rate      Accel      Base   Base\n"
         for rec in self.records:
+            accel = rec['accel']
+            if rec['FRIB.FINE_SEARCH'] == 'ACC':
+                accel = rec['ph_acc']
+
             line = '{:>3}{:>10} {:>8} {:>8}/{:>8} {:8.2f} \
 {:8.3f} {:10.3e} {:9.2e} {:8.2f} {:5.1f}\n'.format(rec['obs'],
                    rec['time_code'], rec['source'], rec['sta1'], rec['sta2'],
-                   rec['SNR'], 1e6 * rec['delay'], rec['rate'], rec['accel'],
+                   rec['SNR'], 1e6 * rec['delay'], rec['rate'], accel,
                    1e-6 * rec['uv_rad'], rec['uv_rad_ed'])
             out = out + line
 

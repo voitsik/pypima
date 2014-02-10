@@ -24,7 +24,7 @@ try:
 
     for polar in ['RR', 'RL', 'LR', 'LL']:
         p.pima.set_polar(polar)
-        p.fringe_fitting(True)
+        p.fringe_fitting(True, True)
         p.fringes2db()
 except pypima.pima.Error as err:
     print('PIMA Error: ', err)

@@ -106,7 +106,10 @@ ampcal'.format(self.web_login, self.web_passw)
         return url
 
     def _check_and_delete(self, exper, band, polar):
-        """Delete records if exists"""
+        """
+        Delete records if any exists.
+
+        """
         with self.connw.cursor() as cursor:
             cursor.execute("SELECT * FROM pima_observations WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
@@ -116,6 +119,10 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
     def fri2db(self, fri_file):
+        """
+        Store information from the fri-file to the DB.
+
+        """
         exper, band = fri_file[0]['session_code'].split('_')
 
         polar = fri_file[0]['polar']
@@ -135,7 +142,10 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
                 snr = rec['SNR']
                 delay = rec['delay']
                 rate = rec['rate']
-                accel = rec['accel']
+                if rec['FRIB.FINE_SEARCH'] == 'ACC':
+                    accel = rec['ph_acc']
+                else:
+                    accel = rec['accel']
                 ampl = rec['ampl_lsq']
                 dur = rec['duration']
                 u = rec['U']
@@ -429,7 +439,7 @@ bandpass: ' + str(obs['SNR']))
         else:
             return False
 
-    def fringe_fitting(self, bandpass=False):
+    def fringe_fitting(self, bandpass=False, accel=False):
         """
         Do fringe fitting.
 
@@ -438,7 +448,14 @@ bandpass: ' + str(obs['SNR']))
         bandpass : bool, optional
             If True try to do bandpass calibration. Default is False.
 
+        accel: boot, optional
+            If True turn on phase acceleration fitting.
+
         """
+        if accel:
+            self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC',
+                                  'PHASE_ACCEL_MIN:': '-1D-14',
+                                  'PHASE_ACCEL_MAX:': '1D-14'})
 
         if self.pima.chan_number() > 512:
             self._print_warn('Too many spectral channels for bandpass: {}'.
