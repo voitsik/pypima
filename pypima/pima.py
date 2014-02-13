@@ -163,10 +163,10 @@ executable')
 
     def _exec(self, operation, options=None, log_name=None):
         """Execute PIMA binary"""
-        cmd_line = [self.pima_exec, self.cnt_file_name, operation]
+        cmd_line = ['nice', '-n', '19', self.pima_exec, self.cnt_file_name,
+                    operation]
         if options:
             cmd_line.extend(options)
-#        print('DEBUG: cmd_line = {}'.format(cmd_line))
 
         if log_name is None:
             log_name = os.path.join(self.work_dir, '{}_{}_{}.log'.format(
