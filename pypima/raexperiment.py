@@ -319,7 +319,7 @@ class RaExperiment(object):
             lock_.close()
             self.uv_fits, _ = urllib.request.urlretrieve(fits_url,
                                                          filename=self.uv_fits)
-            os.remove(lock_)
+            os.remove(lock_file)
             self._print_info('Done')
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
