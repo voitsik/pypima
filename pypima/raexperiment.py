@@ -306,9 +306,13 @@ class RaExperiment(object):
         else:
             if not os.path.isdir(data_dir):
                 os.makedirs(data_dir)
+            lock_file = self.uv_fits + '.lock'
             self._print_info('Start downloading file {}...'.format(fits_url))
+            lock_ = open(lock_file, 'w')
+            lock_.close()
             self.uv_fits, _ = urllib.request.urlretrieve(fits_url,
                                                          filename=self.uv_fits)
+            os.remove(lock_)
             self._print_info('Done')
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
