@@ -5,6 +5,7 @@ Created on Sun Dec 29 04:02:35 2013
 
 @author: Petr Voytsik
 """
+
 from datetime import datetime
 from datetime import timedelta
 import netrc
@@ -15,6 +16,7 @@ import urllib.request
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
+import time
 
 
 class Error(Exception):
@@ -296,17 +298,22 @@ class RaExperiment(object):
             self._error('Could not find FITS file name in DB')
 
         # Delete spaces in filename
-        self.uv_fits = '{}/{}'.format(data_dir,
-                                      os.path.basename(fits_url).replace(
-                                          ' ', ''))
+        self.uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
+                                    replace(' ', ''))
+        lock_file = self.uv_fits + '.lock'
 
         if os.path.isfile(self.uv_fits) and \
                 os.path.getsize(self.uv_fits) == size:
             self._print_info('file {} already exists'.format(self.uv_fits))
+        elif os.path.isfile(lock_file):
+            self._print_info('file {} is being downloaded now, wait')
+            while os.path.isfile(lock_file):
+                print('.', end='')
+                time.sleep(10)
+            print('')
         else:
             if not os.path.isdir(data_dir):
                 os.makedirs(data_dir)
-            lock_file = self.uv_fits + '.lock'
             self._print_info('Start downloading file {}...'.format(fits_url))
             lock_ = open(lock_file, 'w')
             lock_.close()
