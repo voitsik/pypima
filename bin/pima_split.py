@@ -7,10 +7,13 @@ Created on Mon Jan 20 15:21:54 2014
 """
 
 import os
-#import sys
+import sys
 from shutil import move
-import pima as pypima
 from optparse import OptionParser
+path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+sys.path.insert(0, path)
+import pypima
+from pypima.pima import Pima
 
 
 def source_names(name, source_names_file):
@@ -58,7 +61,7 @@ data')
 #                             pima.band)
 #                pima.load_gains(antab_file)
 #                pima.load_tsys(antab_file)
-            except Exception as ex:
+            except pypima.pima.Error as ex:
                 print('PIMA Error: {}'.format(ex))
                 return
 
@@ -97,7 +100,7 @@ data')
         final_fits_path = '{}/{}'.format(final_fits_dir, final_fits_name)
         print('Info: move output FITS file to {}'.format(final_fits_path))
         move(pima_fits_path, final_fits_path)
-        pypima.fits_to_txt(final_fits_path)
+        pypima.pima.fits_to_txt(final_fits_path)
 
 
 def main():
@@ -148,7 +151,7 @@ def main():
     exp_dir = os.getenv('pima_exp_dir')
     work_dir = '{}/{}'.format(exp_dir, exper)
     os.chdir(work_dir)
-    pim = pypima.Pima(exper, band, work_dir)
+    pim = Pima(exper, band, work_dir)
 
     # Averaging in seconds. If None do not aver
     aver_list = [0]
