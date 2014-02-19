@@ -11,8 +11,8 @@ from datetime import timedelta
 import netrc
 import os.path
 import psycopg2
-#import re
-import urllib.request
+from urllib.error import URLError
+import urllib.request as urlreq
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
@@ -30,7 +30,7 @@ class Error(Exception):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
 
 
-class DB:
+class DB(object):
     """Interface to ra_results DataBase"""
     def __init__(self, exper, band):
         self.exper = exper
@@ -159,13 +159,17 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
 snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
 %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-                cur.execute(query, (obs, start_time, stop_time, exper,  band,
+                cur.execute(query, (obs, start_time, stop_time, exper, band,
                                     source, polar, sta1, sta2, delay, rate,
                                     accel, snr, ampl, dur, u, v, uv_rad_ed,
                                     freq))
         self.connw.commit()
 
     def exper_info2db(self, exper_info, uv_fits):
+        """
+        Put experiment info to the DB.
+
+        """
         with self.connw.cursor() as cursor:
             cursor.execute("SELECT exper_name, band FROM pima_experiments \
 WHERE exper_name = %s AND band = %s", (self.exper, self.band))
@@ -317,8 +321,14 @@ class RaExperiment(object):
             self._print_info('Start downloading file {}...'.format(fits_url))
             lock_ = open(lock_file, 'w')
             lock_.close()
-            self.uv_fits, _ = urllib.request.urlretrieve(fits_url,
-                                                         filename=self.uv_fits)
+            try:
+                self.uv_fits, _ = urlreq.urlretrieve(fits_url,
+                                                     filename=self.uv_fits)
+            except URLError as ex:
+                os.remove(lock_file)
+                self._error('Could not download file {}: {}'.format(
+                    fits_url, ex.reason))
+
             os.remove(lock_file)
             self._print_info('Done')
 
@@ -336,7 +346,7 @@ class RaExperiment(object):
         if not os.path.isfile(self.orbit):
             self._print_info('Start downloading orbit file {} ...'.format(
                 orbit_url))
-            with urllib.request.urlopen(orbit_url) as orb_request:
+            with urlreq.urlopen(orbit_url) as orb_request:
                 orb_data = orb_request.read().decode().replace('\r\n', '\n')
             with open(self.orbit, 'w') as orb_file:
                 if not orb_data.startswith('CCSDS_OEM_VERS'):
@@ -357,11 +367,11 @@ class RaExperiment(object):
         if antab_url is None:
             self._print_warn('Could not get antab file url from DB.')
         else:
+            self._print_info('Start downloading file {}'.format(antab_url))
             try:
-                self._print_info('Start downloading file {}'.format(antab_url))
-                self.antab, _ = urllib.request.urlretrieve(antab_url,
-                                                           filename=self.antab)
-            except urllib.error.URLError as ex:
+                self.antab, _ = urlreq.urlretrieve(antab_url,
+                                                   filename=self.antab)
+            except URLError as ex:
                 self._print_warn('Could not download file {}: {}'.format(
                     antab_url, ex.reason))
 
@@ -494,6 +504,10 @@ bandpass: ' + str(obs['SNR']))
         self.pima.fine()
 
     def split(self, source=None):
+        """
+        Do SPLIT.
+
+        """
         pass
 
     def fringes2db(self):
