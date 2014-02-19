@@ -348,6 +348,23 @@ class RaExperiment(object):
 
         self.pima.update_cnt({'EPHEMERIDES_FILE:': self.orbit})
 
+    def _get_antab(self):
+        """
+        Download antab-file from FTP server.
+
+        """
+        antab_url = self.db.get_antab_url()
+        if antab_url is None:
+            self._print_warn('Could not get antab file url from DB.')
+        else:
+            try:
+                self._print_info('Start downloading file {}'.format(antab_url))
+                self.antab, _ = urllib.request.urlretrieve(antab_url,
+                                                           filename=self.antab)
+            except urllib.error.URLError as ex:
+                self._print_warn('Could not download file {}: {}'.format(
+                    antab_url, ex.reason))
+
     def _print_info(self, msg):
         """Print some information"""
         print('Info: {}({}): {}'.format(self.exper, self.band, msg))
@@ -369,19 +386,8 @@ class RaExperiment(object):
             self._get_orbit()
 
         if not os.path.isfile(self.antab):
-            antab_url = self.db.get_antab_url()
-            if antab_url is None:
-                self._print_warn('Could not get antab file url')
-            else:
-                try:
-                    self._print_info('Start downloading file {}'.format(
-                                     antab_url))
-                    self.antab, _ = urllib.request.urlretrieve(antab_url,
-                       filename=self.antab)
-                except urllib.error.URLError as ex:
-                    self._print_warn('Could not download file {}: {}'.format(
-                        antab_url, ex.reason))
-#            print('DEBUG: antab -> {}'.format(self.antab))
+            self._get_antab()
+
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
 
