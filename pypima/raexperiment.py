@@ -384,10 +384,12 @@ class RaExperiment(object):
     def _print_info(self, msg):
         """Print some information"""
         print('Info: {}({}): {}'.format(self.exper, self.band, msg))
+        sys.stdout.flush()
 
     def _print_warn(self, msg):
         """Print warning"""
         print('Warning: {}({}): {}'.format(self.exper, self.band, msg))
+        sys.stdout.flush()
 
     def _error(self, msg):
         """Raise pima.Error exception"""
