@@ -387,8 +387,11 @@ class RaExperiment(object):
         """Raise pima.Error exception"""
         raise Error(self.exper, self.band, msg)
 
-    def load(self):
-        """Download data and run pima load"""
+    def load(self, download_only=False):
+        """
+        Download data, run pima load, and do some checks.
+
+        """
         if self.uv_fits is None:
             self._download_fits()
 
@@ -397,6 +400,9 @@ class RaExperiment(object):
 
         if not os.path.isfile(self.antab):
             self._get_antab()
+
+        if download_only:
+            return
 
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
