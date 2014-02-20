@@ -315,7 +315,6 @@ class RaExperiment(object):
             while os.path.isfile(lock_file):
                 print('.', end='')
                 sys.stdout.flush()
-
                 time.sleep(10)
             print('')
         else:

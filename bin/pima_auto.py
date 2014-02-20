@@ -7,32 +7,33 @@ Created on 18.02.2014
 """
 
 from __future__ import print_function
+from multiprocessing import Pool
 import sys
 import os.path
 path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, path)
 import pypima
 from pypima.raexperiment import RaExperiment
+import time
 
 
-def download_it_all(exp_list):
+def download_it(exper):
     """
-    Download all necessary files for the list of experiments.
+    Download all necessary files for given experiment.
 
     """
-    for item in exp_list:
-        try:
-            ra_exp = RaExperiment(item[0], item[1])
-            ra_exp.load(True)
-        except pypima.pima.Error as err:
-            print('PIMA Error: ', err)
-            continue
-        except pypima.raexperiment.Error as err:
-            print('RaExperiment Error: ', err)
-            continue
-        except:
-            print("Unexpected error: ", sys.exc_info()[0])
-            raise
+    try:
+        ra_exp = RaExperiment(exper[0], exper[1])
+        ra_exp.load(True)
+    except pypima.pima.Error as err:
+        print('PIMA Error: ', err)
+        return
+    except pypima.raexperiment.Error as err:
+        print('RaExperiment Error: ', err)
+        return
+    except:
+        print("Unexpected error: ", sys.exc_info()[0])
+        raise
 
 
 def main(in_file):
@@ -52,7 +53,11 @@ def main(in_file):
         for line in inf:
             exp_list.append(line.split())
 
-    download_it_all(exp_list)
+    pool = Pool(processes=2)
+    pool.map_async(download_it, exp_list)
+
+    pool.close()
+    time.sleep(1)
 
     for item in exp_list:
         try:
@@ -74,6 +79,8 @@ def main(in_file):
         except:
             print("Unexpected error: ", sys.exc_info()[0])
             raise
+
+    pool.join()
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
