@@ -16,6 +16,7 @@ import urllib.request as urlreq
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
+import sys
 import time
 
 
@@ -313,6 +314,8 @@ class RaExperiment(object):
             self._print_info('file {} is being downloaded now, wait')
             while os.path.isfile(lock_file):
                 print('.', end='')
+                sys.stdout.flush()
+
                 time.sleep(10)
             print('')
         else:
