@@ -311,7 +311,8 @@ class RaExperiment(object):
                 os.path.getsize(self.uv_fits) == size:
             self._print_info('file {} already exists'.format(self.uv_fits))
         elif os.path.isfile(lock_file):
-            self._print_info('file {} is being downloaded now, wait')
+            self._print_info('File {} is being downloaded now, wait'.format(
+                             self.uv_fits))
             while os.path.isfile(lock_file):
                 print('.', end='')
                 sys.stdout.flush()
