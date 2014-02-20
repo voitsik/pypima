@@ -26,10 +26,10 @@ def download_it_all(exp_list):
             ra_exp.load(True)
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            sys.exit(1)
+            continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)
-            sys.exit(1)
+            continue
         except:
             print("Unexpected error: ", sys.exc_info()[0])
             raise
@@ -67,10 +67,10 @@ def main(in_file):
             p.delete_uvfits()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            sys.exit(1)
+            continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)
-            sys.exit(1)
+            continue
         except:
             print("Unexpected error: ", sys.exc_info()[0])
             raise
