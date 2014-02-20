@@ -51,7 +51,9 @@ def main(in_file):
 
     with open(in_file, 'r') as inf:
         for line in inf:
-            exp_list.append(line.split())
+            exp_band = line.split()
+            if len(exp_band) == 2:
+                exp_list.append(exp_band)
 
     pool = Pool(processes=2)
     pool.map_async(download_it, exp_list)
