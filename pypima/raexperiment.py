@@ -328,6 +328,9 @@ class RaExperiment(object):
                 os.remove(lock_file)
                 self._error('Could not download file {}: {}'.format(
                     fits_url, ex.reason))
+            except:
+                os.remove(lock_file)
+                raise
 
             os.remove(lock_file)
             self._print_info('Done')
