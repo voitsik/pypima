@@ -11,6 +11,7 @@ import glob
 import os.path
 import shutil
 import subprocess
+import sys
 
 
 class Error(Exception):
@@ -186,6 +187,7 @@ executable')
     def _print_info(self, msg):
         """Print some information"""
         print('Info: {}({}): {}'.format(self.exper, self.band, msg))
+        sys.stdout.flush()
 
     def _error(self, msg):
         """Raise pima.Error exception"""
