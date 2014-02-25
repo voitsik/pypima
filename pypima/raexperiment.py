@@ -406,8 +406,8 @@ class RaExperiment(object):
         if self.orbit is None:
             self._get_orbit()
 
-        if not os.path.isfile(self.antab):
-            self._get_antab()
+        # Always download antab-file.
+        self._get_antab()
 
         if download_only:
             return
