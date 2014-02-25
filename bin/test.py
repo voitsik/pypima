@@ -22,10 +22,11 @@ try:
     p = RaExperiment(sys.argv[1], sys.argv[2])
     p.load()
 
-    for polar in ['RR', 'RL', 'LR', 'LL']:
+    for polar in ['RR', 'LL']:
         p.pima.set_polar(polar)
         p.fringe_fitting(True, True)
-        p.fringes2db()
+#        p.fringes2db()
+        p.split()
 
     p.delete_uvfits()
 except pypima.pima.Error as err:

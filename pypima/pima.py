@@ -385,7 +385,10 @@ executable')
         self._print_info('split ok')
 
     def load_gains(self, gain_file, params=None):
-        """Load Gains from gain_file"""
+        """
+        Load antenna gains from the gain_file.
+
+        """
         opts = ['evn_gain', gain_file, 'DEBUG_LEVEL:', '6']
         if params:
             opts.extend(params)
@@ -398,7 +401,10 @@ executable')
             self._error('evn_gain failed with code {}'.format(ret))
 
     def load_tsys(self, tsys_file, params=None):
-        """Load Tsys from tsys_file"""
+        """
+        Load Tsys from the tsys_file.
+
+        """
         opts = ['vlba_log_file', tsys_file, 'DEBUG_LEVEL:', '1']
         if params:
             opts.extend(params)

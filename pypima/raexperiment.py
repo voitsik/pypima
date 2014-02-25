@@ -522,10 +522,22 @@ bandpass: ' + str(obs['SNR']))
         Do SPLIT.
 
         """
-        pass
+        if not os.path.isfile(self.antab):
+            self._error('Could not do split due to absence of the antab-file')
+
+        self.pima.load_gains(self.antab)
+        self.pima.load_tsys(self.antab)
+
+        if source:
+            self.pima.update_cnt({'SPLT.SOU_NAME:': source})
+        else:
+            self.pima.update_cnt({'SPLT.SOU_NAME:': 'ALL'})
 
     def fringes2db(self):
-        """Put fringes information to DB"""
+        """
+        Put fringe fitting information to the DB
+
+        """
         fri_file = self.pima.cnt_params['FRINGE_FILE:']
         if not os.path.isfile(fri_file):
             return
