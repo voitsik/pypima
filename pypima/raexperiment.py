@@ -431,7 +431,7 @@ class RaExperiment(object):
         desel_nam = self.pima.number_of_deselected_points()
         if desel_nam > 10:
             self._print_warn('Total number of deselected points is ' +
-                             desel_nam)
+                             str(desel_nam))
 
     def _select_ref_sta(self, fri_file):
         """
