@@ -502,6 +502,36 @@ executable')
 
         return self.exper_info.sp_chann_num
 
+    def frequencies(self):
+        """
+        Return list of frequencies used in the experiment.
+
+        Returns
+        -------
+        freqs : list
+        The function returns a list of dictionaries.
+
+        """
+        freqs = []
+        frq_file = '{}/{}.frq'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+
+        if os.path.isfile(frq_file):
+            with open(frq_file) as fil:
+                for line in fil:
+                    if len(line) < 16:
+                        break
+                    if line.startswith('Ind_grp:'):
+                        toks = line.split()
+                        freq = dict()
+                        freq['freq'] = float(toks[6])
+                        freq['band_width'] = float(toks[8])
+                        freq['chan_width'] = float(toks[10])
+                        freq['side_band'] = int(toks[12])
+                        freqs.append(freq)
+
+        return freqs
+
 
 def fits_to_txt(fits_file):
     """
