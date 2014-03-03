@@ -28,7 +28,7 @@ try:
 #        p.fringes2db()
         p.split()
 
-    p.delete_uvfits()
+#    p.delete_uvfits()
 except pypima.pima.Error as err:
     print('PIMA Error: ', err)
     sys.exit(1)
