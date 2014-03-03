@@ -395,6 +395,36 @@ class RaExperiment(object):
         """Raise pima.Error exception"""
         raise Error(self.exper, self.band, msg)
 
+    def _fix_antab(self):
+        """
+        Fix antab.
+
+        """
+        if not os.path.isfile(self.antab):
+            return
+
+        new_antab = os.path.join(self.work_dir, os.path.basename(self.antab))
+
+        freq_setup = self.pima.frequencies()
+        if len(freq_setup) != 2:
+            self._error('Expected 2 IFs but get {}'.format(len(freq_setup)))
+
+        # OK
+        if freq_setup[0]['side_band'] == -1:
+            return
+
+        # Not OK
+        with open(self.antab, 'r') as inp, open(new_antab, 'w') as out:
+            for line in inp:
+                toks = line.split()
+                if len(toks) > 9 and toks[1].isdigit():
+                    if toks[6] == 'L':
+                        toks[6] = 'U'
+                        toks[9] = '{:.2f}MHz'.format(
+                            freq_setup[0]['freq'] * 1e-6)
+                out.write(' '.join(toks) + '\n')
+        self.antab = new_antab
+
     def load(self, download_only=False):
         """
         Download data, run pima load, and do some checks.
@@ -408,6 +438,7 @@ class RaExperiment(object):
 
         # Always download antab-file.
         self._get_antab()
+        self._fix_antab()
 
         if download_only:
             return
