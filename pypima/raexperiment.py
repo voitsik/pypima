@@ -433,15 +433,14 @@ class RaExperiment(object):
         if self.uv_fits is None:
             self._download_fits()
 
+        if download_only:
+            return
+
         if self.orbit is None:
             self._get_orbit()
 
         # Always download antab-file.
         self._get_antab()
-        self._fix_antab()
-
-        if download_only:
-            return
 
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
@@ -463,6 +462,8 @@ class RaExperiment(object):
         if desel_nam > 10:
             self._print_warn('Total number of deselected points is ' +
                              str(desel_nam))
+
+        self._fix_antab()
 
     def _select_ref_sta(self, fri_file):
         """
@@ -563,6 +564,8 @@ bandpass: ' + str(obs['SNR']))
             self.pima.update_cnt({'SPLT.SOU_NAME:': source})
         else:
             self.pima.update_cnt({'SPLT.SOU_NAME:': 'ALL'})
+
+        self.pima.split()
 
     def fringes2db(self):
         """
