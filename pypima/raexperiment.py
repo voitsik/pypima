@@ -463,6 +463,11 @@ class RaExperiment(object):
             self._print_warn('Total number of deselected points is ' +
                              str(desel_nam))
 
+        # Save memory by reducing oversampling
+        if self.pima.ap_minmax()[0] < 0.1:
+            self.pima.update_cnt({'FRIB.OVERSAMPLE_MD:': '2',
+                                  'FRIB.OVERSAMPLE_RT:': '2'})
+
         self._fix_antab()
 
     def _select_ref_sta(self, fri_file):
