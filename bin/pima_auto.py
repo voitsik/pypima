@@ -51,6 +51,9 @@ def main(in_file):
 
     with open(in_file, 'r') as inf:
         for line in inf:
+            line = line.strip()
+            if line.startswith('#'):
+                continue
             exp_band = line.split()
             if len(exp_band) == 2:
                 exp_list.append(exp_band)
