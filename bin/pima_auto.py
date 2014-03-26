@@ -14,7 +14,17 @@ path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, path)
 import pypima
 from pypima.raexperiment import RaExperiment
+import signal
 import time
+
+
+def signal_handler(signum, frame):
+    """
+    SIGINT signal handler
+
+    """
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
 
 
 def download_it(exper):
@@ -95,4 +105,5 @@ if __name__ == '__main__':
         print('Read list of experiments and bands from FILE', file=sys.stderr)
         sys.exit(2)
 
+    signal.signal(signal.SIGINT, signal_handler)
     main(sys.argv[1])
