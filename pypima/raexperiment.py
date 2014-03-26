@@ -182,7 +182,8 @@ band) VALUES (%s, %s);", (self.exper, self.band))
         query = 'UPDATE pima_experiments SET fits_idi = %s, sp_chann_num = %s,\
  time_epochs_num = %s, scans_num = %s, obs_num = %s, uv_points_num = %s, \
 uv_points_used_num = %s, deselected_points_num = %s, no_auto_points_num = %s, \
-accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s \
+accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s, \
+proc_date = %s, last_error = %s \
 WHERE exper_name = %s AND band = %s'
         with self.connw.cursor() as cursor:
             cursor.execute(query, (uv_fits, exper_info.sp_chann_num,
@@ -197,7 +198,21 @@ WHERE exper_name = %s AND band = %s'
                                    timedelta(seconds=exper_info.utc_minus_tai),
                                    exper_info.nominal_start,
                                    exper_info.nominal_end,
+                                   datetime.now(), '',
                                    self.exper, self.band))
+
+        self.connw.commit()
+
+    def set_error_msg(self, msg):
+        """
+        Put error comment into DB.
+
+        """
+        query = 'UPDATE pima_experiments SET last_error = %s \
+WHERE exper_name = %s AND band = %s'
+
+        with self.connw.cursor() as cursor:
+            cursor.execute(query, (msg, self.exper, self.band))
 
         self.connw.commit()
 
