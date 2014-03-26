@@ -74,6 +74,7 @@ def main(in_file):
             p.delete_uvfits()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
+            p.db.set_error_msg(str(err))
             continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)

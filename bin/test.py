@@ -31,6 +31,7 @@ try:
 #    p.delete_uvfits()
 except pypima.pima.Error as err:
     print('PIMA Error: ', err)
+    p.db.set_error_msg(str(err))
     sys.exit(1)
 except pypima.raexperiment.Error as err:
     print('RaExperiment Error: ', err)
