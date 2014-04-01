@@ -424,20 +424,27 @@ class RaExperiment(object):
         if len(freq_setup) != 2:
             self._error('Expected 2 IFs but get {}'.format(len(freq_setup)))
 
-        # OK
-        if freq_setup[0]['side_band'] == -1:
-            return
+        # Should we fix frequency setup?
+        fix_freq = False
+        if freq_setup[0]['side_band'] != -1:
+            fix_freq = True
 
-        # Not OK
+        sta_list = self.pima.station_list(ivs_name=False)
+
         with open(self.antab, 'r') as inp, open(new_antab, 'w') as out:
             for line in inp:
                 toks = line.split()
-                if len(toks) > 9 and toks[1].isdigit():
+                if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == 'L':
                         toks[6] = 'U'
                         toks[9] = '{:.2f}MHz'.format(
                             freq_setup[0]['freq'] * 1e-6)
+
+                if toks[0] == 'TSYS' and toks[4] not in sta_list:
+                    toks.insert(0, '!')
+
                 out.write(' '.join(toks) + '\n')
+
         self.antab = new_antab
 
     def load(self, download_only=False):
