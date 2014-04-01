@@ -400,6 +400,8 @@ executable')
         if ret:
             self._error('evn_gain failed with code {}'.format(ret))
 
+        self._print_info('evn_gain ok')
+
     def load_tsys(self, tsys_file, params=None):
         """
         Load Tsys from the tsys_file.
@@ -415,6 +417,8 @@ executable')
         ret = self._exec('gean', opts, log_file)
         if ret:
             self._error('vlba_log_file failed with code {}'.format(ret))
+
+        self._print_info('vlba_log_file ok')
 
     # Additional useful utilites
     def set_polar(self, polar):
