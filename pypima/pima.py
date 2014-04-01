@@ -449,9 +449,23 @@ executable')
         """Total number of deselected points"""
         return self.exper_info.deselected_points_num
 
-    def station_list(self):
+    def station_list(self, ivs_name=True):
         """
         Return a list of the station names.
+
+        This function returns list of station names which participated in the
+        experiment.
+
+        Parameters
+        ----------
+        ivs_name : bool, optional
+            If `ivs_name` is False this function returns list of 2-letter
+            station codes instead of IVS names.
+
+        Returns
+        -------
+        list
+            List of the station names.
 
         """
 
@@ -463,7 +477,10 @@ executable')
             with open(sta_file, 'r') as fil:
                 for line in fil:
                     toks = line.split()
-                    sta_l.append(toks[3])
+                    if ivs_name:
+                        sta_l.append(toks[3])
+                    else:
+                        sta_l.append(toks[5])
 
         return sta_l
 
