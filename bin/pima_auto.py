@@ -31,6 +31,9 @@ def download_it(exper):
     except pypima.raexperiment.Error as err:
         print('RaExperiment Error: ', err)
         return
+#    except KeyboardInterrupt:
+#        print('KeyboardInterrupt', file=sys.stderr)
+#        exit(1)
     except:
         print("Unexpected error: ", sys.exc_info()[0])
         raise
@@ -84,6 +87,7 @@ def main(in_file):
             continue
         except KeyboardInterrupt:
             print('KeyboardInterrupt', file=sys.stderr)
+            pool.terminate()
             exit(1)
         except:
             print("Unexpected error: ", sys.exc_info()[0])
