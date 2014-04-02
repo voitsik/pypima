@@ -88,6 +88,7 @@ def main(in_file):
         except KeyboardInterrupt:
             print('KeyboardInterrupt', file=sys.stderr)
             pool.terminate()
+            pool.join()
             exit(1)
         except:
             print("Unexpected error: ", sys.exc_info()[0])
