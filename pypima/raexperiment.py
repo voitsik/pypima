@@ -464,8 +464,13 @@ class RaExperiment(object):
         # Always download antab-file.
         self._get_antab()
 
+        # Only one sideband in P-band
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
+
+        # Set maximum scan length to 1200 s
+        self.pima.update_cnt({'MAX_SCAN_LEN:': '1200.0',
+                              'SCAN_LEN_USED:': '1200.0'})
 
         self.pima.load()
 
