@@ -434,6 +434,9 @@ class RaExperiment(object):
         with open(self.antab, 'r') as inp, open(new_antab, 'w') as out:
             for line in inp:
                 toks = line.split()
+                if len(toks) == 0:
+                    continue
+
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == 'L':
                         toks[6] = 'U'
