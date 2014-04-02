@@ -82,6 +82,9 @@ def main(in_file):
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)
             continue
+        except KeyboardInterrupt:
+            print('KeyboardInterrupt', file=sys.stderr)
+            exit(1)
         except:
             print("Unexpected error: ", sys.exc_info()[0])
             raise
