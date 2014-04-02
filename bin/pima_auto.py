@@ -7,7 +7,7 @@ Created on 18.02.2014
 """
 
 from __future__ import print_function
-from multiprocessing import Pool
+import multiprocessing
 import sys
 import os.path
 path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
@@ -22,6 +22,7 @@ def download_it(exper):
     Download all necessary files for given experiment.
 
     """
+    print('{} started.'.format(multiprocessing.current_process().name))
     try:
         ra_exp = RaExperiment(exper[0], exper[1])
         ra_exp.load(True)
@@ -61,7 +62,7 @@ def main(in_file):
             if len(exp_band) == 2:
                 exp_list.append(exp_band)
 
-    pool = Pool(processes=2)
+    pool = multiprocessing.Pool(processes=2)
     pool.map_async(download_it, exp_list)
 
     pool.close()
