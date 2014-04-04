@@ -116,6 +116,11 @@ executable')
         self.cnt_params = {}
         self._update_cnt_params()
         self.exper_info = ExperInfo()
+        # Update exper_info if experiment already loaded.
+        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+        if os.path.isfile(stt_file):
+            self.exper_info.update(stt_file)
 
     def _update_cnt_params(self):
         """Read cnt-file and update cnt_params dictionary"""
