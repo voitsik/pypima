@@ -36,6 +36,8 @@ def main(exper, band, obs):
               format(obs, 1, pim.obs_number()))
         sys.exit(1)
 
+    sta1 = sta2 = 'TEST'
+
     durs = np.array(())
     amps = np.array(())
     snrs = np.array(())
@@ -48,6 +50,8 @@ def main(exper, band, obs):
                              'SCAN_LEN_USED:', '1200.0'])
         fri = Fri(fri_file)
         full_duration = fri[0]['duration']
+        sta1 = fri[0]['sta1']
+        sta2 = fri[0]['sta2']
 
         for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
     #        delim = delim + 1
@@ -77,26 +81,22 @@ def main(exper, band, obs):
     sqrt_snr = func(durs0, *p)
     const_amp = np.ones(durs0.shape) * amps[durs < 400].mean()
 
-    plt.plot(durs, amps, 'o', durs0, const_amp, 'r-')
-    plt.xlim(xmin=0)
-    plt.ylim(ymin=0)
-    plt.xlabel('SolInt (s)')
-    plt.ylabel('Amplitude')
-    pic_file_name = '{}_{}_{}_amp.pdf'.format(exper, band, obs)
+    # Plotting
+    f, (ax1, ax2) = plt.subplots(2, sharex=True)
+
+    ax1.plot(durs, amps, 'o', durs0, const_amp, 'r-')
+    ax1.set_ylabel('Amplitude')
+    title = '{}({}): {} / {}'.format(exper.lower(), band.upper(), sta1, sta2)
+    ax1.set_title(title)
+#    ax1.set_ylim(ymin=0)
+
+    ax2.plot(durs, snrs, 'o', durs0, sqrt_snr, 'r-')
+    ax2.set_xlabel('Integration time (s)')
+    ax2.set_ylabel('SNR')
+
+    pic_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs)
     plt.savefig(pic_file_name, format='pdf')
-
-    plt.cla()
-
-    plt.xlabel('SolInt (s)')
-    plt.ylabel('SNR')
-    plt.plot(durs, snrs, 'o', durs0, sqrt_snr, 'r-')
-    plt.xlim(xmin=0)
-    plt.ylim(ymin=0)
-
-    pic_file_name = '{}_{}_{}_snr.pdf'.format(exper, band, obs)
-    plt.savefig(pic_file_name, format='pdf')
-    plt.show()
-
+#    plt.show()
 
 
 if __name__ == '__main__':
