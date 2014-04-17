@@ -57,7 +57,7 @@ class TextTable1D(object):
                     self.axis1_min = float(val.replace('D', 'e'))
                 elif key == 'AXIS1_MAX':
                     self.axis1_max = float(val.replace('D', 'e'))
-                elif key == 'AXIS2_TITLE':
+                elif key == 'AXIS2_NAME':
                     self.axis2_title = val
                 elif key == 'AXIS2_UNITS':
                     self.axis2_units = val
