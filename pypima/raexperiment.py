@@ -432,6 +432,13 @@ class RaExperiment(object):
         sta_list = self.pima.station_list(ivs_name=False)
 
         with open(self.antab, 'r') as inp, open(new_antab, 'w') as out:
+            magic = inp.readline()
+            if not magic.startswith('! Produced by: TSM'):
+                self._print_warn('antab file {} does NOT have magic in the \
+first line'.format(self.antab))
+                self.antab = None
+                return
+
             for line in inp:
                 toks = line.split()
                 if len(toks) == 0:
