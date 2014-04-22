@@ -116,7 +116,7 @@ class Fri(object):
                         self.records[-1]['U'], self.records[-1]['V'])
                     # Position angle
                     self.records[-1]['PA'] = math.degrees(math.atan2(
-                        -self.records[-1]['U'], self.records[-1]['V']))
+                        self.records[-1]['U'], self.records[-1]['V']))
                     wave_len = C / self.records[-1]['ref_freq']
                     # UV-radius in Earth diameters
                     self.records[-1]['uv_rad_ed'] = \
