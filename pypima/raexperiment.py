@@ -238,6 +238,12 @@ class RaExperiment(object):
 
         self.pima_scr = os.getenv('pima_scr_dir')
 
+        #  Select directory for raw data from a correlator
+        self.data_dir = os.getenv('PYPIMA_DATA_DIR')
+        if not self.data_dir:
+            home_dir = os.getenv('HOME')
+            self.data_dir = os.path.join(home_dir, 'data/VLBI/RA/ASC_results')
+
         # Create working directory and symlink
         work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
         if not os.path.exists(work_dir):
@@ -311,7 +317,7 @@ class RaExperiment(object):
 
     def _download_fits(self):
         """Download FITS-file from remote place"""
-        data_dir = '/home/voitsik/data/VLBI/RA/ASC_results/' + self.exper
+        data_dir = os.path.join(self.data_dir, self.exper)
         fits_url, size = self.db.get_uvfits_url()
         if not fits_url:
             self._error('Could not find FITS file name in DB')
