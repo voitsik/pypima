@@ -373,11 +373,21 @@ class RaExperiment(object):
             self._print_info('Start downloading orbit file {} ...'.format(
                 orbit_url))
             with urlreq.urlopen(orbit_url) as orb_request:
-                orb_data = orb_request.read().decode().replace('\r\n', '\n')
+                orb_data = orb_request.read().decode()
+
+            orb_data = orb_data.replace('\r\n', '\n').split('\n')
             with open(self.orbit, 'w') as orb_file:
-                if not orb_data.startswith('CCSDS_OEM_VERS'):
+                if not orb_data[0].startswith('CCSDS_OEM_VERS'):
                     orb_file.write('CCSDS_OEM_VERS = 2.0\n')
-                orb_file.write(orb_data)
+
+                # Fix meta information
+                for line in orb_data:
+                    if line.startswith('CENTER_NAME'):
+                        line = 'CENTER_NAME   = Earth Barycenter'
+                    elif line.startswith('OBJECT_NAME'):
+                        line = 'OBJECT_NAME   = RADIO-ASTRON'
+                    orb_file.write(line + '\n')
+
             self._print_info('Done')
         else:
             self._print_info('file {} already exists'.format(self.orbit))
