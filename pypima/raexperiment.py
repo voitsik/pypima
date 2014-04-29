@@ -457,6 +457,9 @@ first line'.format(self.antab))
                 self.antab = None
                 return
 
+            # Do not forget to write a 'magic' line to the output file
+            out.write(magic)
+
             for line in inp:
                 toks = line.split()
                 if len(toks) == 0:
