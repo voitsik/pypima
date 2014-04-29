@@ -386,6 +386,9 @@ class RaExperiment(object):
                         line = 'CENTER_NAME   = Earth Barycenter'
                     elif line.startswith('OBJECT_NAME'):
                         line = 'OBJECT_NAME   = RADIO-ASTRON'
+                    elif line.startswith('CREATION'):
+                        line = line.replace('CREATION DATE', 'CREATION_DATE')
+
                     orb_file.write(line + '\n')
 
             self._print_info('Done')
