@@ -125,11 +125,9 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         Store information from the fri-file to the DB.
 
         """
-        exper, band = fri_file[0]['session_code'].split('_')
-
         polar = fri_file[0]['polar']
 
-        self._check_and_delete(exper, band, polar)
+        self._check_and_delete(self.exper, self.band, polar)
 
         print(fri_file)
         with self.connw.cursor() as cur:
@@ -159,10 +157,20 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
 snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
 %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-                cur.execute(query, (obs, start_time, stop_time, exper, band,
+                cur.execute(query, (obs, start_time, stop_time, self.exper,
+                                    self.band,
                                     source, polar, sta1, sta2, delay, rate,
                                     accel, snr, ampl, dur, u, v, uv_rad_ed,
                                     freq))
+
+            # Update status of the observations
+            query = "UPDATE pima_observations SET status = %s WHERE \
+exper_name = %s AND band = %s AND polar = %s AND snr <= %s;"
+            cur.execute(query, ('n', self.exper, self.band, polar, 5.0))
+            query = "UPDATE pima_observations SET status = %s WHERE \
+exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
+            cur.execute(query, ('y', self.exper, self.band, polar, 7.0))
+
         self.connw.commit()
 
     def exper_info2db(self, exper_info, uv_fits):
