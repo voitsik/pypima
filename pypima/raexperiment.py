@@ -166,12 +166,12 @@ snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
             # Update status of the observations
             query = "UPDATE pima_observations SET status = %s WHERE \
 exper_name = %s AND band = %s AND polar = %s AND snr <= %s;"
-            cur.execute(query, ('n', self.exper, self.band, polar, 5.0))
+            cur.execute(query, ('n', self.exper, self.band, polar, 5.3))
 
             query = "UPDATE pima_observations SET status = %s WHERE \
 exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
             if exper_info.sp_chann_num <= 128:
-                cur.execute(query, ('y', self.exper, self.band, polar, 6.0))
+                cur.execute(query, ('y', self.exper, self.band, polar, 5.7))
             else:
                 cur.execute(query, ('y', self.exper, self.band, polar, 7.0))
 
