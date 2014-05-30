@@ -120,7 +120,7 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
                 cursor.execute("DELETE FROM pima_observations WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
-    def fri2db(self, fri_file):
+    def fri2db(self, fri_file, exper_info):
         """
         Store information from the fri-file to the DB.
 
@@ -167,9 +167,13 @@ snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
             query = "UPDATE pima_observations SET status = %s WHERE \
 exper_name = %s AND band = %s AND polar = %s AND snr <= %s;"
             cur.execute(query, ('n', self.exper, self.band, polar, 5.0))
+
             query = "UPDATE pima_observations SET status = %s WHERE \
 exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
-            cur.execute(query, ('y', self.exper, self.band, polar, 7.0))
+            if exper_info.sp_chann_num <= 128:
+                cur.execute(query, ('y', self.exper, self.band, polar, 6.0))
+            else:
+                cur.execute(query, ('y', self.exper, self.band, polar, 7.0))
 
         self.connw.commit()
 
@@ -647,7 +651,7 @@ bandpass: ' + str(obs['SNR']))
         if not os.path.isfile(fri_file):
             return
 
-        self.db.fri2db(Fri(fri_file))
+        self.db.fri2db(Fri(fri_file), self.pima.exper_info)
 
     def delete_uvfits(self):
         """Delete UV-FITS file"""
