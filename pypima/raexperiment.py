@@ -483,8 +483,10 @@ first line'.format(self.antab))
                         toks[9] = '{:.2f}MHz'.format(
                             freq_setup[0]['freq'] * 1e-6)
 
-                if toks[0] == 'TSYS' and toks[4] not in sta_list:
-                    toks.insert(0, '!')
+                if toks[0] == 'TSYS' and len(toks) > 4:
+                    toks[4] = toks[4].upper()
+                    if toks[4] not in sta_list:
+                        toks.insert(0, '!')
 
                 out.write(' '.join(toks) + '\n')
 
