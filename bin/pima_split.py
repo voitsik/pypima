@@ -74,7 +74,11 @@ data')
         pima_opts.extend(['PIMAVAR_SPLT_SUB_SRT:', 'YES'])
 
     pima_opts.extend(['SPLT.WEIGHT_TYPE:', 'RMS'])
-    pima.split(tim_mseg=mseg, params=pima_opts)
+    try:
+        pima.split(tim_mseg=mseg, params=pima_opts)
+    except pypima.pima.Error as ex:
+        print('PIMA Error: {}'.format(ex))
+        return
 
     if source:
         params = pima.get_cnt_params(['EXPER_DIR:', 'SESS_CODE:', 'BAND:',
@@ -132,6 +136,10 @@ def main():
                       default='',
                       help='Polarization')
 
+    parser.add_option('-r', '--reload', action='store_true',
+                      dest='reload',
+                      help='Force to run "pima load"')
+
     opts, args = parser.parse_args()
 
     if len(args) < 2:
@@ -143,23 +151,41 @@ def main():
     pima_opts = opts.pima_opts.split()
     source = opts.source
     polar = opts.polar
+    reload = opts.reload
 
     if len(pima_opts) % 2:
         print('Error: The number of pima arguments should be even, but you \
                specified {}'.format(len(pima_opts)))
+        return 1
 
     exp_dir = os.getenv('pima_exp_dir')
     work_dir = '{}/{}'.format(exp_dir, exper)
     os.chdir(work_dir)
-    pim = Pima(exper, band, work_dir)
+    pima = Pima(exper, band, work_dir)
 
     # Averaging in seconds. If None do not aver
     aver_list = [0]
     if len(args) == 3:
         aver_list = args[2].split(',')
 
+    if reload:
+        try:
+            pima.load()
+            antab_file = '{}/{}{}.antab'.format(pima.work_dir, pima.exper,
+                         pima.band)
+            pima.load_gains(antab_file)
+            pima.load_tsys(antab_file)
+            pima.coarse()
+            pima.bpas()
+            pima.fine()
+        except pypima.pima.Error as ex:
+            print('PIMA Error: {}'.format(ex))
+            return 1
+
     for aver in aver_list:
-        pima_split(pim, float(aver), noclosure, source, polar, pima_opts)
+        pima_split(pima, float(aver), noclosure, source, polar, pima_opts)
+
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
