@@ -32,9 +32,6 @@ def download_it(exper):
     except pypima.raexperiment.Error as err:
         print('RaExperiment Error: ', err)
         return
-#    except KeyboardInterrupt:
-#        print('KeyboardInterrupt', file=sys.stderr)
-#        exit(1)
     except:
         print("Unexpected error: ", sys.exc_info()[0])
         raise
@@ -90,12 +87,15 @@ def main(in_file):
             print('KeyboardInterrupt', file=sys.stderr)
             pool.terminate()
             pool.join()
-            exit(1)
+            return 1
         except:
             print("Unexpected error: ", sys.exc_info()[0])
             raise
 
+    print("Quitting normally")
     pool.join()
+    return 0
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -104,4 +104,4 @@ if __name__ == '__main__':
         print('Read list of experiments and bands from FILE', file=sys.stderr)
         sys.exit(2)
 
-    main(sys.argv[1])
+    sys.exit(main(sys.argv[1]))

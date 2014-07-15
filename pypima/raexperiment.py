@@ -337,15 +337,15 @@ class RaExperiment(object):
         # Delete spaces in filename
         self.uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
                                     replace(' ', ''))
-        lock_file = self.uv_fits + '.lock'
+        lock_file_name = self.uv_fits + '.lock'
 
         if os.path.isfile(self.uv_fits) and \
                 os.path.getsize(self.uv_fits) == size:
             self._print_info('file {} already exists'.format(self.uv_fits))
-        elif os.path.isfile(lock_file):
+        elif os.path.isfile(lock_file_name):
             self._print_info('File {} is being downloaded now, wait'.format(
                              self.uv_fits))
-            while os.path.isfile(lock_file):
+            while os.path.isfile(lock_file_name):
                 print('.', end='')
                 sys.stdout.flush()
                 time.sleep(10)
@@ -354,20 +354,17 @@ class RaExperiment(object):
             if not os.path.isdir(data_dir):
                 os.makedirs(data_dir)
             self._print_info('Start downloading file {}...'.format(fits_url))
-            lock_ = open(lock_file, 'w')
-            lock_.close()
+            lock_file = open(lock_file_name, 'w')
+            lock_file.close()
             try:
                 self.uv_fits, _ = urlreq.urlretrieve(fits_url,
                                                      filename=self.uv_fits)
             except URLError as ex:
-                os.remove(lock_file)
                 self._error('Could not download file {}: {}'.format(
                     fits_url, ex.reason))
-            except:
-                os.remove(lock_file)
-                raise
+            finally:
+                os.remove(lock_file_name)
 
-            os.remove(lock_file)
             self._print_info('Done')
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
