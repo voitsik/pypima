@@ -36,11 +36,9 @@ class DB(object):
         self.exper = exper
         self.band = band
 
-        self.conn = psycopg2.connect(database='ra_results', user='guest',
-                                     host='odin')
-        self.connw = psycopg2.connect(database='ra_results', user='editor',
-                                      host='odin')
-        self.conn.autocommit = True
+        self.conn = None
+        self.connw = None
+        self.connected = False
 
         nrc = netrc.netrc()
         self.web_login = nrc.authenticators('webinet.asc.rssi.ru')[0]
@@ -48,8 +46,22 @@ class DB(object):
         self.arc_login = nrc.authenticators('archive.asc.rssi.ru')[0]
         self.arc_passw = nrc.authenticators('archive.asc.rssi.ru')[2]
 
+    def _connect(self):
+        """Realy connect to DB"""
+        if not self.conn:
+            self.conn = psycopg2.connect(database='ra_results', user='guest',
+                                         host='odin')
+            self.conn.autocommit = True
+        if not self.connw:
+            self.connw = psycopg2.connect(database='ra_results', user='editor',
+                                          host='odin')
+        self.connected = True
+
     def get_uvfits_url(self):
         """Get FITS-file url from DB for given experiment and band"""
+        if not self.connected:
+            self._connect()
+
         url = None
         size = 0
         url_base = 'ftp://{}:{}@archive.asc.rssi.ru'.format(self.arc_login,
@@ -70,6 +82,9 @@ exper_name = %s AND band = %s ORDER BY corr_date DESC, path DESC;',
 
     def get_orbit_url(self):
         """Returns orbit file url for given experiment"""
+        if not self.connected:
+            self._connect()
+
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
 oddata/reconstr/'.format(self.web_login, self.web_passw)
@@ -89,6 +104,9 @@ scf_files.stop_time >= vex_files.exper_nominal_stop;", (self.exper,))
 
     def get_antab_url(self):
         """Download antab-file for the experiment and return path"""
+        if not self.connected:
+            self._connect()
+
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
 ampcal'.format(self.web_login, self.web_passw)
@@ -125,6 +143,9 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         Store information from the fri-file to the DB.
 
         """
+        if not self.connected:
+            self._connect()
+
         polar = fri_file[0]['polar']
 
         self._check_and_delete(self.exper, self.band, polar)
@@ -182,6 +203,9 @@ exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
         Put experiment info to the DB.
 
         """
+        if not self.connected:
+            self._connect()
+
         with self.connw.cursor() as cursor:
             cursor.execute("SELECT exper_name, band FROM pima_experiments \
 WHERE exper_name = %s AND band = %s", (self.exper, self.band))
@@ -221,6 +245,9 @@ WHERE exper_name = %s AND band = %s'
         """
         query = 'UPDATE pima_experiments SET last_error = %s \
 WHERE exper_name = %s AND band = %s'
+
+        if not self.connected:
+            self._connect()
 
         with self.connw.cursor() as cursor:
             cursor.execute(query, (msg, self.exper, self.band))
@@ -289,6 +316,7 @@ class RaExperiment(object):
         # Connect to DB
         self.db = DB(self.exper, self.band)
 
+        # Create PIMA control file
         self._mk_cnt()
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
