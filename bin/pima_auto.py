@@ -8,32 +8,40 @@ Created on 18.02.2014
 
 from __future__ import print_function
 import multiprocessing
-import sys
 import os.path
-path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, path)
+import sys
+PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
+#import signal
 import time
 
 
-def download_it(exper):
+#def init_pool():
+#    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+
+def download_it(ra_exp):
     """
     Download all necessary files for given experiment.
 
     """
-    print('{} started.'.format(multiprocessing.current_process().name))
+    my_name = multiprocessing.current_process().name
+    print(my_name, 'started ({} {})'.format(ra_exp.exper, ra_exp.band))
     try:
-        ra_exp = RaExperiment(exper[0], exper[1])
-        ra_exp.load(True)
+        ra_exp.load(download_only=True)
     except pypima.pima.Error as err:
-        print('PIMA Error: ', err)
+        print(my_name, 'PIMA Error: ', err)
         return
     except pypima.raexperiment.Error as err:
-        print('RaExperiment Error: ', err)
+        print(my_name, 'RaExperiment Error: ', err)
+        return
+    except KeyboardInterrupt:
+        print(my_name, 'KeyboardInterrupt')
         return
     except:
-        print("Unexpected error: ", sys.exc_info()[0])
+        print(my_name, "Unexpected error: ", sys.exc_info()[0])
         raise
 
 
@@ -57,7 +65,7 @@ def main(in_file):
                 continue
             exp_band = line.split()
             if len(exp_band) == 2:
-                exp_list.append(exp_band)
+                exp_list.append(RaExperiment(exp_band[0], exp_band[1]))
 
     pool = multiprocessing.Pool(processes=2)
     pool.map_async(download_it, exp_list)
@@ -65,20 +73,19 @@ def main(in_file):
     pool.close()
     time.sleep(1)
 
-    for item in exp_list:
+    for ra_exp in exp_list:
         try:
-            p = RaExperiment(item[0], item[1])
-            p.load()
+            ra_exp.load()
 
             for polar in ['RR', 'RL', 'LR', 'LL']:
-                p.pima.set_polar(polar)
-                p.fringe_fitting(True, True)
-                p.fringes2db()
+                ra_exp.pima.set_polar(polar)
+                ra_exp.fringe_fitting(True, True)
+                ra_exp.fringes2db()
 
-            p.delete_uvfits()
+            ra_exp.delete_uvfits()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            p.db.set_error_msg(str(err))
+            ra_exp.db.set_error_msg(str(err))
             continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)
