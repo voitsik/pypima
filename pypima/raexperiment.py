@@ -430,7 +430,7 @@ class RaExperiment(object):
                             cols = back_line.split()
                             if len(cols):
                                 break
-                        line = line + ' ' + cols[0]
+                        line = line.strip() + ' ' + cols[0]
 
                     orb_file.write(line + '\n')
 
