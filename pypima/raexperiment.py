@@ -425,6 +425,12 @@ class RaExperiment(object):
                         line = 'OBJECT_NAME   = RADIO-ASTRON'
                     elif line.startswith('CREATION'):
                         line = line.replace('CREATION DATE', 'CREATION_DATE')
+                    elif line.startswith('STOP_TIME') and len(line) < 20:
+                        for back_line in reversed(orb_data):
+                            cols = back_line.split()
+                            if len(cols):
+                                break
+                        line = line + ' ' + cols[0]
 
                     orb_file.write(line + '\n')
 
