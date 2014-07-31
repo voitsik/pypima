@@ -673,6 +673,9 @@ bandpass: ' + str(obs['SNR']))
         self.pima.load_gains(self.antab)
         self.pima.load_tsys(self.antab)
 
+        # Average all spectral channels in each IF
+        self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
+
         if source:
             self.pima.update_cnt({'SPLT.SOU_NAME:': source})
         else:
