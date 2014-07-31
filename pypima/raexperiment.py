@@ -662,6 +662,10 @@ bandpass: ' + str(obs['SNR']))
         Do SPLIT.
 
         """
+        if self.pima.chan_number() > 512:
+            self._print_warn('Too many spectral channels to do SPLIT: {}'.
+                             format(self.pima.chan_number()))
+
         if not os.path.isfile(self.antab):
             self._error('Could not do split due to absence of the antab-file')
 
