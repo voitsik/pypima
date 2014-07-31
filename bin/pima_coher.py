@@ -34,7 +34,7 @@ def main(exper, band, obs):
     if obs <= 0 or obs > pim.obs_number():
         print('Incorrect observation number {} must be in range [{} {}]'.
               format(obs, 1, pim.obs_number()))
-        sys.exit(1)
+        return 1
 
     sta1 = sta2 = 'TEST'
 
@@ -97,14 +97,19 @@ def main(exper, band, obs):
     pic_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs)
     plt.savefig(pic_file_name, format='pdf')
 #    plt.show()
+    return 0
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print('Usage: {} <exper> <band> <obs>'.format(
+        print('Usage: {} <exper> <band> <obs_list>'.format(
             os.path.basename(sys.argv[0])), file=sys.stderr)
-        print('', file=sys.stderr)
+        print('exper     experiment name', file=sys.stderr)
+        print('band      frequency band', file=sys.stderr)
+        print('obs_list  coma separated list of observation numbers',
+              file=sys.stderr)
 
         sys.exit(2)
 
-    main(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    for obs in sys.argv[3].split(','):
+        main(sys.argv[1], sys.argv[2], int(obs))
