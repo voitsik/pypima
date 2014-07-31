@@ -95,7 +95,7 @@ class Pima(object):
             self.work_dir = os.getcwd()
 
         self.pima_dir = os.getenv('PIMA_DIR')
-        if not os.path.isdir(self.pima_dir):
+        if self.pima_dir is None or not os.path.isdir(self.pima_dir):
             raise Error(self.exper, self.band, 'Could not find PIMA directory.\
  Please, set $PIMA_DIR environment variable.')
         self.pima_exec = self.pima_dir + '/bin/pima'
