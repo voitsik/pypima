@@ -577,13 +577,14 @@ first line'.format(self.antab))
         """
         Select reference station for bandpass calibration.
         """
+        snr_detecton = 5.6
         fri = Fri(fri_file)
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
 
         if len(obs):
-            if obs['SNR'] < 5.6:
+            if obs['SNR'] < snr_detecton:
                 self._print_warn('SNR is too low on space baseline for \
 bandpass: ' + str(obs['SNR']))
             else:
@@ -596,7 +597,7 @@ bandpass: ' + str(obs['SNR']))
 
         if self.sta_ref is None:
             obs = fri.max_snr()
-            if obs['SNR'] < 5.6:
+            if obs['SNR'] < snr_detecton:
                 self._print_warn('SNR is too low for bandpass: ' +
                                  str(obs['SNR']))
             else:
@@ -612,7 +613,8 @@ bandpass: ' + str(obs['SNR']))
             snr = min(10.0, obs['SNR']-0.1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
-                                  'BPS.SNR_MIN_FINE:': str(snr)})
+                                  'BPS.SNR_MIN_FINE:': str(snr),
+                                  'FRIB.SNR_DETECTION:': str(snr_detecton)})
             self._print_info('new reference station is {}'.format(
                              self.sta_ref))
             self._print_info('set SNR_MIN to {:.1f}'.format(snr))
