@@ -83,6 +83,7 @@ def main(in_file):
                 ra_exp.fringes2db()
 
             ra_exp.delete_uvfits()
+            ra_exp.db.close()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
             ra_exp.db.set_error_msg(str(err))
