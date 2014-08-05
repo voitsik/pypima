@@ -57,6 +57,12 @@ class DB(object):
                                           host='odin')
         self.connected = True
 
+    def close(self):
+        """Close connections"""
+        if self.connected:
+            self.conn.close()
+            self.connw.close()
+
     def get_uvfits_url(self):
         """Get FITS-file url from DB for given experiment and band"""
         if not self.connected:
