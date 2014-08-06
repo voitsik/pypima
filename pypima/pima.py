@@ -210,10 +210,9 @@ executable')
             elif os.path.isdir(aux_file):
                 shutil.rmtree(aux_file)
 
-        log_name = self.exper + '_' + self.band + '_load.log'
         opts = ['BANDPASS_FILE:', 'NO',
                 'POLARCAL_FILE:', 'NO']
-        ret = self._exec('load', log_name=log_name, options=opts)
+        ret = self._exec('load', options=opts)
         if ret:
             self._error('load failed with code {}'.format(ret))
 

@@ -534,6 +534,8 @@ first line'.format(self.antab))
         Download data, run pima load, and do some checks.
 
         """
+        os.chdir(self.work_dir)
+
         if self.uv_fits is None:
             self._download_fits()
 
