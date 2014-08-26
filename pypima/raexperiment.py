@@ -75,13 +75,14 @@ class DB(object):
 
         with self.conn.cursor() as cursor:
             cursor.execute('SELECT path, size FROM fits_files WHERE \
-exper_name = %s AND band = %s ORDER BY corr_date DESC, path DESC;',
-                          (self.exper, self.band.upper()))
-            repl = cursor.fetchone()
+LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) \
+ORDER BY corr_date DESC, path DESC;',
+                          (self.exper, self.band))
+            reply = cursor.fetchone()
 
-        if repl:
-            path = repl[0]
-            size = repl[1]
+        if reply:
+            path = reply[0]
+            size = reply[1]
             url = url_base + path
 
         return url, size
@@ -100,10 +101,10 @@ oddata/reconstr/'.format(self.web_login, self.web_passw)
 vex_files WHERE vex_files.exper_name = %s AND \
 scf_files.start_time <= vex_files.exper_nominal_start AND \
 scf_files.stop_time >= vex_files.exper_nominal_stop;", (self.exper,))
-            orbit = cursor.fetchone()
+            reply = cursor.fetchone()
 
-        if orbit:
-            orbit_file = orbit[0]
+        if reply:
+            orbit_file = reply[0]
             url = url_base + orbit_file
 
         return url
@@ -121,10 +122,10 @@ ampcal'.format(self.web_login, self.web_passw)
             cursor.execute("SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
                             FROM vex_files WHERE exper_name = %s;",
                           (self.exper,))
-            date = cursor.fetchone()
+            reply = cursor.fetchone()
 
-        if date:
-            date = date[0]
+        if reply:
+            date = reply[0]
             date1 = date[0:7]
             url = '{0}/{1}/{2}_{3}/{3}{4}.antab'.format(url_base, date1, date,
                   self.exper, self.band)
@@ -139,8 +140,8 @@ ampcal'.format(self.web_login, self.web_passw)
         with self.connw.cursor() as cursor:
             cursor.execute("SELECT * FROM pima_observations WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
-            test = cursor.fetchone()
-            if test:
+            reply = cursor.fetchone()
+            if reply:
                 cursor.execute("DELETE FROM pima_observations WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
