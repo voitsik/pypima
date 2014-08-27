@@ -687,7 +687,13 @@ bandpass: ' + str(obs['SNR']))
 
     def split(self, source=None):
         """
-        Do SPLIT.
+        Do SPLIT and copy UV-FITS files to the final destination.
+
+        Parameters
+        ----------
+        source : string, optional
+            Do split only for given source. By default split all sources in
+            the experiment.
 
         """
         if self.pima.chan_number() > 512:
