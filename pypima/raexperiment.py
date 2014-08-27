@@ -311,6 +311,7 @@ class RaExperiment(object):
         if not os.path.exists(antab_dir):
             os.mkdir(antab_dir)
         self.antab = os.path.join(antab_dir, self.exper + self.band + '.antab')
+        self.calibration_loaded = False
 
         # PIMA control file path
         self.cnt_file_name = os.path.join(self.work_dir, '{}_{}_pima.cnt'.
@@ -582,6 +583,17 @@ first line'.format(self.antab))
 
         self._fix_antab()
 
+        # Try to load calibration information from ANTAB
+        if os.path.isfile(self.antab):
+            try:
+                self.pima.load_gains(self.antab)
+                self.pima.load_tsys(self.antab)
+                self.calibration_loaded = True
+            except pypima.pima.Error as err:
+                print(err)
+                self._print_warn('Could not load calibration information')
+                self.calibration_loaded = False
+
     def _select_ref_sta(self, fri_file):
         """
         Select reference station for bandpass calibration.
@@ -648,6 +660,10 @@ bandpass: ' + str(obs['SNR']))
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC',
                                   'PHASE_ACCEL_MIN:': '-1D-14',
                                   'PHASE_ACCEL_MAX:': '1D-14'})
+        else:
+            self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'LSQ',
+                                  'PHASE_ACCEL_MIN:': '0',
+                                  'PHASE_ACCEL_MAX:': '0'})
 
         if self.pima.chan_number() > 512:
             self._print_warn('Too many spectral channels for bandpass: {}'.
@@ -678,11 +694,10 @@ bandpass: ' + str(obs['SNR']))
                              format(self.pima.chan_number()))
             return
 
-        if not os.path.isfile(self.antab):
-            self._error('Could not do split due to absence of the antab-file')
-
-        self.pima.load_gains(self.antab)
-        self.pima.load_tsys(self.antab)
+        if not self.calibration_loaded:
+            self._print_warn('Could not do split due to absence of \
+calibartion information')
+            return
 
         # Average all spectral channels in each IF
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
