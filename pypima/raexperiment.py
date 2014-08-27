@@ -7,6 +7,7 @@ Created on Sun Dec 29 04:02:35 2013
 
 from datetime import datetime
 from datetime import timedelta
+import glob
 import netrc
 import os.path
 import psycopg2
@@ -706,6 +707,16 @@ calibartion information')
             self.pima.update_cnt({'SPLT.SOU_NAME:': source})
         else:
             self.pima.update_cnt({'SPLT.SOU_NAME:': 'ALL'})
+
+        exper_dir = self.pima.cnt_params['EXPER_DIR:']
+        sess_code = self.pima.cnt_params['SESS_CODE:']
+        output_dir = os.path.join(exper_dir, sess_code + '_uvs')
+
+        # Delete old uv-fits remained from previous run
+        if os.path.isdir(output_dir):
+            old_uvfits = glob.glob(output_dir + '/*')
+            for fil in old_uvfits:
+                os.remove(fil)
 
         self.pima.split()
 
