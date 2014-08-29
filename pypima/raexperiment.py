@@ -585,7 +585,7 @@ first line'.format(self.antab))
         self._fix_antab()
 
         # Try to load calibration information from ANTAB
-        if os.path.isfile(self.antab):
+        if self.antab and os.path.isfile(self.antab):
             try:
                 self.pima.load_gains(self.antab)
                 self.pima.load_tsys(self.antab)
