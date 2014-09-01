@@ -535,10 +535,18 @@ first line'.format(self.antab))
                         toks[9] = '{:.2f}MHz'.format(
                             freq_setup[0]['freq'] * 1e-6)
 
+                # Deselect stations
                 if toks[0] == 'TSYS' and len(toks) > 4:
                     toks[4] = toks[4].upper()
                     if toks[4] not in sta_list:
                         toks.insert(0, '!')
+
+                # EF, L-band GAINs
+                if toks[0] == 'GAIN' and toks[-1] == '/':
+                    for ind in range(len(toks)):
+                        if toks[ind].startswith('POLY'):
+                            toks[ind] = "\n" + toks[ind]
+                            break
 
                 out.write(' '.join(toks) + '\n')
 
