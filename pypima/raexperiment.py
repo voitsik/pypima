@@ -64,6 +64,8 @@ class DB(object):
             self.conn.close()
             self.connw.close()
 
+        self.connected = False
+
     def get_uvfits_url(self):
         """Get FITS-file url from DB for given experiment and band"""
         if not self.connected:
@@ -378,7 +380,7 @@ class RaExperiment(object):
 
         if os.path.isfile(self.uv_fits) and \
                 os.path.getsize(self.uv_fits) == size:
-            self._print_info('file {} already exists'.format(self.uv_fits))
+            self._print_info('File {} already exists'.format(self.uv_fits))
         elif os.path.isfile(lock_file_name):
             self._print_info('File {} is being downloaded now, wait'.format(
                              self.uv_fits))
@@ -513,7 +515,17 @@ first line'.format(self.antab))
             out.write(magic)
 
             for line in inp:
+                line = line.strip()
+
+                if line.startswith('POLY') and line.endswith('/'):
+                    line = line.replace('/', ' /')
+                elif line.startswith('GAIN WB'):
+                    line = 'GAIN WB EQUAT DPFU=1.0,1.0 FREQ=1000,5000'
+                elif line.startswith('DPFU=1.0'):
+                    line = ''
+
                 toks = line.split()
+
                 if len(toks) == 0:
                     continue
 
