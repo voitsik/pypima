@@ -43,23 +43,25 @@ def download_it(ra_exp):
     except:
         print(my_name, "Unexpected error: ", sys.exc_info()[0])
         raise
+    finally:
+        ra_exp.db.close()
 
 
-def main(in_file):
+def main(in_file_name):
     """
     Main function.
 
     Parameters:
     -----------
-    in_file : str
+    in_file_name : str
         Name of the file with list of the experiments and bands. Each line in
         this file must have two words: experiment code and band.
 
     """
     exp_list = []
 
-    with open(in_file, 'r') as inf:
-        for line in inf:
+    with open(in_file_name, 'r') as in_file:
+        for line in in_file:
             line = line.strip()
             if line.startswith('#'):
                 continue
@@ -79,11 +81,11 @@ def main(in_file):
 
             for polar in ['RR', 'RL', 'LR', 'LL']:
                 ra_exp.pima.set_polar(polar)
-                ra_exp.fringe_fitting(True, True)
-                ra_exp.fringes2db()
-                ra_exp.split()
+#                ra_exp.fringe_fitting(True, True)
+#                ra_exp.fringes2db()
+#                ra_exp.split()
 
-            ra_exp.delete_uvfits()
+#            ra_exp.delete_uvfits()
             ra_exp.db.close()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
@@ -101,8 +103,9 @@ def main(in_file):
             print("Unexpected error: ", sys.exc_info()[0])
             raise
 
-    print("Quitting normally")
     pool.join()
+    print("Quitting normally")
+
     return 0
 
 
