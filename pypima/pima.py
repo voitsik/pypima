@@ -510,6 +510,25 @@ executable')
 
         return sou_list
 
+    def source_dist(self):
+        """
+        Return distance between correlator phase center and source position
+        from catalog.
+
+        """
+
+        dist = dict()
+        sou_file = '{}/{}.sou'.format(self.cnt_params['EXPER_DIR:'],
+                                      self.cnt_params['SESS_CODE:'])
+
+        if os.path.isfile(sou_file):
+            with open(sou_file) as fil:
+                for line in fil:
+                    toks = line.split()
+                    dist[toks[2]] = float(toks[13])
+
+        return dist
+
     def obs_number(self):
         """
         Return number of the observations in the experiment
