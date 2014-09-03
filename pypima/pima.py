@@ -525,7 +525,10 @@ executable')
             with open(sou_file) as fil:
                 for line in fil:
                     toks = line.split()
-                    dist[toks[2]] = float(toks[12])
+                    try:
+                        dist[toks[2]] = float(toks[12])
+                    except ValueError:
+                        dist[toks[2]] = 9999999.9
 
         return dist
 
