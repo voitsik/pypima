@@ -525,7 +525,7 @@ executable')
             with open(sou_file) as fil:
                 for line in fil:
                     toks = line.split()
-                    dist[toks[2]] = float(toks[13])
+                    dist[toks[2]] = float(toks[12])
 
         return dist
 
