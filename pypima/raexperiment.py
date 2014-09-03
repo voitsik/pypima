@@ -563,8 +563,15 @@ first line'.format(self.antab))
         self.db.exper_info2db(self.pima.exper_info,
                               os.path.basename(self.uv_fits))
 
+        # Various checks
         if self.pima.obs_number() == 0:
             self._error('ZERO observations have been loaded')
+
+        sou_dist = self.pima.source_dist()
+        for source, distance in sou_dist.items():
+            if distance > 0.1:
+                self._print_warn('Dist = {} arcsec for source {}'.format(
+                                 distance, source))
 
         if 'RADIO-AS' not in self.pima.station_list():
             self._print_warn('RADIO-AS is not in station list')
