@@ -493,12 +493,10 @@ class RaExperiment(object):
         new_antab = os.path.join(self.work_dir, os.path.basename(self.antab))
 
         freq_setup = self.pima.frequencies()
-        if len(freq_setup) != 2:
-            self._error('Expected 2 IFs but get {}'.format(len(freq_setup)))
 
         # Should we fix frequency setup?
         fix_freq = False
-        if freq_setup[0]['side_band'] != -1:
+        if self.band != 'p' and freq_setup[0]['side_band'] != -1:
             fix_freq = True
 
         sta_list = self.pima.station_list(ivs_name=False)
