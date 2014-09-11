@@ -517,17 +517,21 @@ first line'.format(self.antab))
             for line in inp:
                 line = line.strip()
 
-#                if line.startswith('POLY') and line.endswith('/'):
-#                    line = line.replace('/', ' /')
-#                elif line.startswith('GAIN WB'):
-#                    line = 'GAIN WB EQUAT DPFU=1.0,1.0 FREQ=1000,5000'
-#                elif line.startswith('DPFU=1.0'):
-#                    line = ''
+                if line.startswith('POLY') and line.endswith('/'):
+                    line = line.replace('/', ' /')
+                elif line.startswith('GAIN WB'):
+                    line = 'GAIN WB EQUAT DPFU=1.0,1.0 FREQ=1000,5000'
+                elif line.startswith('DPFU=1.0'):
+                    line = ''
 
                 toks = line.split()
 
                 if len(toks) == 0:
                     continue
+
+                # Fix EF C-band channels table
+                if len(toks) == 10 and toks[0] == '!' and toks[1].isdigit():
+                    toks.insert(2, "6cm")
 
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == 'L':
@@ -542,11 +546,11 @@ first line'.format(self.antab))
                         toks.insert(0, '!')
 
                 # EF, L-band GAINs
-#                if toks[0] == 'GAIN' and toks[-1] == '/':
-#                    for ind in range(len(toks)):
-#                        if toks[ind].startswith('POLY'):
-#                            toks[ind] = "\n" + toks[ind]
-#                            break
+                if toks[0] == 'GAIN' and toks[-1] == '/':
+                    for ind in range(len(toks)):
+                        if toks[ind].startswith('POLY'):
+                            toks[ind] = "\n" + toks[ind]
+                            break
 
                 out.write(' '.join(toks) + '\n')
 
