@@ -81,9 +81,9 @@ def main(in_file_name):
 
             for polar in ['RR', 'RL', 'LR', 'LL']:
                 ra_exp.pima.set_polar(polar)
-#                ra_exp.fringe_fitting(True, True)
+                ra_exp.fringe_fitting(True, True)
 #                ra_exp.fringes2db()
-#                ra_exp.split()
+                ra_exp.split()
 
 #            ra_exp.delete_uvfits()
             ra_exp.db.close()
