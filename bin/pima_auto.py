@@ -84,6 +84,7 @@ def main(in_file_name):
                 ra_exp.fringe_fitting(True, True)
 #                ra_exp.fringes2db()
                 ra_exp.split()
+                ra_exp.copy_uvfits('/home/voitsik/RadioAstron/VLBI')
 
 #            ra_exp.delete_uvfits()
             ra_exp.db.close()

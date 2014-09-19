@@ -16,6 +16,7 @@ import urllib.request as urlreq
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
+import shutil
 import sys
 import time
 
@@ -754,6 +755,46 @@ calibartion information')
                 os.remove(fil)
 
         self.pima.split()
+
+    def copy_uvfits(self, out_dir):
+        """
+        Copy splited uv-fits from pima scratch dir to out_dir
+
+        """
+        exper_dir = self.pima.cnt_params['EXPER_DIR:']
+        sess_code = self.pima.cnt_params['SESS_CODE:']
+        band = self.pima.cnt_params['BAND:']
+        polar = self.pima.cnt_params['POLAR:']
+
+        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
+
+        sources = self.pima.source_list()
+        splt_sou_name = self.pima.cnt_params['SPLT.SOU_NAME:']
+
+        for source_names in sources:
+            if splt_sou_name != 'ALL' and splt_sou_name not in source_names:
+                continue
+
+            pima_fits_name = '{}_{}_uva.fits'.format(source_names[1], band)
+            pima_fits_path = os.path.join(pima_fits_dir, pima_fits_name)
+
+            if not os.path.isfile(pima_fits_path):
+                self._print_warn('UV-FITS "{}" does not exists.'.format(
+                    pima_fits_path))
+                continue
+
+            # Use B1950 name for output directory
+            out_dir = os.path.join(out_dir, source_names[2])
+            if not os.path.isdir(out_dir):
+                os.mkdir(out_dir)
+
+            out_fits_name = '{}_{}_{}_{}_uva.fits'.format(source_names[2],
+                            self.exper, self.band.upper(), polar)
+            out_fits_path = os.path.join(out_dir, out_fits_name)
+
+            self._print_info('Copy {} to {}'.format(pima_fits_path,
+                             out_fits_path))
+            shutil.copy(pima_fits_path, out_fits_path)
 
     def fringes2db(self):
         """
