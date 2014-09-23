@@ -7,6 +7,7 @@ Created on Sun Dec 29 04:02:35 2013
 
 from datetime import datetime
 from datetime import timedelta
+import glob
 import netrc
 import os.path
 import psycopg2
@@ -15,6 +16,7 @@ import urllib.request as urlreq
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
+import shutil
 import sys
 import time
 
@@ -62,6 +64,8 @@ class DB(object):
         if self.connected:
             self.conn.close()
             self.connw.close()
+
+        self.connected = False
 
     def get_uvfits_url(self):
         """Get FITS-file url from DB for given experiment and band"""
@@ -377,7 +381,7 @@ class RaExperiment(object):
 
         if os.path.isfile(self.uv_fits) and \
                 os.path.getsize(self.uv_fits) == size:
-            self._print_info('file {} already exists'.format(self.uv_fits))
+            self._print_info('File {} already exists'.format(self.uv_fits))
         elif os.path.isfile(lock_file_name):
             self._print_info('File {} is being downloaded now, wait'.format(
                              self.uv_fits))
@@ -490,12 +494,10 @@ class RaExperiment(object):
         new_antab = os.path.join(self.work_dir, os.path.basename(self.antab))
 
         freq_setup = self.pima.frequencies()
-        if len(freq_setup) != 2:
-            self._error('Expected 2 IFs but get {}'.format(len(freq_setup)))
 
         # Should we fix frequency setup?
         fix_freq = False
-        if freq_setup[0]['side_band'] != -1:
+        if self.band != 'p' and freq_setup[0]['side_band'] != -1:
             fix_freq = True
 
         sta_list = self.pima.station_list(ivs_name=False)
@@ -512,9 +514,23 @@ first line'.format(self.antab))
             out.write(magic)
 
             for line in inp:
+                line = line.strip()
+
+                if line.startswith('POLY') and line.endswith('/'):
+                    line = line.replace('/', ' /')
+                elif line.startswith('GAIN WB'):
+                    line = 'GAIN WB EQUAT DPFU=1.0,1.0 FREQ=1000,5000'
+                elif line.startswith('DPFU=1.0'):
+                    line = ''
+
                 toks = line.split()
+
                 if len(toks) == 0:
                     continue
+
+                # Fix EF C-band channels table
+                if len(toks) == 10 and toks[0] == '!' and toks[1].isdigit():
+                    toks.insert(2, "6cm")
 
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == 'L':
@@ -522,10 +538,18 @@ first line'.format(self.antab))
                         toks[9] = '{:.2f}MHz'.format(
                             freq_setup[0]['freq'] * 1e-6)
 
+                # Deselect stations
                 if toks[0] == 'TSYS' and len(toks) > 4:
                     toks[4] = toks[4].upper()
                     if toks[4] not in sta_list:
                         toks.insert(0, '!')
+
+                # EF, L-band GAINs
+                if toks[0] == 'GAIN' and toks[-1] == '/':
+                    for ind in range(len(toks)):
+                        if toks[ind].startswith('POLY'):
+                            toks[ind] = "\n" + toks[ind]
+                            break
 
                 out.write(' '.join(toks) + '\n')
 
@@ -591,7 +615,7 @@ first line'.format(self.antab))
         self._fix_antab()
 
         # Try to load calibration information from ANTAB
-        if os.path.isfile(self.antab):
+        if self.antab and os.path.isfile(self.antab):
             try:
                 self.pima.load_gains(self.antab)
                 self.pima.load_tsys(self.antab)
@@ -693,7 +717,13 @@ bandpass: ' + str(obs['SNR']))
 
     def split(self, source=None):
         """
-        Do SPLIT.
+        Do SPLIT and copy UV-FITS files to the final destination.
+
+        Parameters
+        ----------
+        source : string, optional
+            Do split only for given source. By default split all sources in
+            the experiment.
 
         """
         if self.pima.chan_number() > 512:
@@ -714,7 +744,57 @@ calibartion information')
         else:
             self.pima.update_cnt({'SPLT.SOU_NAME:': 'ALL'})
 
+        exper_dir = self.pima.cnt_params['EXPER_DIR:']
+        sess_code = self.pima.cnt_params['SESS_CODE:']
+        output_dir = os.path.join(exper_dir, sess_code + '_uvs')
+
+        # Delete old uv-fits remained from previous run
+        if os.path.isdir(output_dir):
+            old_uvfits = glob.glob(output_dir + '/*')
+            for fil in old_uvfits:
+                os.remove(fil)
+
         self.pima.split()
+
+    def copy_uvfits(self, out_dir):
+        """
+        Copy splited uv-fits from pima scratch dir to out_dir
+
+        """
+        exper_dir = self.pima.cnt_params['EXPER_DIR:']
+        sess_code = self.pima.cnt_params['SESS_CODE:']
+        band = self.pima.cnt_params['BAND:']
+        polar = self.pima.cnt_params['POLAR:']
+
+        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
+
+        sources = self.pima.source_list()
+        splt_sou_name = self.pima.cnt_params['SPLT.SOU_NAME:']
+
+        for source_names in sources:
+            if splt_sou_name != 'ALL' and splt_sou_name not in source_names:
+                continue
+
+            pima_fits_name = '{}_{}_uva.fits'.format(source_names[1], band)
+            pima_fits_path = os.path.join(pima_fits_dir, pima_fits_name)
+
+            if not os.path.isfile(pima_fits_path):
+                self._print_warn('UV-FITS "{}" does not exists.'.format(
+                    pima_fits_path))
+                continue
+
+            # Use B1950 name for output directory
+            out_dir = os.path.join(out_dir, source_names[2])
+            if not os.path.isdir(out_dir):
+                os.mkdir(out_dir)
+
+            out_fits_name = '{}_{}_{}_{}_uva.fits'.format(source_names[2],
+                            self.exper, self.band.upper(), polar)
+            out_fits_path = os.path.join(out_dir, out_fits_name)
+
+            self._print_info('Copy {} to {}'.format(pima_fits_path,
+                             out_fits_path))
+            shutil.copy(pima_fits_path, out_fits_path)
 
     def fringes2db(self):
         """
