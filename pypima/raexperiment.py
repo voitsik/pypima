@@ -784,13 +784,13 @@ calibartion information')
                 continue
 
             # Use B1950 name for output directory
-            out_dir = os.path.join(out_dir, source_names[2])
-            if not os.path.isdir(out_dir):
-                os.mkdir(out_dir)
+            out_fits_dir = os.path.join(out_dir, source_names[2])
+            if not os.path.isdir(out_fits_dir):
+                os.mkdir(out_fits_dir)
 
             out_fits_name = '{}_{}_{}_{}_uva.fits'.format(source_names[2],
                             self.exper, self.band.upper(), polar)
-            out_fits_path = os.path.join(out_dir, out_fits_name)
+            out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
             self._print_info('Copy {} to {}'.format(pima_fits_path,
                              out_fits_path))
