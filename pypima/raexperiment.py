@@ -717,7 +717,7 @@ bandpass: ' + str(obs['SNR']))
 
     def split(self, source=None):
         """
-        Do SPLIT and copy UV-FITS files to the final destination.
+        Do SPLIT.
 
         Parameters
         ----------
