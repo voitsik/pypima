@@ -522,6 +522,8 @@ first line'.format(self.antab))
                     line = 'GAIN WB EQUAT DPFU=1.0,1.0 FREQ=1000,5000'
                 elif line.startswith('DPFU=1.0'):
                     line = ''
+                elif line.startswith('/') and len(line) > 1:
+                    line = line.replace('/', '/ ', 1)
 
                 toks = line.split()
 
@@ -543,13 +545,14 @@ first line'.format(self.antab))
                     toks[4] = toks[4].upper()
                     if toks[4] not in sta_list:
                         toks.insert(0, '!')
-
                 # EF, L-band GAINs
-                if toks[0] == 'GAIN' and toks[-1] == '/':
+                elif toks[0] == 'GAIN' and toks[-1] == '/':
                     for ind in range(len(toks)):
                         if toks[ind].startswith('POLY'):
                             toks[ind] = "\n" + toks[ind]
                             break
+                elif toks[0] == '/' and len(toks) > 1:
+                    toks[1] = "\n" + toks[1]
 
                 out.write(' '.join(toks) + '\n')
 
