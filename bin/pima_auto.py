@@ -75,6 +75,10 @@ def main(in_file_name):
     pool.close()
     time.sleep(1)
 
+    out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split')
+    if not os.path.isdir(out_dir):
+        os.mkdir(out_dir)
+
     for ra_exp in exp_list:
         try:
             ra_exp.load()
@@ -84,7 +88,7 @@ def main(in_file_name):
                 ra_exp.fringe_fitting(True, True)
                 ra_exp.fringes2db()
                 ra_exp.split()
-                ra_exp.copy_uvfits('/home/voitsik/RadioAstron/VLBI')
+                ra_exp.copy_uvfits(out_dir)
 
             ra_exp.delete_uvfits()
             ra_exp.db.close()
