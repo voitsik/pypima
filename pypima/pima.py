@@ -19,6 +19,7 @@ class Error(Exception):
         self.exper = exper
         self.band = band
         self.msg = msg
+        self.time = str(datetime.now())
 
     def __str__(self):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
@@ -199,7 +200,8 @@ executable')
 
     def _print_info(self, msg):
         """Print some information"""
-        print('Info: {}({}): {}'.format(self.exper, self.band, msg))
+        now = str(datetime.now())
+        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg))
         sys.stdout.flush()
 
     def _error(self, msg):

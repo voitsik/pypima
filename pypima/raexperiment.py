@@ -24,6 +24,7 @@ class Error(Exception):
         self.exper = exper
         self.band = band
         self.msg = msg
+        self.time = str(datetime.now())
 
     def __str__(self):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
@@ -211,7 +212,7 @@ class RaExperiment(object):
 
                     orb_file.write(line + '\n')
 
-            self._print_info('Done')
+            self._print_info('Downloading is complete')
         else:
             self._print_info('file {} already exists'.format(self.orbit))
 
@@ -235,14 +236,18 @@ class RaExperiment(object):
                 self._print_warn('Could not download file {}: {}'.format(
                     antab_url, ex.reason))
 
+            self._print_info('Downloading is complete')
+
     def _print_info(self, msg):
         """Print some information"""
-        print('Info: {}({}): {}'.format(self.exper, self.band, msg))
+        now = str(datetime.now())
+        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg))
         sys.stdout.flush()
 
     def _print_warn(self, msg):
         """Print warning"""
-        print('Warning: {}({}): {}'.format(self.exper, self.band, msg))
+        now = str(datetime.now())
+        print(now, 'Warning: {}({}): {}'.format(self.exper, self.band, msg))
         sys.stdout.flush()
 
     def _error(self, msg):
