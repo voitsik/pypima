@@ -32,45 +32,23 @@ class Error(Exception):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
 
 
-class DB(object):
+class DB:
     """Interface to ra_results DataBase"""
-    def __init__(self, exper, band):
-        self.exper = exper
-        self.band = band
 
-        self.conn = None
-        self.connw = None
-        self.connected = False
-
+    def __init__(self):
         nrc = netrc.netrc()
         self.web_login = nrc.authenticators('webinet.asc.rssi.ru')[0]
         self.web_passw = nrc.authenticators('webinet.asc.rssi.ru')[2]
         self.arc_login = nrc.authenticators('archive.asc.rssi.ru')[0]
         self.arc_passw = nrc.authenticators('archive.asc.rssi.ru')[2]
 
-    def _connect(self):
-        """Realy connect to DB"""
-        if not self.conn:
-            self.conn = psycopg2.connect(database='ra_results', user='guest',
-                                         host='odin')
-            self.conn.autocommit = True
-        if not self.connw:
-            self.connw = psycopg2.connect(database='ra_results', user='editor',
-                                          host='odin')
-        self.connected = True
+        self.conn = psycopg2.connect(database='ra_results', user='guest',
+                                     host='odin')
+        self.connw = psycopg2.connect(database='ra_results', user='editor',
+                                      host='odin')
 
-    def close(self):
-        """Close connections"""
-        if self.connected:
-            self.conn.close()
-            self.connw.close()
-
-        self.connected = False
-
-    def get_uvfits_url(self):
+    def get_uvfits_url(self, exper, band):
         """Get FITS-file url from DB for given experiment and band"""
-        if not self.connected:
-            self._connect()
 
         url = None
         size = 0
@@ -81,7 +59,7 @@ class DB(object):
             cursor.execute('SELECT path, size FROM fits_files WHERE \
 LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) \
 ORDER BY corr_date DESC, path DESC;',
-                          (self.exper, self.band))
+                          (exper, band))
             reply = cursor.fetchone()
 
         if reply:
@@ -91,10 +69,8 @@ ORDER BY corr_date DESC, path DESC;',
 
         return url, size
 
-    def get_orbit_url(self):
+    def get_orbit_url(self, exper):
         """Returns orbit file url for given experiment"""
-        if not self.connected:
-            self._connect()
 
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
@@ -104,7 +80,7 @@ oddata/reconstr/'.format(self.web_login, self.web_passw)
             cursor.execute("SELECT scf_files.file_name FROM scf_files, \
 vex_files WHERE vex_files.exper_name = %s AND \
 scf_files.start_time <= vex_files.exper_nominal_start AND \
-scf_files.stop_time >= vex_files.exper_nominal_stop;", (self.exper,))
+scf_files.stop_time >= vex_files.exper_nominal_stop;", (exper,))
             reply = cursor.fetchone()
 
         if reply:
@@ -113,7 +89,7 @@ scf_files.stop_time >= vex_files.exper_nominal_stop;", (self.exper,))
 
         return url
 
-    def get_antab_url(self):
+    def get_antab_url(self, exper, band):
         """Download antab-file for the experiment and return path"""
         if not self.connected:
             self._connect()
@@ -125,14 +101,14 @@ ampcal'.format(self.web_login, self.web_passw)
         with self.conn.cursor() as cursor:
             cursor.execute("SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
                             FROM vex_files WHERE exper_name = %s;",
-                          (self.exper,))
+                          (exper,))
             reply = cursor.fetchone()
 
         if reply:
             date = reply[0]
             date1 = date[0:7]
             url = '{0}/{1}/{2}_{3}/{3}{4}.antab'.format(url_base, date1, date,
-                  self.exper, self.band)
+                  exper, band)
 
         return url
 
@@ -154,12 +130,11 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         Store information from the fri-file to the DB.
 
         """
-        if not self.connected:
-            self._connect()
 
         polar = fri_file[0]['polar']
+        exper, band = fri_file[0]['session_code'].split('_', 1)
 
-        self._check_and_delete(self.exper, self.band, polar)
+        self._check_and_delete(exper, band, polar)
 
         print(fri_file)
         with self.connw.cursor() as cur:
@@ -189,8 +164,7 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
 snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
 %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-                cur.execute(query, (obs, start_time, stop_time, self.exper,
-                                    self.band,
+                cur.execute(query, (obs, start_time, stop_time, exper, band,
                                     source, polar, sta1, sta2, delay, rate,
                                     accel, snr, ampl, dur, u, v, uv_rad_ed,
                                     freq))
@@ -198,14 +172,14 @@ snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
             # Update status of the observations
             query = "UPDATE pima_observations SET status = %s WHERE \
 exper_name = %s AND band = %s AND polar = %s AND snr <= %s;"
-            cur.execute(query, ('n', self.exper, self.band, polar, 5.3))
+            cur.execute(query, ('n', exper, band, polar, 5.3))
 
             query = "UPDATE pima_observations SET status = %s WHERE \
 exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
             if exper_info.sp_chann_num <= 128:
-                cur.execute(query, ('y', self.exper, self.band, polar, 5.7))
+                cur.execute(query, ('y', exper, band, polar, 5.7))
             else:
-                cur.execute(query, ('y', self.exper, self.band, polar, 7.0))
+                cur.execute(query, ('y', exper, band, polar, 7.0))
 
         self.connw.commit()
 
@@ -214,16 +188,14 @@ exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
         Put experiment info to the DB.
 
         """
-        if not self.connected:
-            self._connect()
 
         with self.connw.cursor() as cursor:
             cursor.execute("SELECT exper_name, band FROM pima_experiments \
-WHERE exper_name = %s AND band = %s", (self.exper, self.band))
+WHERE exper_name = %s AND band = %s", (exper_info.exper, exper_info.band))
             test = cursor.fetchone()
             if test is None:
                 cursor.execute("INSERT INTO pima_experiments (exper_name, \
-band) VALUES (%s, %s);", (self.exper, self.band))
+band) VALUES (%s, %s);", (exper_info.exper, exper_info.band))
 
         query = 'UPDATE pima_experiments SET fits_idi = %s, sp_chann_num = %s,\
  time_epochs_num = %s, scans_num = %s, obs_num = %s, uv_points_num = %s, \
@@ -245,11 +217,11 @@ WHERE exper_name = %s AND band = %s'
                                    exper_info.nominal_start,
                                    exper_info.nominal_end,
                                    datetime.now(), '',
-                                   self.exper, self.band))
+                                   exper_info.exper, exper_info.band))
 
         self.connw.commit()
 
-    def set_error_msg(self, msg):
+    def set_error_msg(self, exper, band, msg):
         """
         Put error comment into DB.
 
@@ -257,11 +229,8 @@ WHERE exper_name = %s AND band = %s'
         query = 'UPDATE pima_experiments SET last_error = %s \
 WHERE exper_name = %s AND band = %s'
 
-        if not self.connected:
-            self._connect()
-
         with self.connw.cursor() as cursor:
-            cursor.execute(query, (msg, self.exper, self.band))
+            cursor.execute(query, (msg, exper, band))
 
         self.connw.commit()
 
