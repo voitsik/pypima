@@ -9,11 +9,13 @@ Created on 18.02.2014
 from __future__ import print_function
 import multiprocessing
 import os.path
+import psycopg2
 import sys
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
+from pypima.db import DB
 #import signal
 import time
 
@@ -40,6 +42,9 @@ def download_it(ra_exp):
     except KeyboardInterrupt:
         print(my_name, 'KeyboardInterrupt')
         return
+    except psycopg2.OperationalError as ex:
+        print('DB error: ', ex)
+        return
     except:
         print(my_name, "Unexpected error: ", sys.exc_info()[0])
         raise
@@ -60,6 +65,8 @@ def main(in_file_name):
     """
     exp_list = []
 
+    db = DB()
+
     with open(in_file_name, 'r') as in_file:
         for line in in_file:
             line = line.strip()
@@ -67,7 +74,7 @@ def main(in_file_name):
                 continue
             exp_band = line.split()
             if len(exp_band) == 2:
-                exp_list.append(RaExperiment(exp_band[0], exp_band[1]))
+                exp_list.append(RaExperiment(exp_band[0], exp_band[1], db))
 
     pool = multiprocessing.Pool(processes=2)
     pool.map_async(download_it, exp_list)
