@@ -132,7 +132,8 @@ class RaExperiment(object):
     def _download_fits(self):
         """Download FITS-file from remote place"""
         data_dir = os.path.join(self.data_dir, self.exper)
-        fits_url, size = self.db.get_uvfits_url()
+        fits_url, size = self.db.get_uvfits_url(self.exper, self.band)
+
         if not fits_url:
             self._error('Could not find FITS file name in DB')
 
@@ -173,7 +174,7 @@ class RaExperiment(object):
 
     def _get_orbit(self):
         """Download reconstructed orbit file from FTP"""
-        orbit_url = self.db.get_orbit_url()
+        orbit_url = self.db.get_orbit_url(self.exper)
 
         if not orbit_url:
             self._error('Could not find reconstructed orbit')
@@ -219,7 +220,8 @@ class RaExperiment(object):
         Download antab-file from FTP server.
 
         """
-        antab_url = self.db.get_antab_url()
+        antab_url = self.db.get_antab_url(self.exper, self.band)
+
         if antab_url is None:
             self._print_warn('Could not get antab file url from DB.')
         else:
