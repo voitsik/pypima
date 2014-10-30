@@ -8,6 +8,7 @@ Created on 18.02.2014
 
 from __future__ import print_function
 import multiprocessing
+from multiprocessing.pool import ThreadPool
 import os.path
 import psycopg2
 import sys
@@ -29,8 +30,10 @@ def download_it(ra_exp):
     Download all necessary files for given experiment.
 
     """
-    my_name = multiprocessing.current_process().name
-    print(my_name, 'started ({} {})'.format(ra_exp.exper, ra_exp.band))
+    my_name = 'Download thread ({} {})'.format(ra_exp.exper, ra_exp.band)
+
+    print(my_name, ': started')
+
     try:
         ra_exp.load(download_only=True)
     except pypima.pima.Error as err:
@@ -41,9 +44,6 @@ def download_it(ra_exp):
         return
     except KeyboardInterrupt:
         print(my_name, 'KeyboardInterrupt')
-        return
-    except psycopg2.OperationalError as ex:
-        print('DB error: ', ex)
         return
     except:
         print(my_name, "Unexpected error: ", sys.exc_info()[0])
@@ -76,11 +76,13 @@ def main(in_file_name):
             if len(exp_band) == 2:
                 exp_list.append(RaExperiment(exp_band[0], exp_band[1], db))
 
-    pool = multiprocessing.Pool(processes=2)
-    pool.map_async(download_it, exp_list)
+    pool = ThreadPool(processes=2)
+
+    if len(exp_list) > 1:
+        pool.map_async(download_it, exp_list[1:])
 
     pool.close()
-    time.sleep(1)
+#    time.sleep(1)
 
     out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split')
     if not os.path.isdir(out_dir):
@@ -98,10 +100,9 @@ def main(in_file_name):
                 ra_exp.copy_uvfits(out_dir)
 
             ra_exp.delete_uvfits()
-            ra_exp.db.close()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            ra_exp.db.set_error_msg(str(err))
+            ra_exp.db.set_error_msg(ra_exp.exper, ra_exp.band, str(err))
             continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)

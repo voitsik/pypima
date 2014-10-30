@@ -138,16 +138,15 @@ class RaExperiment(object):
             self._error('Could not find FITS file name in DB')
 
         # Delete spaces in filename
-        self.uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
-                                    replace(' ', ''))
-        lock_file_name = self.uv_fits + '.lock'
+        uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
+                               replace(' ', ''))
+        lock_file_name = uv_fits + '.lock'
 
-        if os.path.isfile(self.uv_fits) and \
-                os.path.getsize(self.uv_fits) == size:
-            self._print_info('File {} already exists'.format(self.uv_fits))
+        if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
+            self._print_info('File {} already exists'.format(uv_fits))
         elif os.path.isfile(lock_file_name):
             self._print_info('File {} is being downloaded now, wait'.format(
-                             self.uv_fits))
+                             uv_fits))
             while os.path.isfile(lock_file_name):
                 print('.', end='')
                 sys.stdout.flush()
@@ -160,17 +159,20 @@ class RaExperiment(object):
             lock_file = open(lock_file_name, 'w')
             lock_file.close()
             try:
-                self.uv_fits, _ = urlreq.urlretrieve(fits_url,
-                                                     filename=self.uv_fits)
+                uv_fits, _ = urlreq.urlretrieve(fits_url, filename=uv_fits)
             except URLError as ex:
                 self._error('Could not download file {}: {}'.format(
                     fits_url, ex.reason))
             finally:
                 os.remove(lock_file_name)
 
-            self._print_info('Done')
+            self._print_info('Downloading is complete')
 
-        self.pima.update_cnt({'UV_FITS:': self.uv_fits})
+        self.pima.update_cnt({'UV_FITS:': uv_fits})
+
+        # We use self.uv_fits as a flag of FITS file existence, so set it at
+        # the end of this function
+        self.uv_fits = uv_fits
 
     def _get_orbit(self):
         """Download reconstructed orbit file from FTP"""
@@ -329,6 +331,7 @@ first line'.format(self.antab))
         """
         os.chdir(self.work_dir)
 
+        # If self.uv_fits is not None assume FITS file already exists
         if self.uv_fits is None:
             self._download_fits()
 
