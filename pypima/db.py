@@ -70,8 +70,6 @@ scf_files.stop_time >= vex_files.exper_nominal_stop;", (exper,))
 
     def get_antab_url(self, exper, band):
         """Download antab-file for the experiment and return path"""
-        if not self.connected:
-            self._connect()
 
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
