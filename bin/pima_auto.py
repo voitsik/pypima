@@ -7,18 +7,14 @@ Created on 18.02.2014
 """
 
 from __future__ import print_function
-import multiprocessing
 from multiprocessing.pool import ThreadPool
 import os.path
-import psycopg2
 import sys
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
-#import signal
-import time
 
 
 #def init_pool():
