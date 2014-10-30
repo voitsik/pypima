@@ -25,7 +25,12 @@ class Error(Exception):
 
 
 class ExperInfo:
-    def __init__(self, stt_file=None):
+    """Some experiment information"""
+
+    def __init__(self, exper_name, band, stt_file=None):
+        self.exper = exper_name
+        self.band = band
+
         self.sp_chann_num = None
         self.time_epochs_num = None
         self.scans_num = None
@@ -43,6 +48,10 @@ class ExperInfo:
             self.update(stt_file)
 
     def update(self, stt_file):
+        """
+        Fill ExperInfo with info from PIMA stt-file
+        """
+
         with open(stt_file, 'r') as fil:
             for line in fil:
                 if line.startswith('Number of spectral channels:'):
@@ -114,7 +123,7 @@ executable')
         # Dictionary with all parameters from cnt-file
         self.cnt_params = {}
         self._update_cnt_params()
-        self.exper_info = ExperInfo()
+        self.exper_info = ExperInfo(self.exper, self.band)
         # Update exper_info if experiment already loaded.
         stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
                                       self.cnt_params['SESS_CODE:'])
