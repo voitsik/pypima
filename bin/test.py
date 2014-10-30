@@ -13,6 +13,7 @@ PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
+from pypima.db import DB
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     band = sys.argv[2].lower()
 
     try:
-        p = RaExperiment(exper, band)
+        p = RaExperiment(exper, band, DB())
         p.load()
 
         polar = 'LL'
