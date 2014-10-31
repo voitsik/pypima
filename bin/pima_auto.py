@@ -7,7 +7,7 @@ Created on 18.02.2014
 """
 
 from __future__ import print_function
-from multiprocessing.pool import ThreadPool
+import threading
 import os.path
 import sys
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
@@ -17,35 +17,30 @@ from pypima.raexperiment import RaExperiment
 from pypima.db import DB
 
 
-#def init_pool():
-#    signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-
-def download_it(ra_exp):
+def download_it(ra_exps):
     """
-    Download all necessary files for given experiment.
+    Download FITS files for the list of experiments.
 
     """
-    my_name = 'Download thread ({} {})'.format(ra_exp.exper, ra_exp.band)
+    my_name = 'Download thread'
 
-    print(my_name, ': started')
+    print(my_name, ' started')
 
-    try:
-        ra_exp.load(download_only=True)
-    except pypima.pima.Error as err:
-        print(my_name, 'PIMA Error: ', err)
-        return
-    except pypima.raexperiment.Error as err:
-        print(my_name, 'RaExperiment Error: ', err)
-        return
-    except KeyboardInterrupt:
-        print(my_name, 'KeyboardInterrupt')
-        return
-    except:
-        print(my_name, "Unexpected error: ", sys.exc_info()[0])
-        raise
-    finally:
-        ra_exp.db.close()
+    for exp in ra_exps:
+        try:
+            exp.load(download_only=True)
+        except pypima.pima.Error as err:
+            print(my_name, 'PIMA Error: ', err)
+            return
+        except pypima.raexperiment.Error as err:
+            print(my_name, 'RaExperiment Error: ', err)
+            return
+        except KeyboardInterrupt:
+            print(my_name, 'KeyboardInterrupt')
+            return
+        except:
+            print(my_name, "Unexpected error: ", sys.exc_info()[0])
+            raise
 
 
 def main(in_file_name):
@@ -72,13 +67,13 @@ def main(in_file_name):
             if len(exp_band) == 2:
                 exp_list.append(RaExperiment(exp_band[0], exp_band[1], db))
 
-    pool = ThreadPool(processes=2)
+    load_thread = None
 
     if len(exp_list) > 1:
-        pool.map_async(download_it, exp_list[1:])
-
-    pool.close()
-#    time.sleep(1)
+        load_thread = threading.Thread(target=download_it,
+                                       args=(exp_list[1:],))
+        load_thread.daemon = True
+        load_thread.start()
 
     out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split')
     if not os.path.isdir(out_dir):
@@ -105,14 +100,14 @@ def main(in_file_name):
             continue
         except KeyboardInterrupt:
             print('KeyboardInterrupt', file=sys.stderr)
-            pool.terminate()
-            pool.join()
             return 1
         except:
             print("Unexpected error: ", sys.exc_info()[0])
             raise
 
-    pool.join()
+    if load_thread:
+        load_thread.join()
+
     print("Quitting normally")
 
     return 0
