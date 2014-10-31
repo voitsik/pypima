@@ -31,10 +31,10 @@ def download_it(ra_exps):
             exp.load(download_only=True)
         except pypima.pima.Error as err:
             print(my_name, 'PIMA Error: ', err)
-            return
+            continue
         except pypima.raexperiment.Error as err:
             print(my_name, 'RaExperiment Error: ', err)
-            return
+            continue
         except KeyboardInterrupt:
             print(my_name, 'KeyboardInterrupt')
             return
