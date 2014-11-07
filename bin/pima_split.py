@@ -10,8 +10,8 @@ import os
 import sys
 from shutil import move
 from optparse import OptionParser
-path = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, path)
+PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
+sys.path.insert(0, PATH)
 import pypima
 from pypima.pima import Pima
 
@@ -27,7 +27,7 @@ def source_names(name, source_names_file):
                 return toks[:3]
 
     print('Error: could not find source {} in {}'.format(name,
-          source_names_file))
+                                                         source_names_file))
 
 
 def pima_split(pima, aver=0.0, nocl=False, source=None, polar=None,
@@ -67,7 +67,7 @@ data')
 
     if source:
         pima_opts.extend(['SPLT.SOU_NAME:', source])
-        so_names_file = pima.get_cnt_params(['SOU_NAMES:'])['SOU_NAMES:']
+        so_names_file = pima.cnt_params['SOU_NAMES:']
         ivs_name, j2000_name, b1950_name = source_names(source, so_names_file)
 
     if nocl:
@@ -81,21 +81,22 @@ data')
         return
 
     if source:
-        params = pima.get_cnt_params(['EXPER_DIR:', 'SESS_CODE:', 'BAND:',
-                                      'POLAR:'])
-        #Copy FITS file from pima_scr to final distination
+        # Copy FITS file from pima_scr to final distination
         out_dir = '/home/voitsik/RadioAstron/VLBI'
         pima_fits_path = '{}/{}_uvs/{}_{}_uva.fits'.format(
-                         params['EXPER_DIR:'],
-                         params['SESS_CODE:'], j2000_name, params['BAND:'])
+                         pima.cnt_params['EXPER_DIR:'],
+                         pima.cnt_params['SESS_CODE:'],
+                         j2000_name,
+                         pima.cnt_params['BAND:'])
         if not os.path.isfile(pima_fits_path):
             print("Error: can't find pima output FITS {}".format(
                 pima_fits_path))
             return
 
-        final_fits_name = '{}_{}_{}_{}_{}s_uva.fits'.format(b1950_name,
-                          pima.exper, pima.band.upper(), params['POLAR:'],
-                          int(aver))
+        final_fits_name = '{}_{}_{}_{}_{}s_uva.fits'.format(
+                          b1950_name,
+                          pima.exper, pima.band.upper(),
+                          pima.cnt_params['POLAR:'], int(aver))
         if nocl:
             final_fits_name = final_fits_name.replace('_uva', '_noclosure_uva')
         final_fits_dir = os.path.join(out_dir, b1950_name)
@@ -172,7 +173,7 @@ def main():
         try:
             pima.load()
             antab_file = '{}/{}{}.antab'.format(pima.work_dir, pima.exper,
-                         pima.band)
+                                                pima.band)
             pima.load_gains(antab_file)
             pima.load_tsys(antab_file)
             pima.coarse()

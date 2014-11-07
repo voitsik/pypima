@@ -143,7 +143,7 @@ executable')
 
     def update_cnt(self, opts):
         """Update pima cnt-file according 'opts' dictionary"""
-        if opts is None:
+        if not isinstance(opts, dict):
             return
 
         old_cnt = open(self.cnt_file_name, 'r')
@@ -161,20 +161,6 @@ executable')
         new_cnt.close()
         os.rename(self.cnt_file_name + '.new', self.cnt_file_name)
         self._update_cnt_params()
-
-    def get_cnt_params(self, opts):
-        """Get parameters name list 'opts' and return dictionary"""
-        ret = dict()
-
-        with open(self.cnt_file_name, 'r') as fil:
-            for line in fil:
-                if line.startswith('#') or len(line) < 8:
-                    continue
-                key, val = line.strip().split(None, 1)
-                if key in opts:
-                    ret[key] = val
-
-        return ret
 
     def _exec(self, operation, options=None, log_name=None):
         """Execute PIMA binary"""
