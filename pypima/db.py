@@ -32,13 +32,13 @@ class DB:
         url = None
         size = 0
         url_base = 'ftp://{}:{}@archive.asc.rssi.ru'.format(self.arc_login,
-                   self.arc_passw)
+                                                            self.arc_passw)
 
         with self.conn.cursor() as cursor:
             cursor.execute('SELECT path, size FROM fits_files WHERE \
 LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) \
 ORDER BY corr_date DESC, path DESC;',
-                          (exper, band))
+                           (exper, band))
             reply = cursor.fetchone()
 
         if reply:
@@ -78,14 +78,14 @@ ampcal'.format(self.web_login, self.web_passw)
         with self.conn.cursor() as cursor:
             cursor.execute("SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
                             FROM vex_files WHERE exper_name = %s;",
-                          (exper,))
+                           (exper,))
             reply = cursor.fetchone()
 
         if reply:
             date = reply[0]
             date1 = date[0:7]
             url = '{0}/{1}/{2}_{3}/{3}{4}.antab'.format(url_base, date1, date,
-                  exper, band)
+                                                        exper, band)
 
         return url
 
