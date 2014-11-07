@@ -115,7 +115,7 @@ executable')
 
         # PIMA control file path
         self.cnt_file_name = '{}/{}_{}_pima.cnt'.format(self.work_dir,
-                             self.exper, self.band)
+                                                        self.exper, self.band)
 
         if not os.path.isfile(self.cnt_file_name):
             raise Error(self.exper, self.band, 'Could not find control file \
@@ -256,13 +256,13 @@ executable')
 
         """
         log_name = '{}/{}_{}_coarse.log'.format(self.work_dir, self.exper,
-                   self.band)
+                                                self.band)
         fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
-                   self.band)
+                                               self.band)
         if os.path.isfile(fri_file):
             os.remove(fri_file)
         frr_file = '{}/{}_{}_nobps.frr'.format(self.work_dir, self.exper,
-                   self.band)
+                                               self.band)
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
@@ -311,7 +311,7 @@ executable')
 
         """
         log_name = '{}/{}_{}_fine.log'.format(self.work_dir, self.exper,
-                   self.band)
+                                              self.band)
 
         fri_file = self.cnt_params['FRINGE_FILE:']
         if os.path.isfile(fri_file):
@@ -343,15 +343,15 @@ executable')
 
         """
         fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
-                   self.band)
+                                               self.band)
         log_file = '{}/{}_{}_bps.log'.format(self.work_dir, self.exper,
-                   self.band)
+                                             self.band)
         exc_obs_file = '{}/{}_{}_bpas_obs.exc'.format(self.work_dir,
-                       self.exper, self.band)
+                                                      self.exper, self.band)
 
         if self.cnt_params['BANDPASS_FILE:'] == 'NO':
             bps_file = '{}/{}_{}.bps'.format(self.work_dir, self.exper,
-                       self.band)
+                                             self.band)
             self.update_cnt({'BANDPASS_FILE:': bps_file})
 
         opts = ['FRINGE_FILE:', fri_file,
@@ -408,7 +408,7 @@ executable')
             opts.extend(params)
 
         log_file = '{}/{}_{}_gain.log'.format(self.work_dir, self.exper,
-                   self.band)
+                                              self.band)
 
         ret = self._exec('gean', opts, log_file)
         if ret:
@@ -426,7 +426,7 @@ executable')
             opts.extend(params)
 
         log_file = '{}/{}_{}_tsys.log'.format(self.work_dir, self.exper,
-                   self.band)
+                                              self.band)
 
         ret = self._exec('gean', opts, log_file)
         if ret:
@@ -447,7 +447,7 @@ executable')
         """Get minimum accummulation period in experiment"""
         ap_min = ap_max = 0
         stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
-                   self.cnt_params['SESS_CODE:'])
+                                      self.cnt_params['SESS_CODE:'])
 
         if os.path.isfile(stt_file):
             with open(stt_file, 'r') as fil:

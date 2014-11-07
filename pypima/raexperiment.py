@@ -44,7 +44,7 @@ class RaExperiment(object):
         if self.sta_ref is None:
             self.sta_ref = 'RADIO-AS'
 
-        if not self.band in ['p', 'l', 'c', 'k']:
+        if self.band not in ['p', 'l', 'c', 'k']:
             self._error('unknown band {}'.format(band))
 
         self.pima_dir = os.getenv('PIMA_DIR')
@@ -109,7 +109,7 @@ class RaExperiment(object):
                 line = line.replace('CDATE', str(datetime.now()))
             elif line.startswith('SESS_CODE:'):
                 line = '{:<20}{}_{}\n'.format('SESS_CODE:', self.exper,
-                       self.band)
+                                              self.band)
             elif line.startswith('EXPER_DIR:'):
                 line = line.replace('SCRDIR', self.pima_scr)
             elif line.startswith('UV_FITS:') and self.uv_fits:
@@ -486,7 +486,12 @@ bandpass: ' + str(obs['SNR']))
                 except pypima.pima.Error as err:
                     print(err)
                     self._print_info('Try INIT bandpass')
-                    self.pima.bpas(['BPS.MODE:', 'INIT'])
+                    try:
+                        self.pima.bpas(['BPS.MODE:', 'INIT'])
+                    except pypima.pima.Error as err:
+                        print(err)
+                        self._print_info('Continue without bandpass')
+                        self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
 
         self.pima.fine()
 
@@ -564,7 +569,9 @@ calibartion information')
                 os.mkdir(out_fits_dir)
 
             out_fits_name = '{}_{}_{}_{}_uva.fits'.format(source_names[2],
-                            self.exper, self.band.upper(), polar)
+                                                          self.exper,
+                                                          self.band.upper(),
+                                                          polar)
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
             self._print_info('Copy {} to {}'.format(pima_fits_path,
