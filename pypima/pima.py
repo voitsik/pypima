@@ -132,29 +132,53 @@ executable')
             self.exper_info.update(stt_file)
 
     def _update_cnt_params(self):
-        """Read cnt-file and update cnt_params dictionary"""
+        """Read cnt-file and fill cnt_params dictionary"""
+        self.cnt_params.clear()
+        self.cnt_params['UV_FITS:'] = list()
+
         with open(self.cnt_file_name, 'r') as cnt_file:
             for line in cnt_file:
                 line = line.split('#')[0].strip()
                 if len(line) < 8:
                     continue
                 key, val = line.split(None, 1)
-                self.cnt_params[key] = val
+
+                # Special case
+                if key == 'UV_FITS:':
+                    self.cnt_params[key].append(val)
+                else:
+                    self.cnt_params[key] = val
 
     def update_cnt(self, opts):
         """Update pima cnt-file according 'opts' dictionary"""
         if not isinstance(opts, dict):
             return
 
+        uv_fits = False
+
         old_cnt = open(self.cnt_file_name, 'r')
         new_cnt = open(self.cnt_file_name + '.new', 'w')
 
         for line in old_cnt:
             key = line.split()[0].strip()
+
             if key in opts.keys():
-                line = '{:<20}{}\n'.format(key, opts[key])
+                if key == 'UV_FITS:':
+                    if uv_fits:
+                        continue
+                    else:
+                        uv_fits = True
+
+                # In case of many FITS-files
+                if key == 'UV_FITS:' and isinstance(opts[key], list):
+                    line = ''
+                    for val in opts[key]:
+                        line += '{:<20}{}\n'.format(key, val)
+                else:
+                    line = '{:<20}{}\n'.format(key, opts[key])
             elif line.startswith('# Last update on'):
                 line = '# Last update on  {}\n'.format(str(datetime.now()))
+
             new_cnt.write(line)
 
         old_cnt.close()
