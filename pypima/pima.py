@@ -163,6 +163,13 @@ executable')
             key = line.split()[0].strip()
 
             if key in opts.keys():
+                val = opts[key]
+
+                # Skip empty values
+                if not val:
+                    continue
+
+                # Modify UV_FITS only once
                 if key == 'UV_FITS:':
                     if uv_fits:
                         continue
@@ -170,12 +177,12 @@ executable')
                         uv_fits = True
 
                 # In case of many FITS-files
-                if key == 'UV_FITS:' and isinstance(opts[key], list):
+                if key == 'UV_FITS:' and isinstance(val, list):
                     line = ''
-                    for val in opts[key]:
-                        line += '{:<20}{}\n'.format(key, val)
+                    for items in val:
+                        line += '{:<20}{}\n'.format(key, items)
                 else:
-                    line = '{:<20}{}\n'.format(key, opts[key])
+                    line = '{:<20}{}\n'.format(key, val)
             elif line.startswith('# Last update on'):
                 line = '# Last update on  {}\n'.format(str(datetime.now()))
 
