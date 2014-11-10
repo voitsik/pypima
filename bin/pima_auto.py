@@ -93,7 +93,7 @@ def main(in_file_name):
             ra_exp.delete_uvfits()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            ra_exp.db.set_error_msg(ra_exp.exper, ra_exp.band, str(err))
+            db.set_error_msg(ra_exp.exper, ra_exp.band, str(err))
             continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)

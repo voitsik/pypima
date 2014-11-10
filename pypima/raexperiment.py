@@ -357,10 +357,10 @@ first line'.format(self.antab))
         self.pima.update_cnt({'MAX_SCAN_LEN:': '1200.0',
                               'SCAN_LEN_USED:': '1200.0'})
 
+        self.db.add_exper_info(self.exper, self.band,
+                               os.path.basename(self.uv_fits))
         self.pima.load()
-
-        self.db.exper_info2db(self.pima.exper_info,
-                              os.path.basename(self.uv_fits))
+        self.db.update_exper_info(self.pima.exper_info)
 
         # Various checks
         if self.pima.obs_number() == 0:

@@ -160,28 +160,43 @@ exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
 
         self.connw.commit()
 
-    def exper_info2db(self, exper_info, uv_fits):
+    def add_exper_info(self, exper, band, uv_fits):
         """
-        Put experiment info to the DB.
+        Add experiment record to the DB.
+
+        This function deletes previous record.
 
         """
-
         with self.connw.cursor() as cursor:
-            cursor.execute("SELECT exper_name, band FROM pima_experiments \
-WHERE exper_name = %s AND band = %s", (exper_info.exper, exper_info.band))
-            test = cursor.fetchone()
-            if test is None:
-                cursor.execute("INSERT INTO pima_experiments (exper_name, \
-band) VALUES (%s, %s);", (exper_info.exper, exper_info.band))
+            query = 'SELECT exper_name, band FROM pima_experiments \
+WHERE exper_name = %s AND band = %s;'
+            cursor.execute(query, (exper, band))
+            repl = cursor.fetchone()
 
-        query = 'UPDATE pima_experiments SET fits_idi = %s, sp_chann_num = %s,\
+            # Delete old before add new
+            if repl:
+                query = 'DELETE FROM pima_experiments WHERE \
+exper_name = %s AND band = %s;'
+                cursor.execute(query, (exper, band))
+
+            query = 'INSERT INTO pima_experiments (exper_name, band, \
+proc_date, fits_idi) VALUES (%s, %s, %s, %s);'
+            cursor.execute(query, (exper, band, datetime.now(), uv_fits))
+
+        self.connw.commit()
+
+    def update_exper_info(self, exper_info):
+        """
+        Add extended experiment information to the DB.
+
+        """
+        query = 'UPDATE pima_experiments SET sp_chann_num = %s,\
  time_epochs_num = %s, scans_num = %s, obs_num = %s, uv_points_num = %s, \
 uv_points_used_num = %s, deselected_points_num = %s, no_auto_points_num = %s, \
-accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s, \
-proc_date = %s, last_error = %s \
+accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s \
 WHERE exper_name = %s AND band = %s'
         with self.connw.cursor() as cursor:
-            cursor.execute(query, (uv_fits, exper_info.sp_chann_num,
+            cursor.execute(query, (exper_info.sp_chann_num,
                                    exper_info.time_epochs_num,
                                    exper_info.scans_num,
                                    exper_info.obs_num,
@@ -193,7 +208,6 @@ WHERE exper_name = %s AND band = %s'
                                    timedelta(seconds=exper_info.utc_minus_tai),
                                    exper_info.nominal_start,
                                    exper_info.nominal_end,
-                                   datetime.now(), '',
                                    exper_info.exper, exper_info.band))
 
         self.connw.commit()
