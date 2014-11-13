@@ -1,20 +1,24 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Oct 30 14:23:23 2014
 
 @author: Petr Voytsik
 """
 
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 import netrc
 import psycopg2
 
 
 class DB:
-    """Interface to ra_results DataBase"""
+    """
+    Interface to the "ra_results" database.
 
+    """
     def __init__(self):
+        """
+        Connect to the database and load logins and passwords from ``.netrc``.
+
+        """
         nrc = netrc.netrc()
         self.web_login = nrc.authenticators('webinet.asc.rssi.ru')[0]
         self.web_passw = nrc.authenticators('webinet.asc.rssi.ru')[2]
@@ -27,18 +31,41 @@ class DB:
                                       host='odin')
 
     def get_uvfits_url(self, exper, band):
-        """Get FITS-file url from DB for given experiment and band"""
+        """
+        Get FITS-file URL and size from the database for the given experiment
+        and band.
 
+        Parameters
+        ----------
+        exper : str
+            Experiment name.
+        band : str
+            Frequency band.
+
+        Returns
+        -------
+        url, size : (str, int)
+            Tuple of file URL and size. Returns (None, 0) if the database reply
+            is empty.
+
+        Notes
+        -----
+        If database contains more than one record for given experiment and
+        band, this function selects the most recent FITS-file.
+
+        """
         url = None
         size = 0
         url_base = 'ftp://{}:{}@archive.asc.rssi.ru'.format(self.arc_login,
                                                             self.arc_passw)
 
-        with self.conn.cursor() as cursor:
-            cursor.execute('SELECT path, size FROM fits_files WHERE \
+        # TODO: Check fits-file versions
+        query = 'SELECT path, size FROM fits_files WHERE \
 LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) \
-ORDER BY corr_date DESC, path DESC;',
-                           (exper, band))
+ORDER BY corr_date DESC, path DESC;'
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(query, (exper, band))
             reply = cursor.fetchone()
 
         if reply:
@@ -49,17 +76,31 @@ ORDER BY corr_date DESC, path DESC;',
         return url, size
 
     def get_orbit_url(self, exper):
-        """Returns orbit file url for given experiment"""
+        """
+        Return reconstructed orbit file URL for the given experiment.
 
+        Parameters
+        ----------
+        exper : str
+            Experiment name.
+
+        Returns
+        -------
+        url : str
+            File URL on FTP server. Returns None the database reply is empty.
+
+        """
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
 oddata/reconstr/'.format(self.web_login, self.web_passw)
 
-        with self.conn.cursor() as cursor:
-            cursor.execute("SELECT scf_files.file_name FROM scf_files, \
-vex_files WHERE vex_files.exper_name = %s AND \
+        query = 'SELECT scf_files.file_name FROM scf_files, vex_files \
+WHERE vex_files.exper_name = %s AND \
 scf_files.start_time <= vex_files.exper_nominal_start AND \
-scf_files.stop_time >= vex_files.exper_nominal_stop;", (exper,))
+scf_files.stop_time >= vex_files.exper_nominal_stop;'
+
+        with self.conn.cursor() as cursor:
+            cursor.execute(query, (exper,))
             reply = cursor.fetchone()
 
         if reply:
@@ -69,16 +110,31 @@ scf_files.stop_time >= vex_files.exper_nominal_stop;", (exper,))
         return url
 
     def get_antab_url(self, exper, band):
-        """Download antab-file for the experiment and return path"""
+        """
+        Return ANTAB-file URL for the given experiment and band.
 
+        Parameters
+        ----------
+        exper : str
+            Experiment name.
+        band : str
+            Frequency band.
+
+        Returns
+        -------
+        url : str
+            File URL on FTP server. Returns None the database reply is empty.
+
+        """
         url = None
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
 ampcal'.format(self.web_login, self.web_passw)
 
+        query = "SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
+                 FROM vex_files WHERE exper_name = %s;"
+
         with self.conn.cursor() as cursor:
-            cursor.execute("SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
-                            FROM vex_files WHERE exper_name = %s;",
-                           (exper,))
+            cursor.execute(query, (exper,))
             reply = cursor.fetchone()
 
         if reply:
@@ -107,56 +163,55 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         Store information from the fri-file to the DB.
 
         """
-
+        exper = exper_info.exper
+        band = exper_info.band
         polar = fri_file[0]['polar']
-        exper, band = fri_file[0]['session_code'].split('_', 1)
 
         self._check_and_delete(exper, band, polar)
 
         print(fri_file)
+
+        query_insert = 'INSERT INTO pima_observations (obs, start_time, \
+stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
+snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
+%s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);'
+        query_update = 'UPDATE pima_observations SET status = %s WHERE \
+exper_name = %s AND band = %s AND polar = %s AND snr <= %s;'
+
         with self.connw.cursor() as cur:
             for rec in fri_file:
-                obs = rec['obs']
-                start_time = rec['start_time']
-                stop_time = rec['stop_time']
-            #        exper, band = rec['session_code'].split('_')
-                source = rec['source']
-                sta1 = rec['sta1']
-                sta2 = rec['sta2']
-                snr = rec['SNR']
-                delay = rec['delay']
-                rate = rec['rate']
                 if rec['FRIB.FINE_SEARCH'] == 'ACC':
                     accel = rec['ph_acc']
                 else:
                     accel = rec['accel']
-                ampl = rec['ampl_lsq']
-                dur = rec['duration']
-                u = rec['U']
-                v = rec['V']
-                uv_rad_ed = rec['uv_rad_ed']
-                freq = rec['ref_freq']
 
-                query = "INSERT INTO pima_observations (obs, start_time, \
-stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
-%s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
-                cur.execute(query, (obs, start_time, stop_time, exper, band,
-                                    source, polar, sta1, sta2, delay, rate,
-                                    accel, snr, ampl, dur, u, v, uv_rad_ed,
-                                    freq))
+                cur.execute(query_insert, (rec['obs'],
+                                           rec['start_time'],
+                                           rec['stop_time'],
+                                           exper,
+                                           band,
+                                           rec['source'],
+                                           polar,
+                                           rec['sta1'],
+                                           rec['sta2'],
+                                           rec['delay'],
+                                           rec['rate'],
+                                           accel,
+                                           rec['SNR'],
+                                           rec['ampl_lsq'],
+                                           rec['duration'],
+                                           rec['U'],
+                                           rec['V'],
+                                           rec['uv_rad_ed'],
+                                           rec['ref_freq']))
 
             # Update status of the observations
-            query = "UPDATE pima_observations SET status = %s WHERE \
-exper_name = %s AND band = %s AND polar = %s AND snr <= %s;"
-            cur.execute(query, ('n', exper, band, polar, 5.3))
+            cur.execute(query_update, ('n', exper, band, polar, 5.3))
 
-            query = "UPDATE pima_observations SET status = %s WHERE \
-exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
             if exper_info.sp_chann_num <= 128:
-                cur.execute(query, ('y', exper, band, polar, 5.7))
+                cur.execute(query_update, ('y', exper, band, polar, 5.7))
             else:
-                cur.execute(query, ('y', exper, band, polar, 7.0))
+                cur.execute(query_update, ('y', exper, band, polar, 7.0))
 
         self.connw.commit()
 
@@ -164,6 +219,8 @@ exper_name = %s AND band = %s AND polar = %s AND snr >= %s;"
         """
         Add experiment record to the DB.
 
+        Notes
+        -----
         This function deletes previous record.
 
         """
