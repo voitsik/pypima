@@ -175,8 +175,6 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
 snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
 %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);'
-        query_update = 'UPDATE pima_observations SET status = %s WHERE \
-exper_name = %s AND band = %s AND polar = %s AND snr <= %s;'
 
         with self.connw.cursor() as cur:
             for rec in fri_file:
@@ -206,8 +204,12 @@ exper_name = %s AND band = %s AND polar = %s AND snr <= %s;'
                                            rec['ref_freq']))
 
             # Update status of the observations
+            query_update = 'UPDATE pima_observations SET status = %s WHERE \
+exper_name = %s AND band = %s AND polar = %s AND snr <= %s;'
             cur.execute(query_update, ('n', exper, band, polar, 5.3))
 
+            query_update = 'UPDATE pima_observations SET status = %s WHERE \
+exper_name = %s AND band = %s AND polar = %s AND snr > %s;'
             if exper_info.sp_chann_num <= 128:
                 cur.execute(query_update, ('y', exper, band, polar, 5.7))
             else:
