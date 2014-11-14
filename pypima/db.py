@@ -160,7 +160,7 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
     def fri2db(self, fri_file, exper_info):
         """
-        Store information from the fri-file to the DB.
+        Store information from the PIMA fri-file to the database.
 
         """
         exper = exper_info.exper

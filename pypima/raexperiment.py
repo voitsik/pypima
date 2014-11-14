@@ -580,7 +580,7 @@ calibartion information')
 
     def fringes2db(self):
         """
-        Put fringe fitting information to the DB
+        Put fringe fitting information to the database.
 
         """
         fri_file = self.pima.cnt_params['FRINGE_FILE:']
@@ -590,6 +590,9 @@ calibartion information')
         self.db.fri2db(Fri(fri_file), self.pima.exper_info)
 
     def delete_uvfits(self):
-        """Delete UV-FITS file"""
+        """
+        Delete UV-FITS file.
+
+        """
         if os.path.isfile(self.uv_fits):
             os.remove(self.uv_fits)

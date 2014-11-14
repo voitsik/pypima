@@ -38,20 +38,27 @@ class Fri(object):
     ver100 = '# PIMA Fringe results  v  1.00  Format version of 2010.04.05'
     ver101 = '# PIMA Fringe results  v  1.01  Format version of 2014.02.08'
 
-    def __init__(self, fri_file=None):
+    def __init__(self, file_name=None):
         self.records = []
         self.index = 0
-        if fri_file is None:
-            return
 
+        if file_name:
+            self.parse_file(file_name)
+
+    def parse_file(self, file_name):
+        """
+        Parse PIMA fri-file.
+
+        """
         started = False
         header = {}
+        self.records.clear()
 
-        with open(fri_file, 'r') as fil:
+        with open(file_name, 'r') as fil:
             line = fil.readline()
             if not (line.startswith(self.ver100) or
                     line.startswith(self.ver101)):
-                raise Exception('{} is not PIMA fri-file'.format(fri_file))
+                raise Exception('{} is not PIMA fri-file'.format(file_name))
             for line in fil:
                 if line.startswith('# PIMA_FRINGE started'):
                     started = True
@@ -129,35 +136,35 @@ class Fri(object):
         Parameters
         ----------
         station : str, optional
-            If station name is given select observation with this station only.
+            If station name is provided select observations with this station
+            only.
 
         Returns
         -------
-        rec : dict
+        result : dict
             Returns fri-record -- dictionary with parameters of the selected
             observation.
 
         """
-        rec = {}
+        result = {}
 
         # Select observations with 'station'
         if station:
-            records = list(filter(lambda rec: station in [rec['sta1'],
-                                                          rec['sta2']],
-                                  self.records))
+            records = [rec for rec in self.records if station in (rec['sta1'],
+                                                                  rec['sta2'])]
         else:
             records = self.records
 
-        # Sort records b SNR
+        # Sort records by SNR
         records = sorted(records, key=lambda rec: rec['SNR'], reverse=True)
-        if len(records) > 0:
-            rec = records[0]
+        if records:
+            result = records[0]
 
-        return rec
+        return result
 
     def append(self, rec):
         """
-        Append fri-file record to the end of the list
+        Append fri-file record to the end of the list.
 
         """
         self.records.append(rec)
@@ -172,9 +179,16 @@ Rate      Accel      Base   Base\n"
 
             line = '{:>3}{:>10} {:>8} {:>8}/{:>8} {:8.2f} \
 {:8.3f} {:10.3e} {:9.2e} {:8.2f} {:5.1f}\n'.format(rec['obs'],
-                   rec['time_code'], rec['source'], rec['sta1'], rec['sta2'],
-                   rec['SNR'], 1e6 * rec['delay'], rec['rate'], accel,
-                   1e-6 * rec['uv_rad'], rec['uv_rad_ed'])
+                                                   rec['time_code'],
+                                                   rec['source'],
+                                                   rec['sta1'],
+                                                   rec['sta2'],
+                                                   rec['SNR'],
+                                                   1e6 * rec['delay'],
+                                                   rec['rate'],
+                                                   accel,
+                                                   1e-6 * rec['uv_rad'],
+                                                   rec['uv_rad_ed'])
             out = out + line
 
         return out
