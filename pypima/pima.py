@@ -95,27 +95,34 @@ deselected points:'):
 
 
 class Pima(object):
-    """Pima class is analog of pima_fringe.csh script"""
+    """
+    Pima class is analog of pima_fringe.csh script.
+
+    """
     def __init__(self, experiment_code, band, work_dir=None):
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
         self.work_dir = work_dir
+
         if work_dir is None:
             self.work_dir = os.getcwd()
 
         self.pima_dir = os.getenv('PIMA_DIR')
+
         if self.pima_dir is None or not os.path.isdir(self.pima_dir):
             raise Error(self.exper, self.band, 'Could not find PIMA directory.\
  Please, set $PIMA_DIR environment variable.')
-        self.pima_exec = self.pima_dir + '/bin/pima'
+
+        self.pima_exec = os.path.join(self.pima_dir, 'bin', 'pima')
+
         if not os.path.isfile(self.pima_exec):
             raise Error(self.exper, self.band, 'Could not find pima \
-executable')
+executable. Check your PIMA installation!')
 
         # PIMA control file path
-        self.cnt_file_name = '{}/{}_{}_pima.cnt'.format(self.work_dir,
-                                                        self.exper, self.band)
+        self.cnt_file_name = '{}_{}_pima.cnt'.format(self.exper, self.band)
+        self.cnt_file_name = os.path.join(self.work_dir, self.cnt_file_name)
 
         if not os.path.isfile(self.cnt_file_name):
             raise Error(self.exper, self.band, 'Could not find control file \
@@ -126,13 +133,13 @@ executable')
         self._update_cnt_params()
         self.exper_info = ExperInfo(self.exper, self.band)
         # Update exper_info if experiment already loaded.
-        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        stt_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.stt')
         if os.path.isfile(stt_file):
             self.exper_info.update(stt_file)
 
     def _update_cnt_params(self):
-        """Read cnt-file and fill cnt_params dictionary"""
+        """Read cnt-file and fill cnt_params dictionary."""
         self.cnt_params.clear()
         self.cnt_params['UV_FITS:'] = list()
 
@@ -150,7 +157,10 @@ executable')
                     self.cnt_params[key] = val
 
     def update_cnt(self, opts):
-        """Update pima cnt-file according 'opts' dictionary"""
+        """
+        Update pima cnt-file according 'opts' dictionary.
+
+        """
         if not isinstance(opts, dict):
             return
 
@@ -194,15 +204,17 @@ executable')
         self._update_cnt_params()
 
     def _exec(self, operation, options=None, log_name=None):
-        """Execute PIMA binary"""
+        """Execute PIMA binary."""
         cmd_line = ['nice', '-n', '19', self.pima_exec, self.cnt_file_name,
                     operation]
         if options:
             cmd_line.extend(options)
 
         if log_name is None:
-            log_name = os.path.join(self.work_dir, '{}_{}_{}.log'.format(
-                self.exper, self.band, operation))
+            log_name = os.path.join(self.work_dir,
+                                    '{}_{}_{}.log'.format(self.exper,
+                                                          self.band,
+                                                          operation))
 
         log = open(log_name, 'w')
         log.write(str(datetime.now()) + '\n\n')
@@ -226,12 +238,15 @@ executable')
         raise Error(self.exper, self.band, msg)
 
     def load(self):
-        """Run pima load"""
+        """
+        Run pima load.
+
+        """
         # Delete existing PIMA auxiliary files
-        auxiliary_files = glob.glob('{}/{}*'.format(
-                                    self.cnt_params['EXPER_DIR:'],
-                                    self.cnt_params['SESS_CODE:']))
-#        print('DEBUG: auxiliary_files = {}'.format(auxiliary_files))
+        auxiliary_files = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                       self.cnt_params['SESS_CODE:'])
+        auxiliary_files = glob.glob(auxiliary_files + '*')
+
         for aux_file in auxiliary_files:
             if os.path.isfile(aux_file):
                 os.remove(aux_file)
@@ -244,8 +259,8 @@ executable')
         if ret:
             self._error('load failed with code {}'.format(ret))
 
-        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        stt_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.stt')
         self.exper_info.update(stt_file)
 
         self._print_info('load ok')
@@ -255,9 +270,13 @@ executable')
         Do coarse fringe fitting.
 
         This function runs 'pima frib' with spetial parameters:
+
         1. Disable bandpass
+
         2. Disable oversampling
+
         3. Use fast algorithm for fringe search
+
         4. Set fri-file name
 
         Parameters
@@ -272,14 +291,16 @@ executable')
             Name of the fri-file
 
         """
-        log_name = '{}/{}_{}_coarse.log'.format(self.work_dir, self.exper,
-                                                self.band)
-        fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
-                                               self.band)
+        log_name = '{}_{}_coarse.log'.format(self.exper, self.band)
+        log_name = os.path.join(self.work_dir, log_name)
+        fri_file = '{}_{}_nobps.fri'.format(self.exper, self.band)
+        fri_file = os.path.join(self.work_dir, fri_file)
+        frr_file = '{}_{}_nobps.frr'.format(self.exper, self.band)
+        frr_file = os.path.join(self.work_dir, fri_file)
+
         if os.path.isfile(fri_file):
             os.remove(fri_file)
-        frr_file = '{}/{}_{}_nobps.frr'.format(self.work_dir, self.exper,
-                                               self.band)
+
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
@@ -294,9 +315,12 @@ executable')
                 'FRIB.SECONDARY_MAX_TRIES:', '0',
                 'FRIB.FINE_SEARCH:', 'PAR',
                 'MKDB.FRINGE_ALGORITHM:', 'DRF']
+
         if params:
             opts.extend(params)
+
         ret = self._exec('frib', opts, log_name)
+
         if ret:
             self._error('coarse failed with code {}'.format(ret))
 
@@ -327,18 +351,19 @@ executable')
         Pima.fine() uses fri-file name from the cnt-file. Set up it before run.
 
         """
-        log_name = '{}/{}_{}_fine.log'.format(self.work_dir, self.exper,
-                                              self.band)
-
+        log_name = '{}_{}_fine.log'.format(self.exper, self.band)
+        log_name = os.path.join(self.work_dir, log_name)
         fri_file = self.cnt_params['FRINGE_FILE:']
+        frr_file = self.cnt_params['FRIRES_FILE:']
+
         if os.path.isfile(fri_file):
             os.remove(fri_file)
 
-        frr_file = self.cnt_params['FRIRES_FILE:']
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
         ret = self._exec('frib', params, log_name=log_name)
+
         if ret:
             self._error('fine failed with code {}'.format(ret))
 
@@ -359,16 +384,16 @@ executable')
             elements.
 
         """
-        fri_file = '{}/{}_{}_nobps.fri'.format(self.work_dir, self.exper,
-                                               self.band)
-        log_file = '{}/{}_{}_bps.log'.format(self.work_dir, self.exper,
-                                             self.band)
-        exc_obs_file = '{}/{}_{}_bpas_obs.exc'.format(self.work_dir,
-                                                      self.exper, self.band)
+        fri_file = '{}_{}_nobps.fri'.format(self.exper, self.band)
+        fri_file = os.path.join(self.work_dir, fri_file)
+        log_file = '{}_{}_bps.log'.format(self.exper, self.band)
+        log_file = os.path.join(self.work_dir, log_file)
+        exc_obs_file = '{}_{}_bpas_obs.exc'.format(self.exper, self.band)
+        exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if self.cnt_params['BANDPASS_FILE:'] == 'NO':
-            bps_file = '{}/{}_{}.bps'.format(self.work_dir, self.exper,
-                                             self.band)
+            bps_file = '{}_{}.bps'.format(self.exper, self.band)
+            bps_file = os.path.join(self.work_dir, bps_file)
             self.update_cnt({'BANDPASS_FILE:': bps_file})
 
         opts = ['FRINGE_FILE:', fri_file,
@@ -417,17 +442,18 @@ executable')
 
     def load_gains(self, gain_file, params=None):
         """
-        Load antenna gains from the gain_file.
+        Load antenna gains from the `gain_file`.
 
         """
         opts = ['evn_gain', gain_file, 'DEBUG_LEVEL:', '6']
         if params:
             opts.extend(params)
 
-        log_file = '{}/{}_{}_gain.log'.format(self.work_dir, self.exper,
-                                              self.band)
+        log_file = '{}_{}_gain.log'.format(self.exper, self.band)
+        log_file = os.path.join(self.work_dir, log_file)
 
         ret = self._exec('gean', opts, log_file)
+
         if ret:
             self._error('evn_gain failed with code {}'.format(ret))
 
@@ -435,17 +461,18 @@ executable')
 
     def load_tsys(self, tsys_file, params=None):
         """
-        Load Tsys from the tsys_file.
+        Load Tsys from the `tsys_file`.
 
         """
         opts = ['vlba_log_file', tsys_file, 'DEBUG_LEVEL:', '1']
         if params:
             opts.extend(params)
 
-        log_file = '{}/{}_{}_tsys.log'.format(self.work_dir, self.exper,
-                                              self.band)
+        log_file = '{}_{}_tsys.log'.format(self.exper, self.band)
+        log_file = os.path.join(self.work_dir, log_file)
 
         ret = self._exec('gean', opts, log_file)
+
         if ret:
             self._error('vlba_log_file failed with code {}'.format(ret))
 
@@ -453,7 +480,12 @@ executable')
 
     # Additional useful utilites
     def set_polar(self, polar):
-        """Set polarization"""
+        """
+        Set polarization in control file.
+
+        """
+        polar = polar.upper()
+
         if polar not in ['RR', 'RL', 'LR', 'LL', 'I']:
             self._error('Wrong polarization: ' + polar)
 
@@ -461,10 +493,13 @@ executable')
         self.update_cnt(({'POLAR:': polar, 'SPLT.POLAR:': polar}))
 
     def ap_minmax(self):
-        """Get minimum accummulation period in experiment"""
+        """
+        Return minimum and maximum accummulation periods in experiment.
+
+        """
         ap_min = ap_max = 0
-        stt_file = '{}/{}.stt'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        stt_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.stt')
 
         if os.path.isfile(stt_file):
             with open(stt_file, 'r') as fil:
@@ -477,7 +512,10 @@ executable')
         return ap_min, ap_max
 
     def number_of_deselected_points(self):
-        """Total number of deselected points"""
+        """
+        Return total number of deselected points
+
+        """
         return self.exper_info.deselected_points_num
 
     def station_list(self, ivs_name=True):
@@ -499,10 +537,9 @@ executable')
             List of the station names.
 
         """
-
         sta_l = []
-        sta_file = '{}/{}.sta'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        sta_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.sta')
 
         if os.path.isfile(sta_file):
             with open(sta_file, 'r') as fil:
@@ -522,19 +559,18 @@ executable')
         Returns
         -------
         out : list
-            Each item in the out is a list of 3 names: IVS, J2000, B1950
+            Each item in the out is a tuple of 3 names: IVS, J2000, B1950.
 
         """
-
         sou_list = []
-        sou_file = '{}/{}.sou'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        sou_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.sou')
 
         if os.path.isfile(sou_file):
             with open(sou_file) as fil:
                 for line in fil:
                     toks = line.split()
-                    sou_list.append([toks[2], toks[3], toks[4]])
+                    sou_list.append((toks[2], toks[3], toks[4]))
 
         return sou_list
 
@@ -544,10 +580,9 @@ executable')
         from catalog.
 
         """
-
-        dist = dict()
-        sou_file = '{}/{}.sou'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        dist = {}
+        sou_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.sou')
 
         if os.path.isfile(sou_file):
             with open(sou_file) as fil:
@@ -562,18 +597,16 @@ executable')
 
     def obs_number(self):
         """
-        Return number of the observations in the experiment
+        Return number of the observations in the experiment.
 
         """
-
         return self.exper_info.obs_num
 
     def chan_number(self):
         """
-        Return number of the spectral channels in uv-data
+        Return number of the spectral channels in uv-data.
 
         """
-
         return self.exper_info.sp_chann_num
 
     def frequencies(self):
@@ -583,12 +616,12 @@ executable')
         Returns
         -------
         freqs : list
-        The function returns a list of dictionaries.
+            The function returns a list of dictionaries.
 
         """
         freqs = []
-        frq_file = '{}/{}.frq'.format(self.cnt_params['EXPER_DIR:'],
-                                      self.cnt_params['SESS_CODE:'])
+        frq_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.frq')
 
         if os.path.isfile(frq_file):
             with open(frq_file) as fil:
