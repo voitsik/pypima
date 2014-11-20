@@ -65,7 +65,7 @@ class RaExperiment(object):
         if not os.path.exists(work_dir):
             os.mkdir(work_dir)
 
-        work_dir_link = self.exp_dir + '/' + self.exper
+        work_dir_link = os.path.join(self.exp_dir, self.exper)
         if os.path.islink(work_dir_link):
             os.remove(work_dir_link)
         elif os.path.exists(work_dir_link):
@@ -232,11 +232,10 @@ class RaExperiment(object):
             try:
                 self.antab, _ = urlreq.urlretrieve(antab_url,
                                                    filename=self.antab)
+                self._print_info('Downloading is complete.')
             except URLError as ex:
                 self._print_warn('Could not download file {}: {}'.format(
                     antab_url, ex.reason))
-
-            self._print_info('Downloading is complete')
 
     def _print_info(self, msg):
         """Print some information"""
