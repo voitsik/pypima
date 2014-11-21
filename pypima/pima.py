@@ -296,7 +296,7 @@ executable. Check your PIMA installation!')
         fri_file = '{}_{}_nobps.fri'.format(self.exper, self.band)
         fri_file = os.path.join(self.work_dir, fri_file)
         frr_file = '{}_{}_nobps.frr'.format(self.exper, self.band)
-        frr_file = os.path.join(self.work_dir, fri_file)
+        frr_file = os.path.join(self.work_dir, frr_file)
 
         if os.path.isfile(fri_file):
             os.remove(fri_file)
