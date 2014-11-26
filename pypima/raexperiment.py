@@ -97,34 +97,46 @@ class RaExperiment(object):
         self.pima = Pima(self.exper, self.band, self.work_dir)
 
     def _mk_cnt(self):
-        """Make new cnt-file from template"""
+        """
+        Make new cnt-file from template.
+
+        """
         cnt_templ_name = os.path.join(self.pima_dir, 'share/pima',
-                                      'EXPER_{}_pima.cnt'.format(self.band))
+                                      'TEMPLATE_pima.cnt')
 
         cnt_templ = open(cnt_templ_name, 'r')
         cnt_file = open(self.cnt_file_name, 'w')
 
+        sess_code = '{}_{}'.format(self.exper, self.band)
+        fringe_file = os.path.join(self.work_dir, sess_code + '.fri')
+        frires_file = os.path.join(self.work_dir, sess_code + '.frr')
+
+        if self.band in ('l', 'p'):
+            polar = 'RR'
+        else:
+            polar = 'LL'
+
         for line in cnt_templ:
-            if 'CDATE' in line:
-                line = line.replace('CDATE', str(datetime.now()))
+            if '@CDATE@' in line:
+                line = line.replace('@CDATE@', str(datetime.now()))
             elif line.startswith('SESS_CODE:'):
-                line = '{:<20}{}_{}\n'.format('SESS_CODE:', self.exper,
-                                              self.band)
+                line = line.replace('@sess_code@', sess_code)
+            elif line.startswith('BAND:'):
+                line = line.replace('@band@', self.band.upper())
             elif line.startswith('EXPER_DIR:'):
-                line = line.replace('SCRDIR', self.pima_scr)
+                line = line.replace('@exper_dir@', self.pima_scr)
             elif line.startswith('UV_FITS:') and self.uv_fits:
-                line = '{:<20}{}\n'.format('UV_FITS:', self.uv_fits)
-            elif line.startswith('BANDPASS_MASK_FILE:') or \
-                    line.startswith('FRINGE_FILE:') or \
-                    line.startswith('FRIRES_FILE:'):
-                line = line.replace('EXP_DIR', self.exp_dir)
-                line = line.replace('EXPERN', self.exper)
+                line = line.replace('@uv_fits@', self.uv_fits)
+            elif line.startswith('FRINGE_FILE:'):
+                line = line.replace('@fringe_file@', fringe_file)
+            elif line.startswith('FRIRES_FILE:'):
+                line = line.replace('@frires_file@', frires_file)
             elif line.startswith('STA_REF:') and self.sta_ref:
                 line = '{:<20}{}\n'.format('STA_REF:', self.sta_ref)
-            elif line.startswith('BANDPASS_FILE:'):
-                line = '{:<20}{}\n'.format('BANDPASS_FILE:', 'NO')
             elif line.startswith('EPHEMERIDES_FILE:') and self.orbit:
-                line = '{:<20}{}\n'.format('EPHEMERIDES_FILE:', self.orbit)
+                line = line.replace('@ephemerides_file@', self.orbit)
+            elif line.startswith('POLAR:') or line.startswith('SPLT.POLAR:'):
+                line = line.replace('@polar@', polar)
             cnt_file.write(line)
 
         cnt_templ.close()
@@ -328,9 +340,16 @@ first line'.format(self.antab))
 
         self.antab = new_antab
 
-    def load(self, download_only=False):
+    def load(self, download_only=False, update_db=False):
         """
         Download data, run pima load, and do some checks.
+
+        Parameters
+        ----------
+        download_only : bool, optional
+            If True, download FITS-file and return.
+        update_db : bool, optional
+            If True, update database with experiment information.
 
         """
         os.chdir(self.work_dir)
@@ -348,7 +367,7 @@ first line'.format(self.antab))
         # Always download antab-file.
         self._get_antab()
 
-        # Only one sideband in P-band
+        # Only one sideband at P-band
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
 
@@ -356,10 +375,12 @@ first line'.format(self.antab))
         self.pima.update_cnt({'MAX_SCAN_LEN:': '1200.0',
                               'SCAN_LEN_USED:': '1200.0'})
 
-        self.db.add_exper_info(self.exper, self.band,
-                               os.path.basename(self.uv_fits))
+        if update_db:
+            self.db.add_exper_info(self.exper, self.band,
+                                   os.path.basename(self.uv_fits))
         self.pima.load()
-        self.db.update_exper_info(self.pima.exper_info)
+        if update_db:
+            self.db.update_exper_info(self.pima.exper_info)
 
         # Various checks
         if self.pima.obs_number() == 0:
@@ -463,14 +484,14 @@ bandpass: ' + str(obs['SNR']))
         """
         if accel:
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC',
-                                  'PHASE_ACCEL_MIN:': '-1D-14',
-                                  'PHASE_ACCEL_MAX:': '1D-14'})
+                                  'PHASE_ACCEL_MIN:': '-1.D-14',
+                                  'PHASE_ACCEL_MAX:': '1.D-14'})
         else:
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'LSQ',
                                   'PHASE_ACCEL_MIN:': '0',
                                   'PHASE_ACCEL_MAX:': '0'})
 
-        if self.pima.chan_number() > 512:
+        if bandpass and self.pima.chan_number() > 512:
             self._print_warn('Too many spectral channels for bandpass: {}'.
                              format(self.pima.chan_number()))
             bandpass = False

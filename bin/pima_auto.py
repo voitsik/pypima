@@ -81,7 +81,7 @@ def main(in_file_name):
 
     for ra_exp in exp_list:
         try:
-            ra_exp.load()
+            ra_exp.load(update_db=True)
 
             for polar in ['RR', 'RL', 'LR', 'LL']:
                 ra_exp.pima.set_polar(polar)
