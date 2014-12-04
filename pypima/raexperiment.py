@@ -552,10 +552,9 @@ calibartion information')
 
         ap = self.pima.ap_minmax()[0]
         if average > 0:
-            time_segments = int(average / ap)
-            self.split_time_aver = average
-        else:
-            self.split_time_aver = ap
+            time_segments = round(average / ap)
+
+        self.split_time_aver = time_segments * ap
 
         exper_dir = self.pima.cnt_params['EXPER_DIR:']
         sess_code = self.pima.cnt_params['SESS_CODE:']
@@ -606,7 +605,7 @@ calibartion information')
                                                       self.exper,
                                                       self.band.upper(),
                                                       polar,
-                                                      self.split_time_aver)
+                                                      round(self.split_time_aver))
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
             self._print_info('Copy {} to {}'.format(pima_fits_path,
