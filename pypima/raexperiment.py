@@ -96,6 +96,9 @@ class RaExperiment(object):
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
 
+        #
+        self.split_time_aver = 0
+
     def _mk_cnt(self):
         """
         Make new cnt-file from template.
@@ -547,9 +550,12 @@ calibartion information')
         else:
             split_params.extend(('SPLT.SOU_NAME:', 'ALL'))
 
+        ap = self.pima.ap_minmax()[0]
         if average > 0:
-            ap = self.pima.ap_minmax()[0]
             time_segments = int(average / ap)
+            self.split_time_aver = average
+        else:
+            self.split_time_aver = ap
 
         exper_dir = self.pima.cnt_params['EXPER_DIR:']
         sess_code = self.pima.cnt_params['SESS_CODE:']
@@ -595,10 +601,12 @@ calibartion information')
             if not os.path.isdir(out_fits_dir):
                 os.mkdir(out_fits_dir)
 
-            out_fits_name = '{}_{}_{}_{}_uva.fits'.format(source_names[2],
-                                                          self.exper,
-                                                          self.band.upper(),
-                                                          polar)
+            out_fits_name = \
+                '{}_{}_{}_{}_{:04d}s_uva.fits'.format(source_names[2],
+                                                      self.exper,
+                                                      self.band.upper(),
+                                                      polar,
+                                                      self.split_time_aver)
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
             self._print_info('Copy {} to {}'.format(pima_fits_path,
