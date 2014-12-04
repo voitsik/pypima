@@ -612,6 +612,9 @@ calibartion information')
                              out_fits_path))
             shutil.copy(pima_fits_path, out_fits_path)
 
+            # Run `fits_to_radplot`
+            pypima.pima.fits_to_txt(out_fits_path)
+
     def fringes2db(self):
         """
         Put fringe fitting information to the database.
