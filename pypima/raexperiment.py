@@ -382,7 +382,9 @@ first line'.format(self.antab))
         if update_db:
             self.db.update_exper_info(self.pima.exper_info)
 
-        # Various checks
+        #
+        # Various checks and setups
+        #
         if self.pima.obs_number() == 0:
             self._error('ZERO observations have been loaded')
 
@@ -406,6 +408,9 @@ first line'.format(self.antab))
         if self.pima.ap_minmax()[0] < 0.1:
             self.pima.update_cnt({'FRIB.OVERSAMPLE_MD:': '2',
                                   'FRIB.OVERSAMPLE_RT:': '2'})
+
+        # Average all spectral channels in each IF when splitting.
+        self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
         self._fix_antab()
 
@@ -515,7 +520,7 @@ bandpass: ' + str(obs['SNR']))
 
         self.pima.fine()
 
-    def split(self, source=None):
+    def split(self, source=None, average=0):
         """
         Do SPLIT.
 
@@ -535,9 +540,6 @@ bandpass: ' + str(obs['SNR']))
             self._print_warn('Could not do split due to absence of \
 calibartion information')
             return
-
-        # Average all spectral channels in each IF
-        self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
         if source:
             self.pima.update_cnt({'SPLT.SOU_NAME:': source})
