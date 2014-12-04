@@ -87,8 +87,9 @@ def main(in_file_name):
                 ra_exp.pima.set_polar(polar)
                 ra_exp.fringe_fitting(True, True)
                 ra_exp.fringes2db()
-                ra_exp.split()
-                ra_exp.copy_uvfits(out_dir)
+                if ra_exp.pima.chan_number() < 512:
+                    ra_exp.split()
+                    ra_exp.copy_uvfits(out_dir)
 
             ra_exp.delete_uvfits()
         except pypima.pima.Error as err:

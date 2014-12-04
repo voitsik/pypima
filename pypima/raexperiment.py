@@ -529,34 +529,39 @@ bandpass: ' + str(obs['SNR']))
         source : string, optional
             Do split only for given source. By default split all sources in
             the experiment.
+        average : float, optional
+            Number of seconds to average data when splitting. `average` <= 0
+            disables time averaging.
 
         """
-        if self.pima.chan_number() > 512:
-            self._print_warn('Too many spectral channels to do SPLIT: {}'.
-                             format(self.pima.chan_number()))
-            return
-
         if not self.calibration_loaded:
             self._print_warn('Could not do split due to absence of \
 calibartion information')
             return
 
+        split_params = []
+        time_segments = 1
+
         if source:
-            self.pima.update_cnt({'SPLT.SOU_NAME:': source})
+            split_params.extend(('SPLT.SOU_NAME:', source))
         else:
-            self.pima.update_cnt({'SPLT.SOU_NAME:': 'ALL'})
+            split_params.extend(('SPLT.SOU_NAME:', 'ALL'))
+
+        if average > 0:
+            ap = self.pima.ap_minmax()[0]
+            time_segments = int(average / ap)
 
         exper_dir = self.pima.cnt_params['EXPER_DIR:']
         sess_code = self.pima.cnt_params['SESS_CODE:']
-        output_dir = os.path.join(exper_dir, sess_code + '_uvs')
+        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
 
         # Delete old uv-fits remained from previous run
-        if os.path.isdir(output_dir):
-            old_uvfits = glob.glob(output_dir + '/*')
+        if os.path.isdir(pima_fits_dir):
+            old_uvfits = glob.glob(pima_fits_dir + '/*')
             for fil in old_uvfits:
                 os.remove(fil)
 
-        self.pima.split()
+        self.pima.split(tim_mseg=time_segments, params=split_params)
 
     def copy_uvfits(self, out_dir):
         """
