@@ -428,12 +428,16 @@ first line'.format(self.antab))
                 self._print_warn('Could not load calibration information')
                 self.calibration_loaded = False
 
-    def _select_ref_sta(self, fri_file):
+    def _select_ref_sta(self, fri):
         """
         Select reference station for bandpass calibration.
+
+        Parameters
+        ----------
+        fri : pypima.fri.Fri
+
         """
         snr_detecton = 5.6
-        fri = Fri(fri_file)
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
@@ -506,9 +510,12 @@ bandpass: ' + str(obs['SNR']))
 
         if bandpass:
             fri_file = self.pima.coarse()
+            fri = Fri(fri_file)
+            if not fri:
+                self._error('fri-file is empty after coarse.')
 
             # Now auto select reference station
-            if self._select_ref_sta(fri_file):
+            if self._select_ref_sta(fri):
                 try:
                     self.pima.bpas()
                 except pypima.pima.Error as err:
