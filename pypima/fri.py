@@ -96,7 +96,10 @@ class Fri(object):
                     self.records[-1]['source'] = toks[3]
                     self.records[-1]['sta1'] = toks[4]
                     self.records[-1]['sta2'] = toks[5]
-                    self.records[-1]['SNR'] = float(toks[7])
+                    try:
+                        self.records[-1]['SNR'] = float(toks[7])
+                    except ValueError:
+                        self.records[-1]['SNR'] = 0
                     self.records[-1]['start_time'] = datetime.strptime(
                         toks[11], '%Y.%m.%d-%H:%M:%S.%f,')
                     self.records[-1]['stop_time'] = datetime.strptime(
