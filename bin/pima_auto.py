@@ -88,7 +88,7 @@ def main(in_file_name):
                 ra_exp.fringe_fitting(True, True)
                 ra_exp.fringes2db()
                 if ra_exp.pima.chan_number() < 512:
-                    for aver in [0, 120, 600]:
+                    for aver in [0, 120, 300, 600, 1200]:
                         ra_exp.split(average=aver)
                         ra_exp.copy_uvfits(out_dir)
 
