@@ -9,6 +9,7 @@ import os.path
 import sys
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
+import pypima
 from pypima.pima import Pima
 from pypima.fri import Fri
 
@@ -27,8 +28,16 @@ def main(exper, band, obs):
     if band == 'k':
         params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
                        'FRIB.PLOT_RATE_WINDOW_WIDTH:', '2.D-12'])
+    elif band == 'c':
+        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
+                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
 
-    fri_file = pim.fine(params)
+    try:
+        fri_file = pim.fine(params)
+    except pypima.pima.Error as err:
+        print('PIMA Error: ', err)
+        return 1
+
     fri = Fri(fri_file)
     time_code = fri[0]['time_code']
     sta1 = fri[0]['sta1'].lower()
@@ -55,10 +64,19 @@ def sta2sta(sta):
         sta = 'RadioAstron'
     elif sta == 'GBT-VLBA':
         sta = 'GBT'
+    elif sta == 'EVPTRIYA':
+        sta = 'Evpatoria'
     else:
         sta = sta.title()
 
     return sta
+
+
+def sou2sou(sou):
+    if sou == '3C274':
+        sou = 'M87'
+
+    return sou
 
 
 def plot(file_name, fri):
@@ -112,7 +130,6 @@ def plot(file_name, fri):
     print("Peak/mean = {:.1f}" .format(Z.max() / mean))
 
     fig = plt.figure()
-    #fig.suptitle(plot_title)
     ax = fig.add_subplot(111, projection='3d')
 
     freq = fri['ref_freq']
@@ -131,7 +148,7 @@ def plot(file_name, fri):
     #ax.set_zticklabels((), alpha=0)
     #ax.view_init(elev=90, azim=0)
     date = fri['start_time'].strftime('%d.%m.%Y')
-    source = fri['source']
+    source = sou2sou(fri['source'])
     band2wl = {'k': 1.35, 'c': 6, 'l': 18}
     title = '{} ({})\n'.format(exper, date)
     title += '{}, {} cm, {}-{}'.format(source, band2wl[band],
@@ -139,7 +156,7 @@ def plot(file_name, fri):
                                        sta2sta(fri['sta2']))
     title += ' ({:.1f} Earth Diameters)'.format(fri['uv_rad_ed'])
     plt.title(title)
-    #plt.show()
+    # plt.show()
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
     plt.savefig(file_name + '.png', format='png', dpi=150,
                 bbox_inches='tight', pad_inches=0.1)
