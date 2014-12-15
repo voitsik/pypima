@@ -6,12 +6,12 @@ Created on Fri Apr  4 18:22:19 2014
 @author: Petr Voytsik
 """
 
-from __future__ import print_function
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
 import sys
+import tempfile
 import os.path
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
@@ -45,6 +45,13 @@ def main(exper, band, obs):
     if os.path.isfile('test1'):
         durs, amps, snrs = np.loadtxt('test1', unpack=True)
     else:
+        orig_fri = pim.cnt_params['FRINGE_FILE:']
+        orig_frr = pim.cnt_params['FRIRES_FILE:']
+        tmp_fri = tempfile.NamedTemporaryFile(suffix='.fri')
+        tmp_frr = tempfile.NamedTemporaryFile(suffix='.frr')
+        pim.update_cnt({'FRINGE_FILE:': tmp_fri.name,
+                        'FRIRES_FILE:': tmp_frr.name})
+
         fri_file = pim.fine(['FRIB.OBS:', str(obs),
                              'SCAN_LEN_SKIP:', '0.0',
                              'SCAN_LEN_USED:', '1200.0'])
@@ -54,7 +61,6 @@ def main(exper, band, obs):
         sta2 = fri[0]['sta2']
 
         for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
-    #        delim = delim + 1
             dur = full_duration / (delim)
             for j in range(math.ceil(delim)):
                 skip = j * dur
@@ -74,8 +80,14 @@ def main(exper, band, obs):
 
                 print('{} {} {}'.format(durs[-1], amps[-1], snrs[-1]))
 
+        # Restore original fri and frr files
+        pim.update_cnt({'FRINGE_FILE:': orig_fri,
+                        'FRIRES_FILE:': orig_frr})
+        tmp_fri.close()
+        tmp_frr.close()
+
     p, pcov = curve_fit(func, durs[durs < 400], snrs[durs < 400])
-    err = np.sqrt(np.diag(pcov))
+    # err = np.sqrt(np.diag(pcov))
 
     durs0 = np.linspace(0, durs.max())
     sqrt_snr = func(durs0, *p)
