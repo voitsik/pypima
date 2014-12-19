@@ -35,7 +35,14 @@ def main():
 
         p.pima.set_polar(polar)
         p.fringe_fitting(True, True)
-        print(p.pima.acta())
+
+        spec_out_dir = os.path.join(os.getenv('HOME'), 'RadioAstron',
+                                    'pima_autospec')
+        if not os.path.isdir(spec_out_dir):
+            os.mkdir(spec_out_dir)
+
+        p.generate_autospectra(spec_out_dir)
+
         p.split()
 
     #    p.delete_uvfits()
