@@ -79,12 +79,16 @@ def main(in_file_name):
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
+    spec_out_dir = os.path.join(os.getenv('HOME'), 'public_ftp', 'ra_data',
+                                'pima_autospec')
+
     for ra_exp in exp_list:
         try:
             ra_exp.load(update_db=True)
 
             for polar in ['RR', 'RL', 'LR', 'LL']:
                 ra_exp.pima.set_polar(polar)
+                ra_exp.generate_autospectra(spec_out_dir)
                 ra_exp.fringe_fitting(True, True)
                 ra_exp.fringes2db()
                 if ra_exp.pima.chan_number() < 512:
