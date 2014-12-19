@@ -478,6 +478,39 @@ executable. Check your PIMA installation!')
 
         self._print_info('vlba_log_file ok')
 
+    def acta(self, params=None):
+        """
+        Run `acta` pima task for autocorrelation spectrum generation.
+
+        Returns
+        -------
+        file_list : list
+            List of the names of the generated files.
+
+        """
+        opts = ['DEBUG_LEVEL:', '2']
+        if params:
+            opts.extend(params)
+
+        log_file = '{}_{}_acta.log'.format(self.exper, self.band)
+        log_file = os.path.join(self.work_dir, log_file)
+
+        ret = self._exec('acta', opts, log_file)
+
+        if ret:
+            self._error('acta failed with code {}'.format(ret))
+        else:
+            self._print_info('acta ok')
+
+        file_list = []
+        with open(log_file, 'r') as fil:
+            for line in fil:
+                if line.startswith('PIMA_ACTA created file'):
+                    file_name = line.split(':')[1].strip()
+                    file_list.append(file_name)
+
+        return file_list
+
     # Additional useful utilites
     def set_polar(self, polar):
         """
