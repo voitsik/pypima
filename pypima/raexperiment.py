@@ -640,3 +640,20 @@ calibartion information')
         """
         if os.path.isfile(self.uv_fits):
             os.remove(self.uv_fits)
+
+    def generate_autospectra(self, out_dir):
+        """
+        """
+        file_list = self.pima.acta()
+
+        polar = self.pima.cnt_params['POLAR:']
+        out_plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
+        out_plot_dir = os.path.join(out_dir, out_plot_dir)
+
+        if not os.path.isdir(out_plot_dir):
+            os.mkdir(out_plot_dir)
+
+        for file_name in file_list:
+            out_plot_name = os.path.basename(file_name).replace('.txt', '.gif')
+            out_plot_path = os.path.join(out_plot_dir, out_plot_name)
+            pypima.pima.acta_plot(file_name, out_plot_path)
