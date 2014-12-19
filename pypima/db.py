@@ -173,8 +173,8 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
         query_insert = 'INSERT INTO pima_observations (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
-%s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);'
+snr, ampl, solint, u, v, base_ed, ref_freq, scan_name) VALUES (%s, %s, %s, \
+%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);'
 
         with self.connw.cursor() as cur:
             for rec in fri_file:
@@ -201,7 +201,8 @@ snr, ampl, solint, u, v, base_ed, ref_freq) VALUES (%s, %s, %s, %s, %s, %s, \
                                            rec['U'],
                                            rec['V'],
                                            rec['uv_rad_ed'],
-                                           rec['ref_freq']))
+                                           rec['ref_freq'],
+                                           rec['time_code']))
 
             # Update status of the observations
             query_update = 'UPDATE pima_observations SET status = %s WHERE \
