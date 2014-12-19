@@ -705,3 +705,15 @@ def fits_to_txt(fits_file):
     out = subprocess.check_output(cmd_line, universal_newlines=True)
 
     return out
+
+
+def acta_plot(input_file, output_file):
+    """
+    """
+    if not os.path.isfile(input_file):
+        raise IOError(2, 'No such file: {}'.format(input_file))
+
+    cmd_line = [input_file, output_file]
+    out = subprocess.check_output(cmd_line, universal_newlines=True)
+
+    return out
