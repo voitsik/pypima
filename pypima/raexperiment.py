@@ -647,13 +647,22 @@ calibartion information')
         file_list = self.pima.acta()
 
         polar = self.pima.cnt_params['POLAR:']
-        out_plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
-        out_plot_dir = os.path.join(out_dir, out_plot_dir)
+        plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
+        tmp_plot_dir = os.path.join('/tmp', plot_dir)
 
-        if not os.path.isdir(out_plot_dir):
-            os.mkdir(out_plot_dir)
+        if os.path.exists(tmp_plot_dir):
+            shutil.rmtree(tmp_plot_dir)
+
+        os.mkdir(tmp_plot_dir)
 
         for file_name in file_list:
             out_plot_name = os.path.basename(file_name).replace('.txt', '.gif')
-            out_plot_path = os.path.join(out_plot_dir, out_plot_name)
-            pypima.pima.acta_plot(file_name, out_plot_path)
+            tmp_plot_path = os.path.join(tmp_plot_dir, out_plot_name)
+            pypima.pima.acta_plot(file_name, tmp_plot_path)
+
+        # Check destination
+        final_dir = os.path.join(out_dir, plot_dir)
+        if os.path.exists(final_dir):
+            shutil.rmtree(final_dir)
+
+        shutil.move(tmp_plot_dir, out_dir)

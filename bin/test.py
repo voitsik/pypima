@@ -34,9 +34,9 @@ def main():
             polar = 'RR'
 
         p.pima.set_polar(polar)
-        p.fringe_fitting(True, True)
+#        p.fringe_fitting(True, True)
 
-        spec_out_dir = os.path.join(os.getenv('HOME'), 'RadioAstron',
+        spec_out_dir = os.path.join(os.getenv('HOME'), 'public_ftp', 'ra_data',
                                     'pima_autospec')
         if not os.path.isdir(spec_out_dir):
             os.mkdir(spec_out_dir)
