@@ -437,7 +437,7 @@ first line'.format(self.antab))
         fri : pypima.fri.Fri
 
         """
-        snr_detecton = 5.6
+        snr_detecton = 5.7
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
