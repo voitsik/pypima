@@ -437,7 +437,7 @@ first line'.format(self.antab))
         fri : pypima.fri.Fri
 
         """
-        snr_detecton = 5.7
+        snr_detecton = 5.3
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
@@ -527,6 +527,9 @@ bandpass: ' + str(obs['SNR']))
                         print(err)
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+
+            # Set reasonable SNR detection limit
+            self.pima.update_cnt({'FRIB.SNR_DETECTION:': 5.7})
 
         self.pima.fine()
 
