@@ -273,11 +273,9 @@ executable. Check your PIMA installation!')
 
         1. Disable bandpass
 
-        2. Disable oversampling
+        2. Use fast algorithm for fringe search
 
-        3. Use fast algorithm for fringe search
-
-        4. Set fri-file name
+        3. Set fri-file name
 
         Parameters
         ----------
