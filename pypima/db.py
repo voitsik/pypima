@@ -61,11 +61,11 @@ class DB:
 
         # TODO: Check fits-file versions
         query = 'SELECT path, size FROM fits_files WHERE \
-LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) \
+LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND path LIKE %s \
 ORDER BY corr_date DESC, path DESC;'
 
         with self.conn.cursor() as cursor:
-            cursor.execute(query, (exper, band))
+            cursor.execute(query, (exper, band, '%RADIOASTRON%'))
             reply = cursor.fetchone()
 
         if reply:
