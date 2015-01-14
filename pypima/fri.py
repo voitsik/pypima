@@ -37,6 +37,7 @@ class Fri(object):
     """
     ver100 = '# PIMA Fringe results  v  1.00  Format version of 2010.04.05'
     ver101 = '# PIMA Fringe results  v  1.01  Format version of 2014.02.08'
+    ver102 = '# PIMA Fringe results  v  1.02  Format version of 2014.12.24'
 
     def __init__(self, file_name=None):
         self.records = []
@@ -57,7 +58,8 @@ class Fri(object):
         with open(file_name, 'r') as fil:
             line = fil.readline()
             if not (line.startswith(self.ver100) or
-                    line.startswith(self.ver101)):
+                    line.startswith(self.ver101) or
+                    line.startswith(self.ver102)):
                 raise Exception('{} is not PIMA fri-file'.format(file_name))
             for line in fil:
                 if line.startswith('# PIMA_FRINGE started'):
