@@ -647,7 +647,12 @@ calibartion information')
     def generate_autospectra(self, out_dir):
         """
         """
-        file_list = self.pima.acta()
+        # Sometimes PIMA crashed on `acta` task
+        try:
+            file_list = self.pima.acta()
+        except pypima.pima.Error as err:
+            print('PIMA Error: ', err)
+            return
 
         polar = self.pima.cnt_params['POLAR:']
         plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
