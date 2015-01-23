@@ -309,6 +309,8 @@ first line'.format(self.antab))
                     line = ''
                 elif line.startswith('/') and len(line) > 1:
                     line = line.replace('/', '/ ', 1)
+                elif not line.startswith('!') and '!' in line:
+                    line = line.split('!')[0].strip()
 
                 toks = line.split()
 
