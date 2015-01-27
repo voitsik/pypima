@@ -176,14 +176,14 @@ class Fri(object):
 
     def __str__(self):
         out = "#Obs Timecode   Source      Sta1/Sta2         SNR    Delay    \
-Rate      Accel      Base   Base\n"
+Rate      Accel      Base   Base  Length\n"
         for rec in self.records:
             accel = rec['accel']
             if rec['FRIB.FINE_SEARCH'] == 'ACC':
                 accel = rec['ph_acc']
 
-            line = '{:>3}{:>10} {:>8} {:>8}/{:>8} {:8.2f} \
-{:8.3f} {:10.3e} {:9.2e} {:8.2f} {:5.1f}\n'.format(rec['obs'],
+            line = '{:>3}{:>10} {:>8} {:>8}/{:>8} {:8.2f} {:8.3f} \
+{:10.3e} {:9.2e} {:8.2f} {:5.1f} {:6.1f}\n'.format(rec['obs'],
                                                    rec['time_code'],
                                                    rec['source'],
                                                    rec['sta1'],
@@ -193,7 +193,8 @@ Rate      Accel      Base   Base\n"
                                                    rec['rate'],
                                                    accel,
                                                    1e-6 * rec['uv_rad'],
-                                                   rec['uv_rad_ed'])
+                                                   rec['uv_rad_ed'],
+                                                   rec['duration'])
             out = out + line
 
         return out
