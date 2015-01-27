@@ -345,7 +345,8 @@ first line'.format(self.antab))
 
         self.antab = new_antab
 
-    def load(self, download_only=False, update_db=False):
+    def load(self, download_only=False, update_db=False,
+             scan_length=1200):
         """
         Download data, run pima load, and do some checks.
 
@@ -355,6 +356,8 @@ first line'.format(self.antab))
             If True, download FITS-file and return.
         update_db : bool, optional
             If True, update database with experiment information.
+        scan_length : float, optional
+            Set maximum length of scan. Default is 20 min.
 
         """
         os.chdir(self.work_dir)
@@ -376,9 +379,9 @@ first line'.format(self.antab))
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
 
-        # Set maximum scan length to 1200 s
-        self.pima.update_cnt({'MAX_SCAN_LEN:': '1200.0',
-                              'SCAN_LEN_USED:': '1200.0'})
+        # Set maximum scan length
+        self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
+                              'SCAN_LEN_USED:': str(scan_length)})
 
         if update_db:
             self.db.add_exper_info(self.exper, self.band,
@@ -495,6 +498,11 @@ bandpass: ' + str(obs['SNR']))
         accel: boot, optional
             If True turn on phase acceleration fitting.
 
+        Returns
+        -------
+        fri_file : str
+            Name of the PIMA fri-file.
+
         """
         if accel:
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC',
@@ -533,7 +541,7 @@ bandpass: ' + str(obs['SNR']))
             # Set reasonable SNR detection limit
             self.pima.update_cnt({'FRIB.SNR_DETECTION:': 5.7})
 
-        self.pima.fine()
+        return self.pima.fine()
 
     def split(self, source=None, average=0):
         """
