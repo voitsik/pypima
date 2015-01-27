@@ -169,8 +169,6 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
         self._check_and_delete(exper, band, polar)
 
-        print(fri_file)
-
         query_insert = 'INSERT INTO pima_observations (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
 snr, ampl, solint, u, v, base_ed, ref_freq, scan_name) VALUES (%s, %s, %s, \
