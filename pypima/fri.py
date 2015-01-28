@@ -167,6 +167,28 @@ class Fri(object):
 
         return result
 
+    def average_scan_length(self):
+        """
+        Return average length of observations.
+
+        """
+
+        lengths = [rec['duration'] for rec in self.records]
+        aver_len = math.fsum(lengths) / len(lengths)
+
+        return aver_len
+
+    def max_scan_length(self):
+        """
+        Return maximum length of observations.
+
+        """
+
+        lengths = [rec['duration'] for rec in self.records]
+        max_len = sorted(lengths, reverse=True)[0]
+
+        return max_len
+
     def append(self, rec):
         """
         Append fri-file record to the end of the list.
