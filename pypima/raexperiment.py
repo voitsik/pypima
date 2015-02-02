@@ -81,6 +81,7 @@ class RaExperiment(object):
         if not os.path.exists(antab_dir):
             os.mkdir(antab_dir)
         self.antab = os.path.join(antab_dir, self.exper + self.band + '.antab')
+        self.antab_downloaded = False
         self.calibration_loaded = False
 
         # PIMA control file path
@@ -247,6 +248,7 @@ class RaExperiment(object):
             try:
                 self.antab, _ = urlreq.urlretrieve(antab_url,
                                                    filename=self.antab)
+                self.antab_downloaded = True
                 self._print_info('Downloading is complete.')
             except URLError as ex:
                 self._print_warn('Could not download file {}: {}'.format(
@@ -277,6 +279,10 @@ class RaExperiment(object):
             return
 
         new_antab = os.path.join(self.work_dir, os.path.basename(self.antab))
+
+        # ANTAB file already exists and prepared
+        if self.antab == new_antab:
+            return
 
         freq_setup = self.pima.frequencies()
 
@@ -373,7 +379,8 @@ first line'.format(self.antab))
             self._get_orbit()
 
         # Always download antab-file.
-        self._get_antab()
+        if not self.antab_downloaded:
+            self._get_antab()
 
         # Only one sideband at P-band
         if self.band == 'p':
