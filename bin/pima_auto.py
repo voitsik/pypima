@@ -15,6 +15,7 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
+from pypima.fri import Fri
 
 
 def download_it(ra_exps):
@@ -60,8 +61,8 @@ def main(in_file_name):
 
     with open(in_file_name, 'r') as in_file:
         for line in in_file:
-            line = line.strip()
-            if line.startswith('#'):
+            line = line.split('#')[0].strip()
+            if not line:
                 continue
             exp_band = line.split()
             if len(exp_band) == 2:
@@ -86,15 +87,34 @@ def main(in_file_name):
         try:
             ra_exp.load(update_db=True)
 
-            for polar in ['RR', 'RL', 'LR', 'LL']:
+            for polar in ('RR', 'RL', 'LR', 'LL'):
                 ra_exp.pima.set_polar(polar)
                 ra_exp.generate_autospectra(spec_out_dir)
-                ra_exp.fringe_fitting(True, True)
+                fri_file = ra_exp.fringe_fitting(True, True)
+                fri = Fri(fri_file)
+                print(fri)
                 ra_exp.fringes2db()
                 if ra_exp.pima.chan_number() < 512:
-                    for aver in [0, 120, 300, 600, 1200]:
+                    for aver in (0, 120, 300, 600, 1200):
                         ra_exp.split(average=aver)
                         ra_exp.copy_uvfits(out_dir)
+
+#            if ra_exp.pima.chan_number() < 512:
+#                max_scan_len = fri.max_scan_length()
+#                if ra_exp.band == 'l':
+#                    polar = 'RR'
+#                else:
+#                    polar = 'LL'
+#                ra_exp.pima.set_polar(polar)
+#                for scan_len in (round(max_scan_len/2),
+#                                 round(max_scan_len/3),
+#                                 round(max_scan_len/4),
+#                                 round(max_scan_len/5)):
+#                    ra_exp.load(update_db=False, scan_length=scan_len)
+#                    fri_file = ra_exp.fringe_fitting(True, True)
+#                    fri = Fri(fri_file)
+#                    print(fri)
+#                    ra_exp.split(average=aver)
 
             ra_exp.delete_uvfits()
         except pypima.pima.Error as err:

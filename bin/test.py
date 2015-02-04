@@ -14,6 +14,7 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
+from pypima.fri import Fri
 
 
 def main():
@@ -34,16 +35,22 @@ def main():
             polar = 'RR'
 
         p.pima.set_polar(polar)
-        p.fringe_fitting(True, True)
+        fri_file = p.fringe_fitting(True, True)
+        fri = Fri(fri_file)
+        print(fri)
+        max_scan_len = fri.max_scan_length()
+        print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
+        p.split(average=max_scan_len)
+        p.copy_uvfits('/home/voitsik/tmp')
 
-#        spec_out_dir = os.path.join(os.getenv('HOME'), 'public_ftp', 'ra_data',
-#                                    'pima_autospec')
-#        if not os.path.isdir(spec_out_dir):
-#            os.mkdir(spec_out_dir)
-#
-#        p.generate_autospectra(spec_out_dir)
-
-        p.split()
+        if p.pima.chan_number() < 512:
+            for scan_len in (round(max_scan_len/2),
+                             round(max_scan_len/3), round(max_scan_len/4)):
+                p.load(update_db=False, scan_length=scan_len)
+                fri_file = p.fringe_fitting(True, True)
+                print(Fri(fri_file))
+                p.split(average=scan_len)
+                p.copy_uvfits('/home/voitsik/tmp')
 
     #    p.delete_uvfits()
     except pypima.pima.Error as err:
