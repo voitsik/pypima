@@ -27,6 +27,7 @@ class DB:
 
         self.conn = psycopg2.connect(database='ra_results', user='guest',
                                      host='odin')
+        self.conn.autocommit = True
         self.connw = psycopg2.connect(database='ra_results', user='editor',
                                       host='odin')
 
