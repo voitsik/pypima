@@ -34,15 +34,12 @@ class RaExperiment(object):
     """This class describe experiment in RadioAstron AGN survey"""
 
     def __init__(self, experiment_code, band, data_base,
-                 reference_station=None, uv_fits=None, orbit=None):
-                # First, set common variables
+                 uv_fits=None, orbit=None):
+        # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
-        self.sta_ref = reference_station
         self.db = data_base
-
-        if self.sta_ref is None:
-            self.sta_ref = 'RADIO-AS'
+        self.sta_ref = 'RADIO-AS'
 
         if self.band not in ['p', 'l', 'c', 'k']:
             self._error('unknown band {}'.format(band))
