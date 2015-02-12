@@ -17,22 +17,18 @@ from pypima.db import DB
 from pypima.fri import Fri
 
 
-def main():
+def main(exper, band, polar=None):
     """Main"""
-    if len(sys.argv) != 3:
-        print('Usage: {} <exper> <band>'.format(sys.argv[0]), file=sys.stderr)
-        sys.exit(2)
-
-    exper = sys.argv[1].lower()
-    band = sys.argv[2].lower()
 
     try:
         p = RaExperiment(exper, band, DB())
         p.load()
 
-        polar = 'LL'
-        if band == 'l':
-            polar = 'RR'
+        if not polar:
+            if band == 'l':
+                polar = 'RR'
+            else:
+                polar = 'LL'
 
         p.pima.set_polar(polar)
         fri_file = p.fringe_fitting(True, True)
@@ -55,17 +51,27 @@ def main():
     #    p.delete_uvfits()
     except pypima.pima.Error as err:
         print('PIMA Error: ', err)
-        sys.exit(1)
+        return 1
     except pypima.raexperiment.Error as err:
         print('RaExperiment Error: ', err)
-        sys.exit(1)
+        return 1
     except KeyboardInterrupt:
         print('KeyboardInterrupt', file=sys.stderr)
-        exit(1)
+        return 1
     except:
         print("Unexpected error: ", sys.exc_info()[0])
         raise
 
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 3:
+        print('Usage: {} <exper> <band> [polar]'.format(sys.argv[0]))
+        sys.exit(2)
+
+    polar = None
+    if len(sys.argv) == 4:
+        polar = sys.argv[3].upper()
+
+    sys.exit(main(sys.argv[1].lower(), sys.argv[2].lower(), polar))
