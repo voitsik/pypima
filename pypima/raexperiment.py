@@ -316,6 +316,10 @@ first line'.format(self.antab))
                 elif not line.startswith('!') and '!' in line:
                     line = line.split('!')[0].strip()
 
+                # VLA (raes11a and friends)
+                if 'YY' in sta_list and 'Y27' in line:
+                    line = line.replace('Y27', 'YY')
+
                 toks = line.split()
 
                 if len(toks) == 0:
