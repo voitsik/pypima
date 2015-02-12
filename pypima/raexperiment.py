@@ -58,7 +58,8 @@ class RaExperiment(object):
         self.data_dir = os.getenv('PYPIMA_DATA_DIR')
         if not self.data_dir:
             home_dir = os.getenv('HOME')
-            self.data_dir = os.path.join(home_dir, 'data/VLBI/RA/ASC_results')
+            self.data_dir = os.path.join(home_dir, 'data', 'VLBI', 'RA',
+                                         'ASC_results')
 
         # Create working directory and symlink
         work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
@@ -105,7 +106,7 @@ class RaExperiment(object):
         Make new cnt-file from template.
 
         """
-        cnt_templ_name = os.path.join(self.pima_dir, 'share/pima',
+        cnt_templ_name = os.path.join(self.pima_dir, 'share', 'pima',
                                       'TEMPLATE_pima.cnt')
 
         cnt_templ = open(cnt_templ_name, 'r')
@@ -162,8 +163,8 @@ class RaExperiment(object):
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
             self._print_info('File {} already exists'.format(uv_fits))
         elif os.path.isfile(lock_file_name):
-            self._print_info('File {} is being downloaded now, wait'.format(
-                             uv_fits))
+            self._print_info('File {} is being downloaded now, wait'.
+                             format(uv_fits))
             while os.path.isfile(lock_file_name):
                 print('.', end='')
                 sys.stdout.flush()
@@ -406,8 +407,8 @@ first line'.format(self.antab))
         sou_dist = self.pima.source_dist()
         for source, distance in sou_dist.items():
             if distance > 0.1:
-                self._print_warn('Dist = {} arcsec for source {}'.format(
-                                 distance, source))
+                self._print_warn('Dist = {} arcsec for source {}'.
+                                 format(distance, source))
 
         if 'RADIO-AS' not in self.pima.station_list():
             self._print_warn('RADIO-AS is not in station list')
@@ -486,8 +487,8 @@ bandpass: ' + str(obs['SNR']))
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
                                   'BPS.SNR_MIN_FINE:': str(snr),
                                   'FRIB.SNR_DETECTION:': str(snr_detecton)})
-            self._print_info('new reference station is {}'.format(
-                             self.sta_ref))
+            self._print_info('new reference station is {}'.
+                             format(self.sta_ref))
             self._print_info('set SNR_MIN to {:.1f}'.format(snr))
             return True
         else:
@@ -636,7 +637,7 @@ calibartion information')
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
             self._print_info('Copy {} to {}'.format(pima_fits_path,
-                             out_fits_path))
+                                                    out_fits_path))
             shutil.copy(pima_fits_path, out_fits_path)
 
             # Run `fits_to_radplot`
