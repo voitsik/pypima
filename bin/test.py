@@ -36,6 +36,8 @@ def main(exper, band, polar=None):
         print(fri)
         max_scan_len = fri.max_scan_length()
         print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
+        p.split(average=0)
+        p.copy_uvfits('/home/voitsik/tmp')
         p.split(average=max_scan_len)
         p.copy_uvfits('/home/voitsik/tmp')
 
