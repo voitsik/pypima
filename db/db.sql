@@ -23,6 +23,10 @@ CREATE TABLE pima_runs (
 
 CREATE INDEX pima_runs_exper_name_band_idx ON pima_runs (exper_name, band);
 
+GRANT SELECT ON pima_runs TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON pima_runs TO editor;
+GRANT USAGE, SELECT ON SEQUENCE pima_runs_id_seq TO editor;
+
 CREATE TABLE pima_obs (
   id SERIAL primary key,
   obs smallint,
@@ -50,6 +54,10 @@ CREATE TABLE pima_obs (
 );
 
 CREATE INDEX pima_obs_exper_name_band_idx ON pima_obs (exper_name, band);
+
+GRANT SELECT ON pima_obs TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON pima_obs TO editor;
+GRANT USAGE, SELECT ON SEQUENCE pima_obs_id_seq TO editor;
 
 CREATE TABLE test (
     id SERIAL primary key,
