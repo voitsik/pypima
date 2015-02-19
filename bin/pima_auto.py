@@ -85,7 +85,7 @@ def main(in_file_name):
 
     for ra_exp in exp_list:
         try:
-            ra_exp.load(update_db=True)
+            ra_exp.load(update_db=True, scan_part=1)
 
             for polar in ('RR', 'RL', 'LR', 'LL'):
                 ra_exp.pima.set_polar(polar)
@@ -119,7 +119,7 @@ def main(in_file_name):
             ra_exp.delete_uvfits()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            db.set_error_msg(ra_exp.exper, ra_exp.band, str(err))
+            db.set_error_msg(ra_exp.run_id, str(err))
             continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)

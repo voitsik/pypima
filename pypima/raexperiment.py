@@ -40,6 +40,8 @@ class RaExperiment(object):
         self.band = band.lower()
         self.db = data_base
         self.sta_ref = 'RADIO-AS'
+#        self.scan_part = -1
+        self.run_id = 0  # Record id in pima_runs database table
 
         if self.band not in ['p', 'l', 'c', 'k']:
             self._error('unknown band {}'.format(band))
@@ -354,7 +356,7 @@ first line'.format(self.antab))
         self.antab = new_antab
 
     def load(self, download_only=False, update_db=False,
-             scan_length=1200):
+             scan_length=1200, scan_part=1):
         """
         Download data, run pima load, and do some checks.
 
@@ -366,6 +368,9 @@ first line'.format(self.antab))
             If True, update database with experiment information.
         scan_length : float, optional
             Set maximum length of scan. Default is 20 min.
+        scan_part : int
+            1 is full scan, 2 is half of scan. In general `scan_part` can be
+            used as run index.
 
         """
         os.chdir(self.work_dir)
@@ -391,13 +396,15 @@ first line'.format(self.antab))
         # Set maximum scan length
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
+#        self.scan_part = scan_part
 
         if update_db:
-            self.db.add_exper_info(self.exper, self.band,
-                                   os.path.basename(self.uv_fits))
+            self.run_id = self.db.add_exper_info(self.exper, self.band,
+                                                 os.path.basename(self.uv_fits),
+                                                 scan_part)
         self.pima.load()
         if update_db:
-            self.db.update_exper_info(self.pima.exper_info)
+            self.db.update_exper_info(self.pima.exper_info, self.run_id)
 
         #
         # Various checks and setups
@@ -649,11 +656,14 @@ calibartion information')
         Put fringe fitting information to the database.
 
         """
+        if self.run_id <= 0:
+            return
+
         fri_file = self.pima.cnt_params['FRINGE_FILE:']
         if not os.path.isfile(fri_file):
             return
 
-        self.db.fri2db(Fri(fri_file), self.pima.exper_info)
+        self.db.fri2db(Fri(fri_file), self.pima.exper_info, self.run_id)
 
     def delete_uvfits(self):
         """

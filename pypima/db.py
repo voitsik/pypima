@@ -152,14 +152,14 @@ ampcal'.format(self.web_login, self.web_passw)
 
         """
         with self.connw.cursor() as cursor:
-            cursor.execute("SELECT * FROM pima_observations WHERE \
+            cursor.execute("SELECT * FROM pima_obs WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
             reply = cursor.fetchone()
             if reply:
-                cursor.execute("DELETE FROM pima_observations WHERE \
+                cursor.execute("DELETE FROM pima_obs WHERE \
 exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
 
-    def fri2db(self, fri_file, exper_info):
+    def fri2db(self, fri_file, exper_info, run_id):
         """
         Store information from the PIMA fri-file to the database.
 
@@ -168,12 +168,13 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         band = exper_info.band
         polar = fri_file[0]['polar']
 
-        self._check_and_delete(exper, band, polar)
+#        self._check_and_delete(exper, band, polar)
 
-        query_insert = 'INSERT INTO pima_observations (obs, start_time, \
+        query_insert = 'INSERT INTO pima_obs (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq, scan_name) VALUES (%s, %s, %s, \
-%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);'
+snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id) \
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
+%s, %s, %s, %s);'
 
         with self.connw.cursor() as cur:
             for rec in fri_file:
@@ -201,25 +202,31 @@ snr, ampl, solint, u, v, base_ed, ref_freq, scan_name) VALUES (%s, %s, %s, \
                                            rec['V'],
                                            rec['uv_rad_ed'],
                                            rec['ref_freq'],
-                                           rec['time_code']))
+                                           rec['time_code'],
+                                           run_id))
 
             # Update status of the observations
-            query_update = 'UPDATE pima_observations SET status = %s WHERE \
-exper_name = %s AND band = %s AND polar = %s AND snr <= %s;'
-            cur.execute(query_update, ('n', exper, band, polar, 5.3))
+            query_update = 'UPDATE pima_obs SET status = %s WHERE \
+run_id = %s AND polar = %s AND snr <= %s;'
+            cur.execute(query_update, ('n', run_id, polar, 5.3))
 
-            query_update = 'UPDATE pima_observations SET status = %s WHERE \
-exper_name = %s AND band = %s AND polar = %s AND snr > %s;'
+            query_update = 'UPDATE pima_obs SET status = %s WHERE \
+run_id = %s AND polar = %s AND snr > %s;'
             if exper_info.sp_chann_num <= 128:
-                cur.execute(query_update, ('y', exper, band, polar, 5.7))
+                cur.execute(query_update, ('y', run_id, polar, 5.7))
             else:
-                cur.execute(query_update, ('y', exper, band, polar, 7.0))
+                cur.execute(query_update, ('y', run_id, polar, 7.0))
 
         self.connw.commit()
 
-    def add_exper_info(self, exper, band, uv_fits):
+    def add_exper_info(self, exper, band, uv_fits, scan_part):
         """
         Add experiment record to the DB.
+
+        Returns
+        -------
+        rec_id : int
+            Id of inserted record.
 
         Notes
         -----
@@ -227,33 +234,31 @@ exper_name = %s AND band = %s AND polar = %s AND snr > %s;'
 
         """
         with self.connw.cursor() as cursor:
-            query = 'SELECT exper_name, band FROM pima_experiments \
-WHERE exper_name = %s AND band = %s;'
-            cursor.execute(query, (exper, band))
-            repl = cursor.fetchone()
-
             # Delete old before add new
-            if repl:
-                query = 'DELETE FROM pima_experiments WHERE \
-exper_name = %s AND band = %s;'
-                cursor.execute(query, (exper, band))
+            query = 'DELETE FROM pima_runs WHERE \
+exper_name = %s AND band = %s AND fits_idi = %s AND scan_part = %s;'
+            cursor.execute(query, (exper, band, uv_fits, scan_part))
 
-            query = 'INSERT INTO pima_experiments (exper_name, band, \
-proc_date, fits_idi) VALUES (%s, %s, %s, %s);'
-            cursor.execute(query, (exper, band, datetime.now(), uv_fits))
+            query = 'INSERT INTO pima_runs (exper_name, band, \
+proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
+            cursor.execute(query, (exper, band, datetime.now(), uv_fits,
+                                   scan_part))
+            rec_id = cursor.fetchone()[0]
 
         self.connw.commit()
 
-    def update_exper_info(self, exper_info):
+        return rec_id
+
+    def update_exper_info(self, exper_info, rec_id):
         """
         Add extended experiment information to the DB.
 
         """
-        query = 'UPDATE pima_experiments SET sp_chann_num = %s,\
+        query = 'UPDATE pima_runs SET sp_chann_num = %s,\
  time_epochs_num = %s, scans_num = %s, obs_num = %s, uv_points_num = %s, \
 uv_points_used_num = %s, deselected_points_num = %s, no_auto_points_num = %s, \
 accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s \
-WHERE exper_name = %s AND band = %s'
+WHERE id = %s'
         with self.connw.cursor() as cursor:
             cursor.execute(query, (exper_info.sp_chann_num,
                                    exper_info.time_epochs_num,
@@ -267,19 +272,18 @@ WHERE exper_name = %s AND band = %s'
                                    timedelta(seconds=exper_info.utc_minus_tai),
                                    exper_info.nominal_start,
                                    exper_info.nominal_end,
-                                   exper_info.exper, exper_info.band))
+                                   rec_id))
 
         self.connw.commit()
 
-    def set_error_msg(self, exper, band, msg):
+    def set_error_msg(self, run_id, msg):
         """
         Put error comment into DB.
 
         """
-        query = 'UPDATE pima_experiments SET last_error = %s \
-WHERE exper_name = %s AND band = %s'
+        query = 'UPDATE pima_runs SET last_error = %s WHERE id = %s'
 
         with self.connw.cursor() as cursor:
-            cursor.execute(query, (msg, exper, band))
+            cursor.execute(query, (msg, run_id))
 
         self.connw.commit()
