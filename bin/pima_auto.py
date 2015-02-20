@@ -76,7 +76,7 @@ def main(in_file_name):
         load_thread.daemon = True
         load_thread.start()
 
-    out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split')
+    out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split_new')
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
 
@@ -85,6 +85,7 @@ def main(in_file_name):
 
     for ra_exp in exp_list:
         try:
+            # First run on full scan
             ra_exp.load(update_db=True, scan_part=1)
 
             for polar in ('RR', 'RL', 'LR', 'LL'):
@@ -93,28 +94,43 @@ def main(in_file_name):
                 fri_file = ra_exp.fringe_fitting(True, True)
                 fri = Fri(fri_file)
                 print(fri)
+                max_scan_len = fri.max_scan_length()
                 ra_exp.fringes2db()
+
                 if ra_exp.pima.chan_number() < 512:
-                    for aver in (0, 120, 300, 600, 1200):
+                    for aver in (0, round(max_scan_len)):
                         ra_exp.split(average=aver)
                         ra_exp.copy_uvfits(out_dir)
 
-#            if ra_exp.pima.chan_number() < 512:
-#                max_scan_len = fri.max_scan_length()
-#                if ra_exp.band == 'l':
-#                    polar = 'RR'
-#                else:
-#                    polar = 'LL'
-#                ra_exp.pima.set_polar(polar)
-#                for scan_len in (round(max_scan_len/2),
-#                                 round(max_scan_len/3),
-#                                 round(max_scan_len/4),
-#                                 round(max_scan_len/5)):
-#                    ra_exp.load(update_db=False, scan_length=scan_len)
-#                    fri_file = ra_exp.fringe_fitting(True, True)
-#                    fri = Fri(fri_file)
-#                    print(fri)
-#                    ra_exp.split(average=aver)
+            # Second run on half scan
+            scan_len = round(max_scan_len/2)
+            ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2)
+
+            for polar in ('RR', 'RL', 'LR', 'LL'):
+                ra_exp.pima.set_polar(polar)
+#                ra_exp.generate_autospectra(spec_out_dir)
+                fri_file = ra_exp.fringe_fitting(True, True)
+                fri = Fri(fri_file)
+                print(fri)
+                ra_exp.fringes2db()
+
+                if ra_exp.pima.chan_number() < 512:
+                    ra_exp.split(average=scan_len)
+                    ra_exp.copy_uvfits(out_dir)
+
+            # For good experiments more runs
+            if ra_exp.pima.chan_number() < 512:
+                for scan_part in (3, 4, 5):
+                    scan_len = round(max_scan_len / scan_part)
+                    ra_exp.load(update_db=False, scan_length=scan_len,
+                                scan_part=scan_part)
+                    for polar in ('RR', 'LL'):
+                        ra_exp.pima.set_polar(polar)
+                        fri_file = ra_exp.fringe_fitting(True, True)
+                        fri = Fri(fri_file)
+                        print(fri)
+                        ra_exp.split(average=scan_len)
+                        ra_exp.copy_uvfits(out_dir)
 
             ra_exp.delete_uvfits()
         except pypima.pima.Error as err:
