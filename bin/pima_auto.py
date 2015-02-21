@@ -114,12 +114,13 @@ def main(in_file_name):
                 print(fri)
                 ra_exp.fringes2db()
 
-                if ra_exp.pima.chan_number() < 512:
+                if ra_exp.pima.chan_number() < 512 and \
+                        ra_exp.calibration_loaded:
                     ra_exp.split(average=scan_len)
                     ra_exp.copy_uvfits(out_dir)
 
             # For good experiments more runs
-            if ra_exp.pima.chan_number() < 512:
+            if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
                 for scan_part in (3, 4, 5):
                     scan_len = round(max_scan_len / scan_part)
                     ra_exp.load(update_db=False, scan_length=scan_len,
