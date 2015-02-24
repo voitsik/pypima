@@ -80,7 +80,7 @@ class RaExperiment(object):
         antab_dir = os.path.join(self.work_dir, 'antab')
         if not os.path.exists(antab_dir):
             os.mkdir(antab_dir)
-        self.antab = os.path.join(antab_dir, self.exper + self.band + '.antab')
+        self.antab = None
         self.antab_downloaded = False
         self.calibration_loaded = False
 
@@ -99,6 +99,22 @@ class RaExperiment(object):
 
         #
         self.split_time_aver = 0
+
+    def _print_info(self, msg):
+        """Print some information"""
+        now = str(datetime.now())
+        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg),
+              flush=True)
+
+    def _print_warn(self, msg):
+        """Print warning"""
+        now = str(datetime.now())
+        print(now, 'Warning: {}({}): {}'.format(self.exper, self.band, msg),
+              flush=True)
+
+    def _error(self, msg):
+        """Raise pima.Error exception"""
+        raise Error(self.exper, self.band, msg)
 
     def _mk_cnt(self):
         """
@@ -244,41 +260,28 @@ class RaExperiment(object):
         if antab_url is None:
             self._print_warn('Could not get antab file url from DB.')
         else:
+            antab_file = os.path.join(self.work_dir, 'antab',
+                                      os.path.basename(antab_url) + '.orig')
             self._print_info('Start downloading file {}'.format(antab_url))
             try:
                 self.antab, _ = urlreq.urlretrieve(antab_url,
-                                                   filename=self.antab)
+                                                   filename=antab_file)
                 self.antab_downloaded = True
                 self._print_info('Downloading is complete.')
             except URLError as ex:
+                self.antab_downloaded = False
                 self._print_warn('Could not download file {}: {}'.format(
                     antab_url, ex.reason))
-
-    def _print_info(self, msg):
-        """Print some information"""
-        now = str(datetime.now())
-        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg))
-        sys.stdout.flush()
-
-    def _print_warn(self, msg):
-        """Print warning"""
-        now = str(datetime.now())
-        print(now, 'Warning: {}({}): {}'.format(self.exper, self.band, msg))
-        sys.stdout.flush()
-
-    def _error(self, msg):
-        """Raise pima.Error exception"""
-        raise Error(self.exper, self.band, msg)
 
     def _fix_antab(self):
         """
         Fix antab.
 
         """
-        if not os.path.isfile(self.antab):
+        if not self.antab or not os.path.isfile(self.antab):
             return
 
-        new_antab = os.path.join(self.work_dir, os.path.basename(self.antab))
+        new_antab = self.antab.replace('.orig', '')
 
         # ANTAB file already exists and prepared
         if self.antab == new_antab:
