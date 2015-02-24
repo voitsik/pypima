@@ -397,6 +397,7 @@ first line'.format(self.antab))
             self.pima.update_cnt({'END_FRQ:': '1'})
 
         # Set maximum scan length
+        self._print_info('Set maximum scan length to {} s'.format(scan_length))
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
 #        self.scan_part = scan_part
