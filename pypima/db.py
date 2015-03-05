@@ -236,8 +236,9 @@ run_id = %s AND polar = %s AND snr > %s;'
         with self.connw.cursor() as cursor:
             # Delete old before add new
             query = 'DELETE FROM pima_runs WHERE \
-exper_name = %s AND band = %s AND fits_idi = %s AND scan_part = %s;'
-            cursor.execute(query, (exper, band, uv_fits, scan_part))
+exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;'
+            fits_name_base = uv_fits.split('_')[0] + '%'
+            cursor.execute(query, (exper, band, fits_name_base, scan_part))
 
             query = 'INSERT INTO pima_runs (exper_name, band, \
 proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
