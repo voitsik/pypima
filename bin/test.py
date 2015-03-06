@@ -22,7 +22,7 @@ def main(exper, band, polar=None):
 
     try:
         p = RaExperiment(exper, band, DB())
-        p.load(update_db=True)
+        p.load(update_db=False)
 
         if not polar:
             if band == 'l':
@@ -34,7 +34,7 @@ def main(exper, band, polar=None):
         fri_file = p.fringe_fitting(True, True)
         fri = Fri(fri_file)
         print(fri)
-        p.fringes2db()
+#        p.fringes2db()
         max_scan_len = fri.max_scan_length()
         print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
         p.split(average=0)
@@ -45,10 +45,10 @@ def main(exper, band, polar=None):
         if p.pima.chan_number() < 512:
             for part in (2, 3):
                 scan_len = max_scan_len / part
-                p.load(update_db=True, scan_length=scan_len, scan_part=part)
+                p.load(update_db=False, scan_length=scan_len, scan_part=part)
                 fri_file = p.fringe_fitting(True, True)
                 print(Fri(fri_file))
-                p.fringes2db()
+#                p.fringes2db()
                 p.split(average=scan_len)
                 p.copy_uvfits('/home/voitsik/tmp')
 

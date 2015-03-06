@@ -7,15 +7,17 @@ Created on Sun Dec 29 04:02:35 2013
 
 from datetime import datetime
 import glob
+from io import BytesIO
 import os.path
-from urllib.error import URLError
-import urllib.request as urlreq
+import pycurl
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
 import shutil
 import sys
 import time
+#from urllib.error import URLError
+#import urllib.request as urlreq
 
 
 class Error(Exception):
@@ -192,10 +194,13 @@ class RaExperiment(object):
             lock_file = open(lock_file_name, 'w')
             lock_file.close()
             try:
-                uv_fits, _ = urlreq.urlretrieve(fits_url, filename=uv_fits)
-            except URLError as ex:
-                self._error('Could not download file {}: {}'.format(
-                    fits_url, ex.reason))
+#               uv_fits, _ = urlreq.urlretrieve(fits_url, filename=uv_fits)
+                with open(uv_fits, 'wb') as fil:
+                    _download_it(fits_url, fil)
+#            except URLError as ex:
+            except pycurl.error as err:
+                self._error('Could not download file {}: {}'.
+                            format(fits_url, err))
             finally:
                 os.remove(lock_file_name)
 
@@ -217,12 +222,24 @@ class RaExperiment(object):
         self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
 
         if not os.path.isfile(self.orbit):
-            self._print_info('Start downloading orbit file {} ...'.format(
-                orbit_url))
-            with urlreq.urlopen(orbit_url) as orb_request:
-                orb_data = orb_request.read().decode()
+            self._print_info('Start downloading orbit file {} ...'.
+                             format(orbit_url))
 
-            orb_data = orb_data.replace('\r\n', '\n').split('\n')
+#            with urlreq.urlopen(orbit_url) as orb_request:
+#                orb_data = orb_request.read().decode()
+#
+#            orb_data = orb_data.replace('\r\n', '\n').split('\n')
+
+            buffer = BytesIO()
+
+            try:
+                _download_it(orbit_url, buffer)
+            except pycurl.error as err:
+                self._error('Could not download file {}: {}'.
+                            format(orbit_url, err))
+
+            orb_data = buffer.getvalue().decode().replace('\r\n', '\n').split('\n')
+
             with open(self.orbit, 'w') as orb_file:
                 if not orb_data[0].startswith('CCSDS_OEM_VERS'):
                     orb_file.write('CCSDS_OEM_VERS = 2.0\n')
@@ -257,21 +274,32 @@ class RaExperiment(object):
         """
         antab_url = self.db.get_antab_url(self.exper, self.band)
 
-        if antab_url is None:
+        if not antab_url:
             self._print_warn('Could not get antab file url from DB.')
         else:
             antab_file = os.path.join(self.work_dir, 'antab',
                                       os.path.basename(antab_url) + '.orig')
             self._print_info('Start downloading file {}'.format(antab_url))
+#            try:
+#                self.antab, _ = urlreq.urlretrieve(antab_url,
+#                                                   filename=antab_file)
+#                self.antab_downloaded = True
+#                self._print_info('Downloading is complete.')
+#            except URLError as ex:
+#                self.antab_downloaded = False
+#                self._print_warn('Could not download file {}: {}'.format(
+#                    antab_url, ex.reason))
+
             try:
-                self.antab, _ = urlreq.urlretrieve(antab_url,
-                                                   filename=antab_file)
+                with open(antab_file, 'wb') as fil:
+                    _download_it(antab_url, fil)
+
                 self.antab_downloaded = True
                 self._print_info('Downloading is complete.')
-            except URLError as ex:
+            except pycurl.error as err:
                 self.antab_downloaded = False
-                self._print_warn('Could not download file {}: {}'.format(
-                    antab_url, ex.reason))
+                self._print_warn('Could not download file {}: {}'.
+                                 format(antab_url, err))
 
     def _fix_antab(self):
         """
@@ -515,7 +543,7 @@ bandpass: ' + str(obs['SNR']))
         bandpass : bool, optional
             If True try to do bandpass calibration. Default is False.
 
-        accel: boot, optional
+        accel : boot, optional
             If True turn on phase acceleration fitting.
 
         Returns
@@ -680,7 +708,7 @@ calibartion information')
     def generate_autospectra(self, out_dir):
         """
         """
-        # Sometimes PIMA crashed on `acta` task
+        # Sometimes PIMA crashes on `acta` task
         try:
             file_list = self.pima.acta()
         except pypima.pima.Error as err:
@@ -707,3 +735,27 @@ calibartion information')
             shutil.rmtree(final_dir)
 
         shutil.move(tmp_plot_dir, out_dir)
+
+
+def _download_it(url, buffer):
+    """
+    Download data from `url` and write it to `buffer` using pycurl.
+
+    Parameters
+    ----------
+    url : str
+        URL
+
+    buffer : object
+        Object with `write` function. For inctance, BytesIO or file descriptor
+
+    """
+    curl = pycurl.Curl()
+    curl.setopt(pycurl.URL, url)
+    curl.setopt(pycurl.CONNECTTIMEOUT, 30)
+#    curl.setopt(pycurl.TIMEOUT, 300)
+    curl.setopt(pycurl.LOW_SPEED_LIMIT, 10000)
+    curl.setopt(pycurl.LOW_SPEED_TIME, 60)
+    curl.setopt(pycurl.WRITEDATA, buffer)
+    curl.perform()
+    curl.close()
