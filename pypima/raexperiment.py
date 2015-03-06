@@ -396,10 +396,6 @@ first line'.format(antab))
         if self.orbit is None:
             self._get_orbit()
 
-        # Always download antab-file.
-        if not self.antab_downloaded:
-            self._get_antab()
-
         # Only one sideband at P-band
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
@@ -447,6 +443,10 @@ first line'.format(antab))
 
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
+
+        # Always download antab-file.
+        if not self.antab_downloaded:
+            self._get_antab()
 
         # Try to load calibration information from ANTAB
         if self.antab and os.path.isfile(self.antab):
