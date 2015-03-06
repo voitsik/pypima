@@ -16,8 +16,6 @@ from pypima.pima import Pima
 import shutil
 import sys
 import time
-#from urllib.error import URLError
-#import urllib.request as urlreq
 
 
 class Error(Exception):
@@ -194,10 +192,8 @@ class RaExperiment(object):
             lock_file = open(lock_file_name, 'w')
             lock_file.close()
             try:
-#               uv_fits, _ = urlreq.urlretrieve(fits_url, filename=uv_fits)
                 with open(uv_fits, 'wb') as fil:
                     _download_it(fits_url, fil)
-#            except URLError as ex:
             except pycurl.error as err:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
@@ -225,13 +221,7 @@ class RaExperiment(object):
             self._print_info('Start downloading orbit file {} ...'.
                              format(orbit_url))
 
-#            with urlreq.urlopen(orbit_url) as orb_request:
-#                orb_data = orb_request.read().decode()
-#
-#            orb_data = orb_data.replace('\r\n', '\n').split('\n')
-
             buffer = BytesIO()
-
             try:
                 _download_it(orbit_url, buffer)
             except pycurl.error as err:
@@ -280,40 +270,31 @@ class RaExperiment(object):
             antab_file = os.path.join(self.work_dir, 'antab',
                                       os.path.basename(antab_url) + '.orig')
             self._print_info('Start downloading file {}'.format(antab_url))
-#            try:
-#                self.antab, _ = urlreq.urlretrieve(antab_url,
-#                                                   filename=antab_file)
-#                self.antab_downloaded = True
-#                self._print_info('Downloading is complete.')
-#            except URLError as ex:
-#                self.antab_downloaded = False
-#                self._print_warn('Could not download file {}: {}'.format(
-#                    antab_url, ex.reason))
-
             try:
                 with open(antab_file, 'wb') as fil:
                     _download_it(antab_url, fil)
 
                 self.antab_downloaded = True
                 self._print_info('Downloading is complete.')
+                self.antab = self._fix_antab(antab_file)
             except pycurl.error as err:
                 self.antab_downloaded = False
                 self._print_warn('Could not download file {}: {}'.
                                  format(antab_url, err))
 
-    def _fix_antab(self):
+    def _fix_antab(self, antab):
         """
         Fix antab.
 
         """
-        if not self.antab or not os.path.isfile(self.antab):
-            return
+        if not antab or not os.path.isfile(antab):
+            return None
 
         new_antab = self.antab.replace('.orig', '')
 
         # ANTAB file already exists and prepared
         if self.antab == new_antab:
-            return
+            return new_antab
 
         freq_setup = self.pima.frequencies()
 
@@ -384,7 +365,7 @@ first line'.format(self.antab))
 
                 out.write(' '.join(toks) + '\n')
 
-        self.antab = new_antab
+        return new_antab
 
     def load(self, download_only=False, update_db=False,
              scan_length=1200, scan_part=1):
@@ -467,8 +448,6 @@ first line'.format(self.antab))
 
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
-
-        self._fix_antab()
 
         # Try to load calibration information from ANTAB
         if self.antab and os.path.isfile(self.antab):
