@@ -217,44 +217,40 @@ class RaExperiment(object):
 
         self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
 
-        if not os.path.isfile(self.orbit):
-            self._print_info('Start downloading orbit file {} ...'.
-                             format(orbit_url))
+        self._print_info('Start downloading orbit file {} ...'.
+                         format(orbit_url))
 
-            buffer = BytesIO()
-            try:
-                _download_it(orbit_url, buffer)
-            except pycurl.error as err:
-                self._error('Could not download file {}: {}'.
-                            format(orbit_url, err))
+        buffer = BytesIO()
+        try:
+            _download_it(orbit_url, buffer)
+        except pycurl.error as err:
+            self._error('Could not download file {}: {}'.
+                        format(orbit_url, err))
 
-            orb_data = buffer.getvalue().decode().replace('\r\n', '\n').split('\n')
+        orb_data = buffer.getvalue().decode().replace('\r\n', '\n').split('\n')
 
-            with open(self.orbit, 'w') as orb_file:
-                if not orb_data[0].startswith('CCSDS_OEM_VERS'):
-                    orb_file.write('CCSDS_OEM_VERS = 2.0\n')
+        with open(self.orbit, 'w') as orb_file:
+            if not orb_data[0].startswith('CCSDS_OEM_VERS'):
+                orb_file.write('CCSDS_OEM_VERS = 2.0\n')
 
-                # Fix meta information
-                for line in orb_data:
-                    if line.startswith('CENTER_NAME'):
-                        line = 'CENTER_NAME   = Earth Barycenter'
-                    elif line.startswith('OBJECT_NAME'):
-                        line = 'OBJECT_NAME   = RADIO-ASTRON'
-                    elif line.startswith('CREATION'):
-                        line = line.replace('CREATION DATE', 'CREATION_DATE')
-                    elif line.startswith('STOP_TIME') and len(line) < 20:
-                        for back_line in reversed(orb_data):
-                            cols = back_line.split()
-                            if len(cols):
-                                break
-                        line = line.strip() + ' ' + cols[0]
+            # Fix meta information
+            for line in orb_data:
+                if line.startswith('CENTER_NAME'):
+                    line = 'CENTER_NAME   = Earth Barycenter'
+                elif line.startswith('OBJECT_NAME'):
+                    line = 'OBJECT_NAME   = RADIO-ASTRON'
+                elif line.startswith('CREATION'):
+                    line = line.replace('CREATION DATE', 'CREATION_DATE')
+                elif line.startswith('STOP_TIME') and len(line) < 20:
+                    for back_line in reversed(orb_data):
+                        cols = back_line.split()
+                        if len(cols):
+                            break
+                    line = line.strip() + ' ' + cols[0]
 
-                    orb_file.write(line + '\n')
+                orb_file.write(line + '\n')
 
-            self._print_info('Downloading is complete')
-        else:
-            self._print_info('file {} already exists'.format(self.orbit))
-
+        self._print_info('Downloading is complete')
         self.pima.update_cnt({'EPHEMERIDES_FILE:': self.orbit})
 
     def _get_antab(self):
