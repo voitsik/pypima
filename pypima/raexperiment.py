@@ -290,10 +290,10 @@ class RaExperiment(object):
         if not antab or not os.path.isfile(antab):
             return None
 
-        new_antab = self.antab.replace('.orig', '')
+        new_antab = antab.replace('.orig', '')
 
         # ANTAB file already exists and prepared
-        if self.antab == new_antab:
+        if antab == new_antab:
             return new_antab
 
         freq_setup = self.pima.frequencies()
@@ -305,13 +305,12 @@ class RaExperiment(object):
 
         sta_list = self.pima.station_list(ivs_name=False)
 
-        with open(self.antab, 'r') as inp, open(new_antab, 'w') as out:
+        with open(antab, 'r') as inp, open(new_antab, 'w') as out:
             magic = inp.readline()
             if not magic.startswith('! Produced by: TSM'):
                 self._print_warn('antab file {} does NOT have magic in the \
-first line'.format(self.antab))
-                self.antab = None
-                return
+first line'.format(antab))
+                return None
 
             # Do not forget to write a 'magic' line to the output file
             out.write(magic)
