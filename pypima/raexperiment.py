@@ -193,7 +193,7 @@ class RaExperiment(object):
             lock_file.close()
             try:
                 with open(uv_fits, 'wb') as fil:
-                    _download_it(fits_url, fil)
+                    _download_it(fits_url, fil, 2)
             except pycurl.error as err:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
@@ -711,7 +711,7 @@ calibartion information')
         shutil.move(tmp_plot_dir, out_dir)
 
 
-def _download_it(url, buffer):
+def _download_it(url, buffer, max_retries=0):
     """
     Download data from `url` and write it to `buffer` using pycurl.
 
@@ -719,17 +719,34 @@ def _download_it(url, buffer):
     ----------
     url : str
         URL
-
     buffer : object
-        Object with `write` function. For inctance, BytesIO or file descriptor
+        Object with `write` function. For inctance, BytesIO or file descriptor.
+    max_retries : int
+        Number of attempts to download.
 
     """
+    done = False
+    retries = 0
+
     curl = pycurl.Curl()
     curl.setopt(pycurl.URL, url)
     curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-#    curl.setopt(pycurl.TIMEOUT, 300)
     curl.setopt(pycurl.LOW_SPEED_LIMIT, 10000)
     curl.setopt(pycurl.LOW_SPEED_TIME, 60)
     curl.setopt(pycurl.WRITEDATA, buffer)
-    curl.perform()
+
+    while not done:
+        try:
+            curl.perform()
+        except pycurl.error as err:
+            errno, errstr = err.args
+            if errno == 28 and retries < max_retries:
+                retries += 1
+                buffer.seek(0)
+                buffer.truncate(0)
+            else:
+                raise
+        else:
+            done = True
+
     curl.close()
