@@ -418,9 +418,9 @@ first line'.format(antab))
 
         sou_dist = self.pima.source_dist()
         for source, distance in sou_dist.items():
-            if distance > 0.1:
-                self._print_warn('Dist = {} arcsec for source {}'.
-                                 format(distance, source))
+            if distance > 1.0:
+                self._error('Dist = {} arcsec for source {}'.
+                            format(distance, source))
 
         if 'RADIO-AS' not in self.pima.station_list():
             self._print_warn('RADIO-AS is not in station list')
