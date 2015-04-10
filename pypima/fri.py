@@ -172,9 +172,11 @@ class Fri(object):
         Return average length of observations.
 
         """
-
-        lengths = [rec['duration'] for rec in self.records]
-        aver_len = math.fsum(lengths) / len(lengths)
+        if self.records:
+            lengths = [rec['duration'] for rec in self.records]
+            aver_len = math.fsum(lengths) / len(lengths)
+        else:
+            aver_len = 0
 
         return aver_len
 
@@ -183,9 +185,11 @@ class Fri(object):
         Return maximum length of observations.
 
         """
-
-        lengths = [rec['duration'] for rec in self.records]
-        max_len = sorted(lengths, reverse=True)[0]
+        if self.records:
+            lengths = [rec['duration'] for rec in self.records]
+            max_len = sorted(lengths, reverse=True)[0]
+        else:
+            max_len = 0
 
         return max_len
 

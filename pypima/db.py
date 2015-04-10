@@ -164,11 +164,12 @@ exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
         Store information from the PIMA fri-file to the database.
 
         """
+        if not fri_file:
+            return
+
         exper = exper_info.exper
         band = exper_info.band
         polar = fri_file[0]['polar']
-
-#        self._check_and_delete(exper, band, polar)
 
         query_insert = 'INSERT INTO pima_obs (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
