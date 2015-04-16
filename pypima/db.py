@@ -289,3 +289,26 @@ WHERE id = %s'
             cursor.execute(query, (msg, run_id))
 
         self.connw.commit()
+
+    def model2db(self, run_id, clock_model):
+        """
+        Parameters
+        ----------
+        run_id : int
+            Id of record in `pima_runs` table.
+
+        clock_model : list
+            List of clock model components.
+
+        """
+        query = 'INSERT INTO clock_models \
+(sta, time, clock_offset, clock_rate, group_delay, delay_rate, run_id) \
+VALUES (%s, %s, %s, %s, %s, %s, %s);'
+
+        with self.connw.cursor() as cursor:
+            for rec in clock_model:
+                parameters = list(rec)
+                parameters.append(run_id)
+                cursor.execute(query, parameters)
+
+        self.connw.commit()

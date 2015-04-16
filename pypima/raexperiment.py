@@ -409,6 +409,8 @@ first line'.format(antab))
         self.pima.load()
         if update_db:
             self.db.update_exper_info(self.pima.exper_info, self.run_id)
+            if scan_part == 1:
+                self.db.model2db(self.run_id, self.pima.clock_model())
 
         #
         # Various checks and setups

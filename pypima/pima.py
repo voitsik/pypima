@@ -672,6 +672,42 @@ executable. Check your PIMA installation!')
 
         return freqs
 
+    def clock_model(self):
+        """
+        Read clock model components from the PIMA mdc file and retrun
+        they as list of records.
+
+        Returns
+        -------
+        clock_model : list
+
+
+        """
+        clock_model = []
+        mdc_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.mdc')
+
+        with open(mdc_file, 'r') as fil:
+            for line in fil:
+                if not line.startswith('CLOCK_MODEL'):
+                    continue
+
+                cols = line.strip().split()
+                if len(cols) != 19:
+                    continue
+
+                sta = cols[2]
+                time = datetime.strptime(cols[6], '%Y.%m.%d-%H:%M:%S.%f')
+                clock_offset = float(cols[8].replace('D', 'e'))
+                clock_rate = float(cols[10].replace('D', 'e'))
+                group_delay = float(cols[16].replace('D', 'e'))
+                delay_rate = float(cols[18].replace('D', 'e'))
+
+                clock_model.append((sta, time, clock_offset, clock_rate,
+                                    group_delay, delay_rate))
+
+        return clock_model
+
 
 def fits_to_txt(fits_file):
     """

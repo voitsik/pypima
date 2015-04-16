@@ -59,8 +59,19 @@ GRANT SELECT ON pima_obs TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON pima_obs TO editor;
 GRANT USAGE, SELECT ON SEQUENCE pima_obs_id_seq TO editor;
 
-CREATE TABLE test (
+
+CREATE TABLE clock_models (
     id SERIAL primary key,
-    names varchar(256)[]
+    sta varchar(8) NOT NULL,
+    time timestamp NOT NULL,
+    clock_offset real,
+    clock_rate real,
+    group_delay real,
+    delay_rate real,
+    run_id int references pima_runs(id) ON DELETE CASCADE
 );
+
+GRANT SELECT ON clock_models TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON clock_models TO editor;
+GRANT USAGE, SELECT ON SEQUENCE clock_models_id_seq TO editor;
 
