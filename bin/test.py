@@ -39,18 +39,18 @@ def main(exper, band, polar=None):
         print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
         p.split(average=0)
         p.copy_uvfits('/home/voitsik/tmp')
-        p.split(average=max_scan_len)
-        p.copy_uvfits('/home/voitsik/tmp')
+#        p.split(average=max_scan_len)
+#        p.copy_uvfits('/home/voitsik/tmp')
 
-        if p.pima.chan_number() < 512:
-            for part in (2, 3):
-                scan_len = max_scan_len / part
-                p.load(update_db=False, scan_length=scan_len, scan_part=part)
-                fri_file = p.fringe_fitting(True, True)
-                print(Fri(fri_file))
-#                p.fringes2db()
-                p.split(average=scan_len)
-                p.copy_uvfits('/home/voitsik/tmp')
+#        if p.pima.chan_number() < 512:
+#            for part in (2, 3):
+#                scan_len = max_scan_len / part
+#                p.load(update_db=False, scan_length=scan_len, scan_part=part)
+#                fri_file = p.fringe_fitting(True, True)
+#                print(Fri(fri_file))
+##                p.fringes2db()
+#                p.split(average=scan_len)
+#                p.copy_uvfits('/home/voitsik/tmp')
 
     #    p.delete_uvfits()
     except pypima.pima.Error as err:
