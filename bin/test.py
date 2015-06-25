@@ -6,9 +6,11 @@ Created on Fri Dec 13 17:50:20 2013
 @author: Petr Voytsik
 """
 
-from __future__ import print_function
-import sys
+import argparse
 import os.path
+import psycopg2
+import sys
+
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
@@ -17,8 +19,11 @@ from pypima.db import DB
 from pypima.fri import Fri
 
 
-def main(exper, band, polar=None):
+def main(args):
     """Main"""
+    exper = args.exper.lower()
+    band = args.band.lower()
+    polar = args.polar
 
     try:
         p = RaExperiment(exper, band, DB())
@@ -59,6 +64,12 @@ def main(exper, band, polar=None):
     except pypima.raexperiment.Error as err:
         print('RaExperiment Error: ', err)
         return 1
+    except psycopg2.Error as err:
+        print('DBError: ', err)
+        return 1
+    except OSError as err:
+        print('OSError: ', err)
+        return 1
     except KeyboardInterrupt:
         print('KeyboardInterrupt', file=sys.stderr)
         return 1
@@ -70,12 +81,9 @@ def main(exper, band, polar=None):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print('Usage: {} <exper> <band> [polar]'.format(sys.argv[0]))
-        sys.exit(2)
-
-    polar = None
-    if len(sys.argv) == 4:
-        polar = sys.argv[3].upper()
-
-    sys.exit(main(sys.argv[1].lower(), sys.argv[2].lower(), polar))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('exper', help='experiment code')
+    parser.add_argument('band', help='frequency band')
+    parser.add_argument('polar', help='polarization', nargs='?')
+    args = parser.parse_args()
+    sys.exit(main(args))
