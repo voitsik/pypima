@@ -4,4 +4,4 @@ PyPIMA
 
 """
 
-__version__ = '2.0dev'
+__version__ = '2.1dev'
