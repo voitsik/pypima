@@ -43,7 +43,7 @@ class RaExperiment(object):
 #        self.scan_part = -1
         self.run_id = 0  # Record id in pima_runs database table
 
-        if self.band not in ['p', 'l', 'c', 'k']:
+        if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
 
         self.pima_dir = os.getenv('PIMA_DIR')
@@ -162,10 +162,13 @@ class RaExperiment(object):
         cnt_templ.close()
         cnt_file.close()
 
-    def _download_fits(self):
-        """Download FITS-file from remote place"""
+    def _download_fits(self, gvlbi=False):
+        """
+        Download FITS-file from remote place
+
+        """
         data_dir = os.path.join(self.data_dir, self.exper)
-        fits_url, size = self.db.get_uvfits_url(self.exper, self.band)
+        fits_url, size = self.db.get_uvfits_url(self.exper, self.band, gvlbi)
 
         if not fits_url:
             self._error('Could not find FITS file name in DB')
@@ -181,8 +184,7 @@ class RaExperiment(object):
             self._print_info('File {} is being downloaded now, wait'.
                              format(uv_fits))
             while os.path.isfile(lock_file_name):
-                print('.', end='')
-                sys.stdout.flush()
+                print('.', end='', flush=True)
                 time.sleep(10)
             print('')
         else:
@@ -363,7 +365,7 @@ first line'.format(antab))
         return new_antab
 
     def load(self, download_only=False, update_db=False,
-             scan_length=1200, scan_part=1):
+             scan_length=1200, scan_part=1, gvlbi=False):
         """
         Download data, run pima load, and do some checks.
 
@@ -378,13 +380,15 @@ first line'.format(antab))
         scan_part : int
             1 is full scan, 2 is half of scan. In general `scan_part` can be
             used as run index.
+        gvlbi : bool
+            Process ground only (GVLBI) part of the experiment
 
         """
         os.chdir(self.work_dir)
 
         # If self.uv_fits is not None assume FITS file already exists
         if self.uv_fits is None:
-            self._download_fits()
+            self._download_fits(gvlbi)
 
         if download_only:
             return

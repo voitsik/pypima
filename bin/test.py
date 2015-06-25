@@ -27,7 +27,7 @@ def main(args):
 
     try:
         p = RaExperiment(exper, band, DB())
-        p.load(update_db=False)
+        p.load(update_db=False, gvlbi=args.g)
 
         if not polar:
             if band == 'l':
@@ -85,5 +85,7 @@ if __name__ == "__main__":
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band')
     parser.add_argument('polar', help='polarization', nargs='?')
+    parser.add_argument('-g', help='Process GVLBI FITS-file',
+                        action="store_true")
     args = parser.parse_args()
     sys.exit(main(args))

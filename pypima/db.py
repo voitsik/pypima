@@ -31,7 +31,7 @@ class DB:
         self.connw = psycopg2.connect(database='ra_results', user='editor',
                                       host='odin')
 
-    def get_uvfits_url(self, exper, band):
+    def get_uvfits_url(self, exper, band, gvlbi=False):
         """
         Get FITS-file URL and size from the database for the given experiment
         and band.
@@ -42,6 +42,8 @@ class DB:
             Experiment name.
         band : str
             Frequency band.
+        gvlbi : bool
+            If True select ground only (GVLBI) FITS-file.
 
         Returns
         -------
@@ -66,7 +68,10 @@ LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND path LIKE %s \
 ORDER BY corr_date DESC, path DESC;'
 
         with self.conn.cursor() as cursor:
-            cursor.execute(query, (exper, band, '%RADIOASTRON%'))
+            if gvlbi:
+                cursor.execute(query, (exper, band, '%GVLBI%'))
+            else:
+                cursor.execute(query, (exper, band, '%RADIOASTRON%'))
             reply = cursor.fetchone()
 
         if reply:
