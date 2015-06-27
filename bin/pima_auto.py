@@ -6,10 +6,12 @@ Created on 18.02.2014
 @author: Petr Voytsik
 """
 
-from __future__ import print_function
-import threading
+import argparse
 import os.path
+import psycopg2
 import sys
+import threading
+
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
@@ -44,29 +46,37 @@ def download_it(ra_exps):
             raise
 
 
-def main(in_file_name):
+def main(args):
     """
     Main function.
 
     Parameters:
     -----------
-    in_file_name : str
+    args.file_name : str
         Name of the file with list of the experiments and bands. Each line in
-        this file must have two words: experiment code and band.
+        this file must have two words: experiment code and band code.
 
     """
     exp_list = []
 
-    db = DB()
+    try:
+        db = DB()
+    except psycopg2.Error as err:
+        print('DBError: ', err, file=sys.stderr)
+        return 1
 
-    with open(in_file_name, 'r') as in_file:
-        for line in in_file:
-            line = line.split('#')[0].strip()
-            if not line:
-                continue
-            exp_band = line.split()
-            if len(exp_band) == 2:
-                exp_list.append(RaExperiment(exp_band[0], exp_band[1], db))
+    try:
+        with open(args.file_name, 'r') as in_file:
+            for line in in_file:
+                line = line.split('#')[0].strip()
+                if not line:
+                    continue
+                exp_band = line.split()
+                if len(exp_band) == 2:
+                    exp_list.append(RaExperiment(exp_band[0], exp_band[1], db))
+    except OSError as err:
+        print('OSError: ', err, file=sys.stderr)
+        return 1
 
     load_thread = None
 
@@ -81,9 +91,9 @@ def main(in_file_name):
         os.mkdir(out_dir)
 
     # Define and create directory for auto spectrum plot files
-    spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR')
-    if not spec_out_dir:
-        spec_out_dir = os.path.join(os.getenv('HOME'), 'pima_autospec')
+    spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR',
+                             default=os.path.join(os.getenv('HOME'),
+                                                  'pima_autospec'))
     if not os.path.isdir(spec_out_dir):
         os.mkdir(spec_out_dir)
 
@@ -101,7 +111,8 @@ def main(in_file_name):
                 max_scan_len = fri.max_scan_length()
                 ra_exp.fringes2db()
 
-                if ra_exp.pima.chan_number() < 512:
+                if ra_exp.pima.chan_number() < 512 and \
+                        ra_exp.calibration_loaded:
                     for aver in (0, round(max_scan_len)):
                         ra_exp.split(average=aver)
                         ra_exp.copy_uvfits(out_dir)
@@ -112,7 +123,6 @@ def main(in_file_name):
 
             for polar in ('RR', 'RL', 'LR', 'LL'):
                 ra_exp.pima.set_polar(polar)
-#                ra_exp.generate_autospectra(spec_out_dir)
                 fri_file = ra_exp.fringe_fitting(True, True)
                 fri = Fri(fri_file)
                 print(fri)
@@ -161,10 +171,8 @@ def main(in_file_name):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage: {} <FILE>'.format(os.path.basename(sys.argv[0])),
-              file=sys.stderr)
-        print('Read list of experiments and bands from FILE', file=sys.stderr)
-        sys.exit(2)
-
-    sys.exit(main(sys.argv[1]))
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file_name', metavar='FILE',
+                        help='File with list of experiments and bands')
+    args = parser.parse_args()
+    sys.exit(main(args))

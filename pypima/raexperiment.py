@@ -40,7 +40,6 @@ class RaExperiment(object):
         self.band = band.lower()
         self.db = data_base
         self.sta_ref = 'RADIO-AS'
-#        self.scan_part = -1
         self.run_id = 0  # Record id in pima_runs database table
 
         if self.band not in ('p', 'l', 'c', 'k'):
