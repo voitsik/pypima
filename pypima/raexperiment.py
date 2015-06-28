@@ -403,7 +403,9 @@ first line'.format(antab))
         self._print_info('Set maximum scan length to {} s'.format(scan_length))
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
-#        self.scan_part = scan_part
+
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        self.pima.update_cnt({'STAGING_DIR:': staging_dir})
 
         if update_db:
             self.run_id = self.db.add_exper_info(self.exper, self.band,
