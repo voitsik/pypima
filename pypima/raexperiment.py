@@ -714,34 +714,45 @@ calibartion information')
 
     def generate_autospectra(self, out_dir):
         """
+        Plot autospectra for each station for each scan.
+
         """
         # Sometimes PIMA crashes on `acta` task
         try:
             file_list = self.pima.acta()
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
+
+            # Remove core dump file.
+            if os.path.isfile('core'):
+                os.remove('core')
+
             return
+
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
 
         polar = self.pima.cnt_params['POLAR:']
         plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
-        tmp_plot_dir = os.path.join('/tmp', plot_dir)
-
-        if os.path.exists(tmp_plot_dir):
-            shutil.rmtree(tmp_plot_dir)
-
-        os.mkdir(tmp_plot_dir)
-
-        for file_name in file_list:
-            out_plot_name = os.path.basename(file_name).replace('.txt', '.gif')
-            tmp_plot_path = os.path.join(tmp_plot_dir, out_plot_name)
-            pypima.pima.acta_plot(file_name, tmp_plot_path)
+#        tmp_plot_dir = os.path.join('/tmp', plot_dir)
 
         # Check destination
         final_dir = os.path.join(out_dir, plot_dir)
         if os.path.exists(final_dir):
             shutil.rmtree(final_dir)
+        os.mkdir(final_dir)
 
-        shutil.move(tmp_plot_dir, out_dir)
+#        if os.path.exists(tmp_plot_dir):
+#            shutil.rmtree(tmp_plot_dir)
+
+#        os.mkdir(tmp_plot_dir)
+
+        for txt_path in file_list:
+            plot_name = os.path.basename(txt_path).replace('.txt', '.gif')
+            plot_path = os.path.join(final_dir, plot_name)
+            pypima.pima.acta_plot(txt_path, plot_path)
+
+#        shutil.move(tmp_plot_dir, out_dir)
 
 
 def _download_it(url, buffer, max_retries=0):
