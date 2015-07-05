@@ -10,12 +10,15 @@ import glob
 from io import BytesIO
 import os.path
 import pycurl
+import shutil
+# import sys
+import threading
+# import time
+
+
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
-import shutil
-import sys
-import time
 
 
 class Error(Exception):
@@ -62,6 +65,7 @@ class RaExperiment:
         self.db = data_base
         self.sta_ref = 'RADIO-AS'
         self.run_id = 0  # Record id in pima_runs database table
+        self.lock = threading.Lock()  # Lock for FITS file downloading control
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -200,12 +204,13 @@ class RaExperiment:
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
             self._print_info('File {} already exists'.format(uv_fits))
         elif os.path.isfile(lock_file_name):
-            self._print_info('File {} is being downloaded now, wait'.
-                             format(uv_fits))
-            while os.path.isfile(lock_file_name):
-                print('.', end='', flush=True)
-                time.sleep(10)
-            print('')
+            self._error('Lock! This never should happen!!!')
+#            self._print_info('File {} is being downloaded now, wait'.
+#                             format(uv_fits))
+#            while os.path.isfile(lock_file_name):
+#                print('.', end='', flush=True)
+#                time.sleep(10)
+#            print('')
         else:
             if not os.path.isdir(data_dir):
                 os.makedirs(data_dir)
@@ -406,8 +411,9 @@ first line'.format(antab))
         os.chdir(self.work_dir)
 
         # If self.uv_fits is not None assume FITS file already exists
-        if self.uv_fits is None:
-            self._download_fits(gvlbi)
+        with self.lock:
+            if self.uv_fits is None:
+                self._download_fits(gvlbi)
 
         if download_only:
             return
