@@ -187,7 +187,7 @@ class RaExperiment:
 
     def _download_fits(self, gvlbi=False):
         """
-        Download FITS-file from remote place
+        Download FITS-file from the FTP archive.
 
         """
         data_dir = os.path.join(self.data_dir, self.exper)
@@ -226,7 +226,7 @@ class RaExperiment:
             finally:
                 os.remove(lock_file_name)
 
-            self._print_info('Downloading is complete')
+            self._print_info('FITS-file downloading is complete')
 
         self.pima.update_cnt({'UV_FITS:': uv_fits})
 
@@ -276,18 +276,18 @@ class RaExperiment:
 
                 orb_file.write(line + '\n')
 
-        self._print_info('Downloading is complete')
+        self._print_info('Orbit downloading is complete')
         self.pima.update_cnt({'EPHEMERIDES_FILE:': self.orbit})
 
     def _get_antab(self):
         """
-        Download antab-file from FTP server.
+        Download ANTAB-file from the FTP server.
 
         """
         antab_url = self.db.get_antab_url(self.exper, self.band)
 
         if not antab_url:
-            self._print_warn('Could not get antab file url from DB.')
+            self._print_warn('Could not get ANTAB-file url from DB.')
         else:
             antab_file = os.path.join(self.work_dir, 'antab',
                                       os.path.basename(antab_url) + '.orig')
@@ -297,7 +297,7 @@ class RaExperiment:
                     _download_it(antab_url, fil)
 
                 self.antab_downloaded = True
-                self._print_info('Downloading is complete.')
+                self._print_info('ANTAB-file downloading is complete.')
                 self.antab = self._fix_antab(antab_file)
             except pycurl.error as err:
                 self.antab_downloaded = False
