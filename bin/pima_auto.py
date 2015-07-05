@@ -65,6 +65,10 @@ def main(args):
         print('DBError: ', err, file=sys.stderr)
         return 1
 
+    data_dir = os.getenv('PYPIMA_DATA_DIR',
+                         default=os.path.join(os.getenv('HOME'),
+                                              'data', 'pima_data'))
+
     try:
         with open(args.file_name, 'r') as in_file:
             for line in in_file:
@@ -73,7 +77,8 @@ def main(args):
                     continue
                 exp_band = line.split()
                 if len(exp_band) == 2:
-                    exp_list.append(RaExperiment(exp_band[0], exp_band[1], db))
+                    exp_list.append(RaExperiment(exp_band[0], exp_band[1], db,
+                                                 data_dir=data_dir))
     except OSError as err:
         print('OSError: ', err, file=sys.stderr)
         return 1

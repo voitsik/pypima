@@ -30,11 +30,32 @@ class Error(Exception):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
 
 
-class RaExperiment(object):
+class RaExperiment:
     """This class describe experiment in RadioAstron AGN survey"""
 
-    def __init__(self, experiment_code, band, data_base,
+    def __init__(self, experiment_code, band, data_base, data_dir=None,
                  uv_fits=None, orbit=None):
+        """
+        Parameters
+        ----------
+
+        experiment_code : str
+            Experiment code.
+        band : srt
+            One letter frequency bad code.
+        data_base : pypima.db.DB
+            pypima.db.DB instance.
+        data_dir : str, optional
+            Directory from FITS-IDI. If `None` working directory of the current
+            experiment is used.
+        uv_fits : str
+            Path to the data file (FITS-IDI). If `None` get a file name from
+            data base and download file from the FTP archive.
+        orbit : str
+            Path to a file with reconstracted orbit. If `None` download it from
+            the FTP archive.
+
+        """
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
@@ -51,13 +72,6 @@ class RaExperiment(object):
             self._error("Environment variable $pima_exp_dir is not set")
 
         self.pima_scr = os.getenv('pima_scr_dir')
-
-        #  Select directory for raw data from a correlator
-        self.data_dir = os.getenv('PYPIMA_DATA_DIR')
-        if not self.data_dir:
-            home_dir = os.getenv('HOME')
-            self.data_dir = os.path.join(home_dir, 'data', 'VLBI', 'RA',
-                                         'ASC_results')
 
         # Create working directory and symlink
         work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
@@ -90,6 +104,12 @@ class RaExperiment(object):
         # Prepare data paths
         self.uv_fits = uv_fits
         self.orbit = orbit
+
+        #  Select directory for raw data from a correlator
+        if data_dir:
+            self.data_dir = data_dir
+        else:
+            self.data_dir = self.work_dir
 
         # Create PIMA control file
         self._mk_cnt()
