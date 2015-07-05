@@ -200,32 +200,19 @@ class RaExperiment:
         # Delete spaces in filename
         uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
                                replace(' ', ''))
-        lock_file_name = uv_fits + '.lock'
 
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
             self._print_info('File {} already exists'.format(uv_fits))
-        elif os.path.isfile(lock_file_name):
-            self._error('Lock! This never should happen!!!')
-#            self._print_info('File {} is being downloaded now, wait'.
-#                             format(uv_fits))
-#            while os.path.isfile(lock_file_name):
-#                print('.', end='', flush=True)
-#                time.sleep(10)
-#            print('')
         else:
             if not os.path.isdir(data_dir):
                 os.makedirs(data_dir)
             self._print_info('Start downloading file {}...'.format(fits_url))
-            lock_file = open(lock_file_name, 'w')
-            lock_file.close()
             try:
                 with open(uv_fits, 'wb') as fil:
                     _download_it(fits_url, fil, 2)
             except pycurl.error as err:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
-            finally:
-                os.remove(lock_file_name)
 
             self._print_info('FITS-file downloading is complete')
 
