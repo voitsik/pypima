@@ -12,6 +12,7 @@ import os.path
 import pycurl
 import shutil
 # import sys
+from tempfile import NamedTemporaryFile
 import threading
 # import time
 
@@ -734,7 +735,6 @@ calibartion information')
 
         polar = self.pima.cnt_params['POLAR:']
         plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
-#        tmp_plot_dir = os.path.join('/tmp', plot_dir)
 
         # Check destination
         final_dir = os.path.join(out_dir, plot_dir)
@@ -742,17 +742,14 @@ calibartion information')
             shutil.rmtree(final_dir)
         os.mkdir(final_dir)
 
-#        if os.path.exists(tmp_plot_dir):
-#            shutil.rmtree(tmp_plot_dir)
-
-#        os.mkdir(tmp_plot_dir)
-
         for txt_path in file_list:
+            with NamedTemporaryFile(suffix='.gif', delete=False) as tmp:
+                tmp_plot_name = tmp.name
+            pypima.pima.acta_plot(txt_path, tmp_plot_name)
+
             plot_name = os.path.basename(txt_path).replace('.txt', '.gif')
             plot_path = os.path.join(final_dir, plot_name)
-            pypima.pima.acta_plot(txt_path, plot_path)
-
-#        shutil.move(tmp_plot_dir, out_dir)
+            shutil.move(tmp_plot_name, plot_path)
 
 
 def _download_it(url, buffer, max_retries=0):
