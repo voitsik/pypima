@@ -151,19 +151,6 @@ ampcal'.format(self.web_login, self.web_passw)
 
         return url
 
-    def _check_and_delete(self, exper, band, polar):
-        """
-        Delete records if any exists.
-
-        """
-        with self.connw.cursor() as cursor:
-            cursor.execute("SELECT * FROM pima_obs WHERE \
-exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
-            reply = cursor.fetchone()
-            if reply:
-                cursor.execute("DELETE FROM pima_obs WHERE \
-exper_name = %s AND band = %s AND polar = %s", (exper, band, polar))
-
     def fri2db(self, fri_file, exper_info, run_id):
         """
         Store information from the PIMA fri-file to the database.
@@ -216,12 +203,18 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
 run_id = %s AND polar = %s AND snr <= %s;'
             cur.execute(query_update, ('n', run_id, polar, 5.3))
 
-            query_update = 'UPDATE pima_obs SET status = %s WHERE \
-run_id = %s AND polar = %s AND snr > %s;'
+            query_update = """
+            UPDATE pima_obs SET status = %s
+            WHERE run_id = %s AND polar = %s AND snr > %s AND
+            abs(delay) < %s AND abs(rate) < %s;
+            """
             if exper_info.sp_chann_num <= 128:
-                cur.execute(query_update, ('y', run_id, polar, 5.7))
+                # delay < 1 us
+                cur.execute(query_update, ('y', run_id, polar, 5.7,
+                                           1e-6, 1e-11))
             else:
-                cur.execute(query_update, ('y', run_id, polar, 7.0))
+                cur.execute(query_update, ('y', run_id, polar, 7.0,
+                                           30e-6, 4e-10))
 
         self.connw.commit()
 
