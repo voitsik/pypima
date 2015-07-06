@@ -38,7 +38,7 @@ class RaExperiment:
     """This class describe experiment in RadioAstron AGN survey"""
 
     def __init__(self, experiment_code, band, data_base, data_dir=None,
-                 uv_fits=None, orbit=None):
+                 uv_fits=None, orbit=None, gvlbi=False):
         """
         Parameters
         ----------
@@ -52,18 +52,22 @@ class RaExperiment:
         data_dir : str, optional
             Directory from FITS-IDI. If `None` working directory of the current
             experiment is used.
-        uv_fits : str
+        uv_fits : str, optional
             Path to the data file (FITS-IDI). If `None` get a file name from
             data base and download file from the FTP archive.
-        orbit : str
+        orbit : str, optional
             Path to a file with reconstracted orbit. If `None` download it from
             the FTP archive.
+        gvlbi : bool, optional
+            If `True`, process ground only of part of the experiment (GVLBI
+            FITS file).
 
         """
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
         self.db = data_base
+        self.gvlbi = gvlbi
         self.sta_ref = 'RADIO-AS'
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
@@ -186,13 +190,14 @@ class RaExperiment:
         cnt_templ.close()
         cnt_file.close()
 
-    def _download_fits(self, gvlbi=False):
+    def _download_fits(self):
         """
         Download FITS-file from the FTP archive.
 
         """
         data_dir = os.path.join(self.data_dir, self.exper)
-        fits_url, size = self.db.get_uvfits_url(self.exper, self.band, gvlbi)
+        fits_url, size = self.db.get_uvfits_url(self.exper, self.band,
+                                                self.gvlbi)
 
         if not fits_url:
             self._error('Could not find FITS file name in DB')
@@ -377,7 +382,7 @@ first line'.format(antab))
         return new_antab
 
     def load(self, download_only=False, update_db=False,
-             scan_length=1200, scan_part=1, gvlbi=False):
+             scan_length=1200, scan_part=1):
         """
         Download data, run pima load, and do some checks.
 
@@ -389,11 +394,9 @@ first line'.format(antab))
             If True, update database with experiment information.
         scan_length : float, optional
             Set maximum length of scan. Default is 20 min.
-        scan_part : int
+        scan_part : int, optional
             1 is full scan, 2 is half of scan. In general `scan_part` can be
             used as run index.
-        gvlbi : bool
-            Process ground only (GVLBI) part of the experiment
 
         """
         os.chdir(self.work_dir)
@@ -401,7 +404,7 @@ first line'.format(antab))
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
             if self.uv_fits is None:
-                self._download_fits(gvlbi)
+                self._download_fits()
 
         if download_only:
             return
