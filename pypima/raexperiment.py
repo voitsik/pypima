@@ -84,6 +84,8 @@ class RaExperiment:
 
         # Create working directory and symlink
         work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
+        if self.gvlbi:
+            work_dir += '_gvlbi'
         if not os.path.exists(work_dir):
             os.mkdir(work_dir)
 
