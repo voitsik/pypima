@@ -78,7 +78,8 @@ def main(args):
                 exp_band = line.split()
                 if len(exp_band) == 2:
                     exp_list.append(RaExperiment(exp_band[0], exp_band[1], db,
-                                                 data_dir=data_dir))
+                                                 data_dir=data_dir,
+                                                 gvlbi=args.gvlbi))
     except OSError as err:
         print('OSError: ', err, file=sys.stderr)
         return 1
@@ -91,15 +92,18 @@ def main(args):
         load_thread.daemon = True
         load_thread.start()
 
-    out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split_new')
-    if not os.path.isdir(out_dir):
+    out_dir = os.getenv('PYPIMA_SPLIT_DIR',
+                        default=os.path.join(os.getenv('HOME'),
+                                             'pima_auto_split'))
+    # out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split_new')
+    if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
     # Define and create directory for auto spectrum plot files
     spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR',
                              default=os.path.join(os.getenv('HOME'),
                                                   'pima_autospec'))
-    if not os.path.isdir(spec_out_dir):
+    if not os.path.exists(spec_out_dir):
         os.mkdir(spec_out_dir)
 
     for ra_exp in exp_list:
@@ -109,7 +113,8 @@ def main(args):
 
             for polar in ('RR', 'RL', 'LR', 'LL'):
                 ra_exp.pima.set_polar(polar)
-                ra_exp.generate_autospectra(spec_out_dir)
+                if not args.gvlbi:
+                    ra_exp.generate_autospectra(spec_out_dir)
                 fri_file = ra_exp.fringe_fitting(True, True)
                 fri = Fri(fri_file)
                 print(fri)
@@ -117,10 +122,13 @@ def main(args):
                 ra_exp.fringes2db()
 
                 if ra_exp.pima.chan_number() < 512 and \
-                        ra_exp.calibration_loaded:
+                        ra_exp.calibration_loaded and not args.gvlbi:
                     for aver in (0, round(max_scan_len)):
                         ra_exp.split(average=aver)
                         ra_exp.copy_uvfits(out_dir)
+
+            if args.gvlbi:
+                continue
 
             # Second run on half scan
             scan_len = round(max_scan_len/2)
@@ -179,5 +187,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('file_name', metavar='FILE',
                         help='File with list of experiments and bands')
+    parser.add_argument('--gvlbi', '-g', action='store_true',
+                        help='process ground-only part of the experiments')
     args = parser.parse_args()
     sys.exit(main(args))
