@@ -83,21 +83,21 @@ class RaExperiment:
         self.pima_scr = os.getenv('pima_scr_dir')
 
         # Create working directory and symlink
-        work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
+        self.work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
         if self.gvlbi:
-            work_dir += '_gvlbi'
-        if not os.path.exists(work_dir):
-            os.mkdir(work_dir)
+            self.work_dir += '_gvlbi'
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
 
-        work_dir_link = os.path.join(self.exp_dir, self.exper)
-        if os.path.islink(work_dir_link):
-            os.remove(work_dir_link)
-        elif os.path.exists(work_dir_link):
-            os.rename(work_dir_link, work_dir_link + '_bak')
-
-        os.symlink(os.path.basename(work_dir), work_dir_link)
-
-        self.work_dir = work_dir_link
+#        work_dir_link = os.path.join(self.exp_dir, self.exper)
+#        if os.path.islink(work_dir_link):
+#            os.remove(work_dir_link)
+#        elif os.path.exists(work_dir_link):
+#            os.rename(work_dir_link, work_dir_link + '_bak')
+#
+#        os.symlink(os.path.basename(work_dir), work_dir_link)
+#
+#        self.work_dir = work_dir_link
         os.chdir(self.work_dir)
 
         # Make directory for antabs
