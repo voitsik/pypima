@@ -46,6 +46,72 @@ def download_it(ra_exps):
             raise
 
 
+def process_gvlbi(ra_exp):
+    """
+    """
+    ra_exp.load(update_db=True, scan_part=1)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        fri_file = ra_exp.fringe_fitting(True, True)
+        print(Fri(fri_file))
+        ra_exp.fringes2db()
+
+    ra_exp.delete_uvfits()
+
+
+def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir):
+    """
+    """
+    # First run on full scan
+    ra_exp.load(update_db=True, scan_part=1)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        ra_exp.generate_autospectra(spec_out_dir)
+        fri_file = ra_exp.fringe_fitting(True, True)
+        fri = Fri(fri_file)
+        print(fri)
+        max_scan_len = fri.max_scan_length()
+        ra_exp.fringes2db()
+
+        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+            for aver in (0, round(max_scan_len)):
+                ra_exp.split(average=aver)
+                ra_exp.copy_uvfits(uv_fits_out_dir)
+
+    # Second run on a scan half
+    scan_len = round(max_scan_len/2)
+    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        fri_file = ra_exp.fringe_fitting(True, True)
+        fri = Fri(fri_file)
+        print(fri)
+        ra_exp.fringes2db()
+
+        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+            ra_exp.split(average=scan_len)
+            ra_exp.copy_uvfits(uv_fits_out_dir)
+
+    # For good experiments more runs
+    if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+        for scan_part in (3, 4, 5):
+            scan_len = round(max_scan_len / scan_part)
+            ra_exp.load(update_db=False, scan_length=scan_len,
+                        scan_part=scan_part)
+            for polar in ('RR', 'LL'):
+                ra_exp.pima.set_polar(polar)
+                fri_file = ra_exp.fringe_fitting(True, True)
+                fri = Fri(fri_file)
+                print(fri)
+                ra_exp.split(average=scan_len)
+                ra_exp.copy_uvfits(uv_fits_out_dir)
+
+    ra_exp.delete_uvfits()
+
+
 def main(args):
     """
     Main function.
@@ -60,7 +126,7 @@ def main(args):
     exp_list = []
 
     try:
-        db = DB()
+        database = DB()
     except psycopg2.Error as err:
         print('DBError: ', err, file=sys.stderr)
         return 1
@@ -77,7 +143,8 @@ def main(args):
                     continue
                 exp_band = line.split()
                 if len(exp_band) == 2:
-                    exp_list.append(RaExperiment(exp_band[0], exp_band[1], db,
+                    exp_list.append(RaExperiment(exp_band[0], exp_band[1],
+                                                 database,
                                                  data_dir=data_dir,
                                                  gvlbi=args.gvlbi))
     except OSError as err:
@@ -95,7 +162,6 @@ def main(args):
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
                         default=os.path.join(os.getenv('HOME'),
                                              'pima_auto_split'))
-    # out_dir = os.path.join(os.getenv('HOME'), 'pima_auto_split_new')
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
@@ -108,62 +174,13 @@ def main(args):
 
     for ra_exp in exp_list:
         try:
-            # First run on full scan
-            ra_exp.load(update_db=True, scan_part=1)
-
-            for polar in ('RR', 'RL', 'LR', 'LL'):
-                ra_exp.pima.set_polar(polar)
-                if not args.gvlbi:
-                    ra_exp.generate_autospectra(spec_out_dir)
-                fri_file = ra_exp.fringe_fitting(True, True)
-                fri = Fri(fri_file)
-                print(fri)
-                max_scan_len = fri.max_scan_length()
-                ra_exp.fringes2db()
-
-                if ra_exp.pima.chan_number() < 512 and \
-                        ra_exp.calibration_loaded and not args.gvlbi:
-                    for aver in (0, round(max_scan_len)):
-                        ra_exp.split(average=aver)
-                        ra_exp.copy_uvfits(out_dir)
-
             if args.gvlbi:
-                continue
-
-            # Second run on half scan
-            scan_len = round(max_scan_len/2)
-            ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2)
-
-            for polar in ('RR', 'RL', 'LR', 'LL'):
-                ra_exp.pima.set_polar(polar)
-                fri_file = ra_exp.fringe_fitting(True, True)
-                fri = Fri(fri_file)
-                print(fri)
-                ra_exp.fringes2db()
-
-                if ra_exp.pima.chan_number() < 512 and \
-                        ra_exp.calibration_loaded:
-                    ra_exp.split(average=scan_len)
-                    ra_exp.copy_uvfits(out_dir)
-
-            # For good experiments more runs
-            if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
-                for scan_part in (3, 4, 5):
-                    scan_len = round(max_scan_len / scan_part)
-                    ra_exp.load(update_db=False, scan_length=scan_len,
-                                scan_part=scan_part)
-                    for polar in ('RR', 'LL'):
-                        ra_exp.pima.set_polar(polar)
-                        fri_file = ra_exp.fringe_fitting(True, True)
-                        fri = Fri(fri_file)
-                        print(fri)
-                        ra_exp.split(average=scan_len)
-                        ra_exp.copy_uvfits(out_dir)
-
-            ra_exp.delete_uvfits()
+                process_gvlbi(ra_exp)
+            else:
+                process_radioastron(ra_exp, out_dir, spec_out_dir)
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
-            db.set_error_msg(ra_exp.run_id, str(err))
+            database.set_error_msg(ra_exp.run_id, str(err))
             continue
         except pypima.raexperiment.Error as err:
             print('RaExperiment Error: ', err)
@@ -189,5 +206,4 @@ if __name__ == '__main__':
                         help='File with list of experiments and bands')
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process ground-only part of the experiments')
-    args = parser.parse_args()
-    sys.exit(main(args))
+    sys.exit(main(parser.parse_args()))
