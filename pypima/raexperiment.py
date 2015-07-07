@@ -231,6 +231,11 @@ class RaExperiment:
 
     def _get_orbit(self):
         """Download reconstructed orbit file from FTP"""
+        if self.gvlbi:
+            self.pima.update_cnt({'EPHEMERIDES_FILE:': 'NO',
+                                  'EPHEMERIDES_USE:': 'NO'})
+            return
+
         orbit_url = self.db.get_orbit_url(self.exper)
 
         if not orbit_url:
