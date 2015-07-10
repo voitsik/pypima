@@ -6,13 +6,15 @@ Created on Fri Apr  4 18:22:19 2014
 @author: Petr Voytsik
 """
 
+import argparse
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import os.path
 from scipy.optimize import curve_fit
 import sys
 import tempfile
-import os.path
+
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 from pypima.pima import Pima
@@ -32,15 +34,15 @@ def main(exper, band, obs):
     pim = Pima(exper, band)
 
     if obs <= 0 or obs > pim.obs_number():
-        print('Incorrect observation number {} must be in range [{} {}]'.
+        print('Incorrect observation number {}, must be in range [{} {}]'.
               format(obs, 1, pim.obs_number()))
         return 1
 
     sta1 = sta2 = 'TEST'
 
-    durs = np.array(())
-    amps = np.array(())
-    snrs = np.array(())
+    durs = []
+    amps = []
+    snrs = []
 
     if os.path.isfile('test1'):
         durs, amps, snrs = np.loadtxt('test1', unpack=True)
@@ -74,9 +76,9 @@ def main(exper, band, obs):
                 if fri[0]['SNR'] < 5.7:
                     continue
 
-                durs = np.append(durs, fri[0]['duration'])
-                amps = np.append(amps, fri[0]['ampl_lsq'])
-                snrs = np.append(snrs, fri[0]['SNR'])
+                durs.append(fri[0]['duration'])
+                amps.append(fri[0]['ampl_lsq'])
+                snrs.append(fri[0]['SNR'])
 
                 print('{} {} {}'.format(durs[-1], amps[-1], snrs[-1]))
 
@@ -85,6 +87,10 @@ def main(exper, band, obs):
                         'FRIRES_FILE:': orig_frr})
         tmp_fri.close()
         tmp_frr.close()
+
+    durs = np.array(durs)
+    amps = np.array(amps) * 1e6  # Amplitude in micro values
+    snrs = np.array(snrs)
 
     p, pcov = curve_fit(func, durs[durs < 400], snrs[durs < 400])
     # err = np.sqrt(np.diag(pcov))
@@ -96,8 +102,9 @@ def main(exper, band, obs):
     # Plotting
     f, (ax1, ax2) = plt.subplots(2, sharex=True)
 
+    ax1.set_ymargin(0.2)
     ax1.plot(durs, amps, 'o', durs0, const_amp, 'r-')
-    ax1.set_ylabel('Amplitude')
+    ax1.set_ylabel('Amplitude (micro values)')
     title = '{}({}): {} / {}'.format(exper.lower(), band.upper(), sta1, sta2)
     ax1.set_title(title)
 #    ax1.set_ylim(ymin=0)
@@ -113,15 +120,13 @@ def main(exper, band, obs):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print('Usage: {} <exper> <band> <obs_list>'.format(
-            os.path.basename(sys.argv[0])), file=sys.stderr)
-        print('exper     experiment name', file=sys.stderr)
-        print('band      frequency band', file=sys.stderr)
-        print('obs_list  coma separated list of observation numbers',
-              file=sys.stderr)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('exper', help='experiment code')
+    parser.add_argument('band', help='frequency band')
+    parser.add_argument('obs_list',
+                        help='coma separated list of observation numbers')
 
-        sys.exit(2)
+    args = parser.parse_args()
 
-    for obs in sys.argv[3].split(','):
-        main(sys.argv[1], sys.argv[2], int(obs))
+    for obs in args.obs_list.split(','):
+        main(args.exper, args.band, int(obs))
