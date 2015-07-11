@@ -151,14 +151,6 @@ def main(args):
         print('OSError: ', err, file=sys.stderr)
         return 1
 
-    load_thread = None
-
-    if len(exp_list) > 1:
-        load_thread = threading.Thread(target=download_it,
-                                       args=(exp_list[1:],))
-        load_thread.daemon = True
-        load_thread.start()
-
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
                         default=os.path.join(os.getenv('HOME'),
                                              'pima_auto_split'))
@@ -171,6 +163,10 @@ def main(args):
                                                   'pima_autospec'))
     if not os.path.exists(spec_out_dir):
         os.mkdir(spec_out_dir)
+
+    load_thread = threading.Thread(target=download_it, args=(exp_list,))
+    load_thread.daemon = True
+    load_thread.start()
 
     for ra_exp in exp_list:
         try:
@@ -192,8 +188,7 @@ def main(args):
             print("Unexpected error: ", sys.exc_info()[0])
             raise
 
-    if load_thread:
-        load_thread.join()
+    load_thread.join()
 
     print("Quitting normally")
 
