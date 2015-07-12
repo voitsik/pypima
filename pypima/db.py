@@ -100,10 +100,13 @@ ORDER BY corr_date DESC, path DESC;'
         url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
 oddata/reconstr/'.format(self.web_login, self.web_passw)
 
-        query = 'SELECT scf_files.file_name FROM scf_files, vex_files \
-WHERE vex_files.exper_name = %s AND \
-scf_files.start_time <= vex_files.exper_nominal_start AND \
-scf_files.stop_time >= vex_files.exper_nominal_stop;'
+        query = """
+        SELECT scf_files.file_name FROM scf_files, vex_files
+        WHERE vex_files.exper_name = %s AND
+        scf_files.start_time <= vex_files.exper_nominal_start AND
+        scf_files.stop_time >= vex_files.exper_nominal_stop
+        ORDER BY creation_date DESC, file_name DESC;
+        """
 
         with self.conn.cursor() as cursor:
             cursor.execute(query, (exper,))
