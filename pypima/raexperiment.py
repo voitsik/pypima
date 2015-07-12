@@ -742,6 +742,7 @@ calibartion information')
             plot_name = os.path.basename(txt_path).replace('.txt', '.gif')
             plot_path = os.path.join(final_dir, plot_name)
             shutil.move(tmp_plot_name, plot_path)
+            os.chmod(plot_path, 0o644)  # Read access from all
 
 
 def _download_it(url, buffer, max_retries=0):
