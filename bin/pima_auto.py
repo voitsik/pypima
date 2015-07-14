@@ -170,7 +170,7 @@ def main(args):
 
     for ra_exp in exp_list:
         try:
-            if args.gvlbi:
+            if ra_exp.gvlbi:
                 process_gvlbi(ra_exp)
             else:
                 process_radioastron(ra_exp, out_dir, spec_out_dir)

@@ -26,8 +26,8 @@ def main(args):
     polar = args.polar
 
     try:
-        p = RaExperiment(exper, band, DB())
-        p.load(update_db=False, gvlbi=args.g)
+        p = RaExperiment(exper, band, DB(), gvlbi=args.g)
+        p.load(update_db=False)
 
         if not polar:
             if band == 'l':
