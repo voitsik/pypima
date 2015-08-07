@@ -699,7 +699,10 @@ executable. Check your PIMA installation!')
 
                     sta = cols[2]
                     time = datetime.strptime(cols[6], '%Y.%m.%d-%H:%M:%S.%f')
-                    clock_offset = float(cols[8].replace('D', 'e'))
+                    try:
+                        clock_offset = float(cols[8].replace('D', 'e'))
+                    except ValueError:
+                        clock_offset = 0.0
                     clock_rate = float(cols[10].replace('D', 'e'))
                     group_delay = float(cols[16].replace('D', 'e'))
                     delay_rate = float(cols[18].replace('D', 'e'))
