@@ -205,12 +205,11 @@ executable. Check your PIMA installation!')
 
     def _exec(self, operation, options=None, log_name=None):
         """Execute PIMA binary."""
-        cmd_line = ['nice', '-n', '19', self.pima_exec, self.cnt_file_name,
-                    operation]
+        cmd_line = [self.pima_exec, self.cnt_file_name, operation]
         if options:
             cmd_line.extend(options)
 
-        if log_name is None:
+        if not log_name:
             log_name = os.path.join(self.work_dir,
                                     '{}_{}_{}.log'.format(self.exper,
                                                           self.band,
@@ -220,7 +219,12 @@ executable. Check your PIMA installation!')
         log.write(str(datetime.now()) + '\n\n')
         log.flush()
 
-        ret = subprocess.call(cmd_line, stdout=log, universal_newlines=True)
+        # Run `pima` with minimum priority
+        with subprocess.Popen(cmd_line, stdout=log,
+                              universal_newlines=True) as proc:
+            os.setpriority(os.PRIO_PROCESS, proc.pid, 19)
+            os.sched_setscheduler(proc.pid, os.SCHED_BATCH, os.sched_param(0))
+            ret = proc.wait()
 
         log.write('\n' + str(datetime.now()) + '\n\n')
         log.close()
