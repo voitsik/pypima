@@ -44,6 +44,8 @@ class ExperInfo:
         self.utc_minus_tai = None
         self.nominal_start = None
         self.nominal_end = None
+        self.pima_version = None
+        self.hostname = None
 
         if stt_file:
             self.update(stt_file)
@@ -89,6 +91,10 @@ deselected points:'):
                     self.nominal_end = datetime.strptime(
                         line.split(':', 1)[1].strip()[:23],
                         '%Y.%m.%d-%H:%M:%S.%f')
+                elif line.startswith('# Generated    at'):
+                    self.hostname = line.split()[3]
+                elif line.startswith('#                 by PIMA'):
+                    self.pima_version = line.split()[4]
 
         self.accum_length = (acc_min + acc_max) / 2.
         self.no_auto_points_num = no_auto1 + no_auto2

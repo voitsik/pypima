@@ -257,11 +257,24 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         Add extended experiment information to the DB.
 
         """
-        query = 'UPDATE pima_runs SET sp_chann_num = %s,\
- time_epochs_num = %s, scans_num = %s, obs_num = %s, uv_points_num = %s, \
-uv_points_used_num = %s, deselected_points_num = %s, no_auto_points_num = %s, \
-accum_length = %s, utc_minus_tai = %s, nominal_start = %s, nominal_end = %s \
-WHERE id = %s'
+        query = '''UPDATE pima_runs SET
+        sp_chann_num = %s,
+        time_epochs_num = %s,
+        scans_num = %s,
+        obs_num = %s,
+        uv_points_num = %s,
+        uv_points_used_num = %s,
+        deselected_points_num = %s,
+        no_auto_points_num = %s,
+        accum_length = %s,
+        utc_minus_tai = %s,
+        nominal_start = %s,
+        nominal_end = %s,
+        hostname = %s,
+        pima_version = %s
+        WHERE id = %s
+        '''
+
         with self.connw.cursor() as cursor:
             cursor.execute(query, (exper_info.sp_chann_num,
                                    exper_info.time_epochs_num,
@@ -275,6 +288,8 @@ WHERE id = %s'
                                    timedelta(seconds=exper_info.utc_minus_tai),
                                    exper_info.nominal_start,
                                    exper_info.nominal_end,
+                                   exper_info.hostname,
+                                   exper_info.pima_version,
                                    rec_id))
 
         self.connw.commit()

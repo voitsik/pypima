@@ -18,6 +18,8 @@ CREATE TABLE pima_runs (
   nominal_end timestamp,
   proc_date timestamp,
   last_error varchar(256),
+  hostname varchar(64),
+  pima_version varchar(8),
   UNIQUE (exper_name, band, fits_idi, scan_part)
 );
 
