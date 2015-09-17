@@ -9,6 +9,7 @@ Created on 18.02.2014
 import argparse
 import os.path
 import psycopg2
+import shutil
 import sys
 import threading
 
@@ -30,6 +31,11 @@ def download_it(ra_exps):
     print(my_name, ' started')
 
     for exp in ra_exps:
+        df = shutil.disk_usage(exp.data_dir)
+        if df.free / df.total < 0.1:
+            print(my_name, 'less then 10% of free space left on disk')
+            return
+
         try:
             exp.load(download_only=True)
         except pypima.pima.Error as err:
