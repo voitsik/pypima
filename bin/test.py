@@ -79,16 +79,11 @@ if __name__ == "__main__":
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band')
     parser.add_argument('polar', help='polarization', nargs='?')
-<<<<<<< HEAD
-    parser.add_argument('-g', help='Process GVLBI FITS-file',
-                        action="store_true")
-=======
 
     # Optional arguments
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process GVLBI FITS-file')
     parser.add_argument('--no-accel', action='store_true',
                         help='disable acceleration term fitting')
->>>>>>> 010c19231e7875a97902b143262bf612081f5fe8
 
     sys.exit(main(parser.parse_args()))
