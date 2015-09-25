@@ -1,62 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import argparse
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import os.path
 import sys
+
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
 from pypima.pima import Pima
 from pypima.fri import Fri
-
-
-def main(exper, band, obs):
-    """Main"""
-    pim = Pima(exper, band)
-
-    if obs <= 0 or obs > pim.obs_number():
-        print('Incorrect observation number {} must be in range [{} {}]'.
-              format(obs, 1, pim.obs_number()))
-        return 1
-
-    params = ['FRIB.OBS:', str(obs), 'FRIB.2D_FRINGE_PLOT:', 'TXT']
-
-    if band == 'k':
-        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
-                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '2.D-12'])
-    elif band == 'c':
-        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
-                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
-
-    try:
-        fri_file = pim.fine(params)
-    except pypima.pima.Error as err:
-        print('PIMA Error: ', err)
-        return 1
-
-    fri = Fri(fri_file)
-    time_code = fri[0]['time_code']
-    sta1 = fri[0]['sta1'].lower()
-    sta1 = sta1 + '_' * (8 - len(sta1))
-    sta2 = fri[0]['sta2'].lower()
-    sta2 = sta2 + '_' * (8 - len(sta2))
-    path = '{}/{}_fpl/fr2d_{}__{}_{}_{}.txt'.format(
-        pim.cnt_params['EXPER_DIR:'],
-        pim.cnt_params['SESS_CODE:'],
-        time_code, band, sta1, sta2)
-
-    print('DEBUG: path =', path)
-    if not os.path.isfile(path):
-        print('Error: file {} does not exists'.format(path), file=sys.stderr)
-        return 1
-
-    plot(path, fri[0])
-
-    return 0
 
 
 def sta2sta(sta):
@@ -136,17 +93,17 @@ def plot(file_name, fri):
 
     ax.plot_surface(X*1e9, freq*Y*1e3, Z/mean, rstride=1, cstride=1,
                     cmap=cm.jet, linewidth=0)
-    #ax.set_title(subtitle, fontsize='small')
+    # ax.set_title(subtitle, fontsize='small')
     ax.set_ylabel('Fringe rate (mHz)')
     ax.set_xlabel('Delay (ns)')
     ax.set_zlabel('Signal-to-Noise Ratio')
-    #ax.text2D(0.05, 0.85, "Date: 14 Mar 2012", transform=ax.transAxes)
-    #ax.text2D(0.05, 0.80, "Time of integration: 65s", transform=ax.transAxes)
-    #ax.grid(b=False)
-    #ax.w_xaxis.set_pane_color((0, 0, 0, 0))
-    #ax.w_yaxis.set_pane_color((0, 0, 0, 0))
-    #ax.set_zticklabels((), alpha=0)
-    #ax.view_init(elev=90, azim=0)
+    # ax.text2D(0.05, 0.85, "Date: 14 Mar 2012", transform=ax.transAxes)
+    # ax.text2D(0.05, 0.80, "Time of integration: 65s", transform=ax.transAxes)
+    # ax.grid(b=False)
+    # ax.w_xaxis.set_pane_color((0, 0, 0, 0))
+    # ax.w_yaxis.set_pane_color((0, 0, 0, 0))
+    # ax.set_zticklabels((), alpha=0)
+    # ax.view_init(elev=90, azim=0)
     date = fri['start_time'].strftime('%d.%m.%Y')
     source = sou2sou(fri['source'])
     band2wl = {'k': 1.35, 'c': 6, 'l': 18}
@@ -162,16 +119,64 @@ def plot(file_name, fri):
                 bbox_inches='tight', pad_inches=0.1)
 
 
+def main(args):
+    """Main"""
+    exper = args.exper.lower()
+    band = args.band.lower()
+    obs = args.obs
+
+    try:
+        pim = Pima(exper, band)
+    except pypima.pima.Error as err:
+        print('PIMA Error: ', err, file=sys.stderr)
+        return 1
+
+    if obs <= 0 or obs > pim.obs_number():
+        print('Incorrect observation number {} must be in range [{} {}]'.
+              format(obs, 1, pim.obs_number()))
+        return 1
+
+    params = ['FRIB.OBS:', str(obs), 'FRIB.2D_FRINGE_PLOT:', 'TXT']
+
+    if band == 'k':
+        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
+                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '2.D-12'])
+    elif band == 'c':
+        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
+                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
+
+    try:
+        fri_file = pim.fine(params)
+    except pypima.pima.Error as err:
+        print('PIMA Error: ', err, file=sys.stderr)
+        return 1
+
+    fri = Fri(fri_file)
+    time_code = fri[0]['time_code']
+    sta1 = fri[0]['sta1'].lower()
+    sta1 = sta1 + '_' * (8 - len(sta1))
+    sta2 = fri[0]['sta2'].lower()
+    sta2 = sta2 + '_' * (8 - len(sta2))
+    path = '{}/{}_fpl/fr2d_{}__{}_{}_{}.txt'.format(
+        pim.cnt_params['EXPER_DIR:'],
+        pim.cnt_params['SESS_CODE:'],
+        time_code, band, sta1, sta2)
+
+    # print('DEBUG: path =', path)
+
+    try:
+        plot(path, fri[0])
+    except OSError as err:
+        print('OSError: ', err, file=sys.stderr)
+        return 1
+
+    return 0
+
+
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print('Usage: {} <exper> <band> <obs>'.format(
-            os.path.basename(sys.argv[0])))
-        print('exper     experiment name')
-        print('band      frequency band')
-        print('obs       observation numbers')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('exper', help='experiment code')
+    parser.add_argument('band', help='frequency band code')
+    parser.add_argument('obs', type=int, help='observation number')
 
-        sys.exit(2)
-
-    exper = sys.argv[1].lower()
-    band = sys.argv[2].lower()
-    sys.exit(main(exper, band, int(sys.argv[3])))
+    sys.exit(main(parser.parse_args()))
