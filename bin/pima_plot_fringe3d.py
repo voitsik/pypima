@@ -8,6 +8,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import os.path
 import sys
+import tempfile
 
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
@@ -148,13 +149,14 @@ def main(args):
         params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
                        'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
 
-    try:
-        fri_file = pim.fine(params)
-    except pypima.pima.Error as err:
-        print('PIMA Error: ', err, file=sys.stderr)
-        return 1
+    with tempfile.NamedTemporaryFile(suffix='.fri') as tmp_fri:
+        params.extend(['FRINGE_FILE:', tmp_fri.name])
+        try:
+            fri = Fri(pim.fine(params))
+        except pypima.pima.Error as err:
+            print('PIMA Error: ', err, file=sys.stderr)
+            return 1
 
-    fri = Fri(fri_file)
     time_code = fri[0]['time_code']
     sta1 = fri[0]['sta1'].lower()
     sta1 = sta1 + '_' * (8 - len(sta1))
