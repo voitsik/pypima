@@ -36,7 +36,7 @@ def sou2sou(sou):
     return sou
 
 
-def plot(file_name, fri, title=False):
+def plot(file_name, fri, format, title=False):
     axis1_num_point = 0
     axis2_num_point = 0
     axis3_num_point = 0
@@ -104,9 +104,10 @@ def plot(file_name, fri, title=False):
     # ax.w_yaxis.set_pane_color((0, 0, 0, 0))
     # ax.set_zticklabels((), alpha=0)
     # ax.view_init(elev=90, azim=0)
+    source = sou2sou(fri['source'])
+
     if title:
         date = fri['start_time'].strftime('%d.%m.%Y')
-        source = sou2sou(fri['source'])
         band2wl = {'k': 1.35, 'c': 6, 'l': 18}
         title = '{} ({})\n'.format(exper, date)
         title += '{}, {} cm, {}-{}'.format(source, band2wl[band],
@@ -115,9 +116,10 @@ def plot(file_name, fri, title=False):
         title += ' ({:.1f} Earth Diameters)'.format(fri['uv_rad_ed'])
         plt.title(title)
     # plt.show()
+
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
-    plt.savefig(file_name + '.png', format='png', dpi=150,
-                bbox_inches='tight', pad_inches=0.1)
+    file_name = '{}.{}'.format(file_name, format)
+    plt.savefig(file_name, format=format, bbox_inches='tight', pad_inches=0.1)
 
 
 def main(args):
@@ -166,7 +168,7 @@ def main(args):
     # print('DEBUG: path =', path)
 
     try:
-        plot(path, fri[0], args.title)
+        plot(path, fri[0], args.format, title=args.title)
     except OSError as err:
         print('OSError: ', err, file=sys.stderr)
         return 1
@@ -182,5 +184,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--title', action='store_true',
                         help='add title to plot')
+    parser.add_argument('--format', default='pdf',
+                        help='plot file format (pdf, ps, png, ...)')
 
     sys.exit(main(parser.parse_args()))
