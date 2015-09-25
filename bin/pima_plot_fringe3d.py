@@ -36,7 +36,7 @@ def sou2sou(sou):
     return sou
 
 
-def plot(file_name, fri):
+def plot(file_name, fri, title=False):
     axis1_num_point = 0
     axis2_num_point = 0
     axis3_num_point = 0
@@ -104,15 +104,16 @@ def plot(file_name, fri):
     # ax.w_yaxis.set_pane_color((0, 0, 0, 0))
     # ax.set_zticklabels((), alpha=0)
     # ax.view_init(elev=90, azim=0)
-    date = fri['start_time'].strftime('%d.%m.%Y')
-    source = sou2sou(fri['source'])
-    band2wl = {'k': 1.35, 'c': 6, 'l': 18}
-    title = '{} ({})\n'.format(exper, date)
-    title += '{}, {} cm, {}-{}'.format(source, band2wl[band],
-                                       sta2sta(fri['sta1']),
-                                       sta2sta(fri['sta2']))
-    title += ' ({:.1f} Earth Diameters)'.format(fri['uv_rad_ed'])
-    plt.title(title)
+    if title:
+        date = fri['start_time'].strftime('%d.%m.%Y')
+        source = sou2sou(fri['source'])
+        band2wl = {'k': 1.35, 'c': 6, 'l': 18}
+        title = '{} ({})\n'.format(exper, date)
+        title += '{}, {} cm, {}-{}'.format(source, band2wl[band],
+                                           sta2sta(fri['sta1']),
+                                           sta2sta(fri['sta2']))
+        title += ' ({:.1f} Earth Diameters)'.format(fri['uv_rad_ed'])
+        plt.title(title)
     # plt.show()
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
     plt.savefig(file_name + '.png', format='png', dpi=150,
@@ -165,7 +166,7 @@ def main(args):
     # print('DEBUG: path =', path)
 
     try:
-        plot(path, fri[0])
+        plot(path, fri[0], args.title)
     except OSError as err:
         print('OSError: ', err, file=sys.stderr)
         return 1
@@ -178,5 +179,8 @@ if __name__ == '__main__':
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band code')
     parser.add_argument('obs', type=int, help='observation number')
+
+    parser.add_argument('--title', action='store_true',
+                        help='add title to plot')
 
     sys.exit(main(parser.parse_args()))
