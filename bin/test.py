@@ -10,6 +10,7 @@ import argparse
 import os.path
 import psycopg2
 import sys
+import tempfile
 
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
@@ -30,8 +31,9 @@ def main(args):
                                               'data', 'pima_data'))
 
     try:
-        p = RaExperiment(exper, band, DB(), gvlbi=args.g, data_dir=data_dir)
-        p.load(update_db=False)
+        ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
+                              data_dir=data_dir)
+        ra_exp.load(update_db=False)
 
         if not polar:
             if band == 'l':
@@ -39,29 +41,17 @@ def main(args):
             else:
                 polar = 'LL'
 
-        p.pima.set_polar(polar)
-        fri_file = p.fringe_fitting(True, True)
+        ra_exp.pima.set_polar(polar)
+        fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
         fri = Fri(fri_file)
         print(fri)
 #        p.fringes2db()
         max_scan_len = fri.max_scan_length()
         print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
-        p.split(average=0)
-        p.copy_uvfits('/home/voitsik/tmp')
-#        p.split(average=max_scan_len)
-#        p.copy_uvfits('/home/voitsik/tmp')
+        ra_exp.split(average=0)
 
-#        if p.pima.chan_number() < 512:
-#            for part in (2, 3):
-#                scan_len = max_scan_len / part
-#                p.load(update_db=False, scan_length=scan_len, scan_part=part)
-#                fri_file = p.fringe_fitting(True, True)
-#                print(Fri(fri_file))
-##                p.fringes2db()
-#                p.split(average=scan_len)
-#                p.copy_uvfits('/home/voitsik/tmp')
-
-    #    p.delete_uvfits()
+        # Copy final UV-FITS files to the system tmp directory
+        ra_exp.copy_uvfits(tempfile.gettempdir())
     except pypima.pima.Error as err:
         print('PIMA Error: ', err)
         return 1
@@ -89,7 +79,16 @@ if __name__ == "__main__":
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band')
     parser.add_argument('polar', help='polarization', nargs='?')
+<<<<<<< HEAD
     parser.add_argument('-g', help='Process GVLBI FITS-file',
                         action="store_true")
+=======
+
+    # Optional arguments
+    parser.add_argument('--gvlbi', '-g', action='store_true',
+                        help='process GVLBI FITS-file')
+    parser.add_argument('--no-accel', action='store_true',
+                        help='disable acceleration term fitting')
+>>>>>>> 010c19231e7875a97902b143262bf612081f5fe8
 
     sys.exit(main(parser.parse_args()))
