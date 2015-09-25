@@ -25,8 +25,12 @@ def main(args):
     band = args.band.lower()
     polar = args.polar
 
+    data_dir = os.getenv('PYPIMA_DATA_DIR',
+                         default=os.path.join(os.getenv('HOME'),
+                                              'data', 'pima_data'))
+
     try:
-        p = RaExperiment(exper, band, DB(), gvlbi=args.g)
+        p = RaExperiment(exper, band, DB(), gvlbi=args.g, data_dir=data_dir)
         p.load(update_db=False)
 
         if not polar:
@@ -87,5 +91,5 @@ if __name__ == "__main__":
     parser.add_argument('polar', help='polarization', nargs='?')
     parser.add_argument('-g', help='Process GVLBI FITS-file',
                         action="store_true")
-    args = parser.parse_args()
-    sys.exit(main(args))
+
+    sys.exit(main(parser.parse_args()))
