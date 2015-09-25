@@ -363,8 +363,16 @@ executable. Check your PIMA installation!')
         """
         log_name = '{}_{}_fine.log'.format(self.exper, self.band)
         log_name = os.path.join(self.work_dir, log_name)
-        fri_file = self.cnt_params['FRINGE_FILE:']
-        frr_file = self.cnt_params['FRIRES_FILE:']
+
+        if params and 'FRINGE_FILE:' in params:
+            fri_file = params[params.index('FRINGE_FILE:') + 1]
+        else:
+            fri_file = self.cnt_params['FRINGE_FILE:']
+
+        if params and 'FRIRES_FILE:' in params:
+            frr_file = params[params.index('FRIRES_FILE:') + 1]
+        else:
+            frr_file = self.cnt_params['FRIRES_FILE:']
 
         if os.path.isfile(fri_file):
             os.remove(fri_file)
