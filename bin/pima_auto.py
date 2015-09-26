@@ -23,7 +23,7 @@ from pypima.fri import Fri
 
 def download_it(ra_exps):
     """
-    Download FITS files for the list of experiments.
+    Download FITS files for the list of the experiments.
 
     """
     my_name = 'Download thread'
@@ -52,22 +52,37 @@ def download_it(ra_exps):
             raise
 
 
-def process_gvlbi(ra_exp):
+def process_gvlbi(ra_exp, accel=False):
     """
+    Process ground-only part of the experiment.
+
     """
     ra_exp.load(update_db=True, scan_part=1)
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, True)
+        fri_file = ra_exp.fringe_fitting(True, accel)
         print(Fri(fri_file))
         ra_exp.fringes2db()
 
     ra_exp.delete_uvfits()
 
 
-def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir):
+def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True):
     """
+    Process space-ground part of the experiment.
+
+    Parameters
+    ----------
+    ra_exp : RaExperiment object
+        Experiment setup.
+    uv_fits_out_dir : str
+        Directory name for final UV-FITS files.
+    spec_out_dir : str
+        Directory name for autocorrelation plots.
+    accel : bool
+        If True, do the parabolic term fitting.
+
     """
     # First run on full scan
     ra_exp.load(update_db=True, scan_part=1)
@@ -75,7 +90,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir):
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
         ra_exp.generate_autospectra(spec_out_dir)
-        fri_file = ra_exp.fringe_fitting(True, True)
+        fri_file = ra_exp.fringe_fitting(True, accel)
         fri = Fri(fri_file)
         print(fri)
         max_scan_len = fri.max_scan_length()
@@ -92,7 +107,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir):
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, True)
+        fri_file = ra_exp.fringe_fitting(True, accel)
         fri = Fri(fri_file)
         print(fri)
         ra_exp.fringes2db()
@@ -109,7 +124,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir):
                         scan_part=scan_part)
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
-                fri_file = ra_exp.fringe_fitting(True, True)
+                fri_file = ra_exp.fringe_fitting(True, accel)
                 fri = Fri(fri_file)
                 print(fri)
                 ra_exp.split(average=scan_len)
@@ -177,9 +192,10 @@ def main(args):
     for ra_exp in exp_list:
         try:
             if ra_exp.gvlbi:
-                process_gvlbi(ra_exp)
+                process_gvlbi(ra_exp, not args.no_accel)
             else:
-                process_radioastron(ra_exp, out_dir, spec_out_dir)
+                process_radioastron(ra_exp, out_dir, spec_out_dir,
+                                    not args.no_accel)
         except pypima.pima.Error as err:
             print('PIMA Error: ', err)
             database.set_error_msg(ra_exp.run_id, str(err))
@@ -205,6 +221,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('file_name', metavar='FILE',
                         help='File with list of experiments and bands')
+
+    # Optional arguments
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process ground-only part of the experiments')
+    parser.add_argument('--no-accel', action='store_true',
+                        help='disable parabolic term fitting')
+
     sys.exit(main(parser.parse_args()))
