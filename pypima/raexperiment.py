@@ -768,6 +768,7 @@ def _download_it(url, buffer, max_retries=0):
     curl.setopt(pycurl.LOW_SPEED_LIMIT, 10000)
     curl.setopt(pycurl.LOW_SPEED_TIME, 60)
     curl.setopt(pycurl.WRITEDATA, buffer)
+    curl.setopt(pycurl.NETRC, 1)
 
     while not done:
         try:

@@ -5,7 +5,6 @@ Created on Thu Oct 30 14:23:23 2014
 """
 
 from datetime import datetime, timedelta
-import netrc
 import psycopg2
 
 
@@ -19,12 +18,6 @@ class DB:
         Connect to the database and load logins and passwords from ``.netrc``.
 
         """
-        nrc = netrc.netrc()
-        self.web_login = nrc.authenticators('webinet.asc.rssi.ru')[0]
-        self.web_passw = nrc.authenticators('webinet.asc.rssi.ru')[2]
-        self.arc_login = nrc.authenticators('archive.asc.rssi.ru')[0]
-        self.arc_passw = nrc.authenticators('archive.asc.rssi.ru')[2]
-
         self.conn = psycopg2.connect(database='ra_results', user='guest',
                                      host='odin')
         self.conn.autocommit = True
@@ -59,13 +52,15 @@ class DB:
         """
         url = None
         size = 0
-        url_base = 'ftp://{}:{}@archive.asc.rssi.ru'.format(self.arc_login,
-                                                            self.arc_passw)
+        url_base = 'ftp://archive.asc.rssi.ru'
 
         # TODO: Check fits-file versions
-        query = 'SELECT path, size FROM fits_files WHERE \
-LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND path LIKE %s \
-ORDER BY corr_date DESC, path DESC;'
+        query = """
+        SELECT path, size FROM fits_files WHERE
+        LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
+        path LIKE %s
+        ORDER BY corr_date DESC, path DESC;
+        """
 
         with self.conn.cursor() as cursor:
             if gvlbi:
@@ -97,8 +92,7 @@ ORDER BY corr_date DESC, path DESC;'
 
         """
         url = None
-        url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
-oddata/reconstr/'.format(self.web_login, self.web_passw)
+        url_base = 'ftp://webinet.asc.rssi.ru/radioastron/oddata/reconstr/'
 
         query = """
         SELECT scf_files.file_name FROM scf_files, vex_files
@@ -136,8 +130,7 @@ oddata/reconstr/'.format(self.web_login, self.web_passw)
 
         """
         url = None
-        url_base = 'ftp://{}:{}@webinet.asc.rssi.ru/radioastron/\
-ampcal'.format(self.web_login, self.web_passw)
+        url_base = 'ftp://webinet.asc.rssi.ru/radioastron/ampcal'
 
         query = "SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
                  FROM vex_files WHERE exper_name = %s;"
