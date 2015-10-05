@@ -77,3 +77,22 @@ GRANT SELECT ON clock_models TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON clock_models TO editor;
 GRANT USAGE, SELECT ON SEQUENCE clock_models_id_seq TO editor;
 
+
+CREATE TABLE fits_files (
+    path varchar(512) PRIMARY KEY,
+    basename varchar(256) NOT NULL,
+    exper_name varchar(32) REFERENCES vex_files(exper_name),
+    obs_date date,
+    corr_date date,
+    correlator varchar(8),
+    oper varchar(32),
+    band char(1),
+    ch_num int
+    mdate date DEFAULT '2000-01-01',
+    size bigint DEFAULT 0,
+    comment varchar(64)
+);
+CREATE INDEX fits_files_exper_name_band_idx ON fits_files (exper_name, band);
+
+GRANT SELECT ON fits_files TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON fits_files TO editor;
