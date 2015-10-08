@@ -7,104 +7,48 @@ Created on Fri Apr  4 18:22:19 2014
 """
 
 import argparse
+import logging
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 import os.path
 from scipy.optimize import curve_fit
 import sys
-import tempfile
+from tempfile import NamedTemporaryFile
 
 PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 from pypima.pima import Pima
+from pypima.pima import Error as PIMAError
 from pypima.fri import Fri
 
 
-def func(x, A):
+def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
     """
-    SNR = A * sqrt(time)
-
+    Plot
     """
-    return A * np.sqrt(x)
-
-
-def main(exper, band, obs):
-    """Main"""
-    pim = Pima(exper, band)
-
-    if obs <= 0 or obs > pim.obs_number():
-        print('Incorrect observation number {}, must be in range [{} {}]'.
-              format(obs, 1, pim.obs_number()))
-        return 1
-
-    sta1 = sta2 = 'TEST'
-
-    durs = []
-    amps = []
-    snrs = []
-
-    if os.path.isfile('test1'):
-        durs, amps, snrs = np.loadtxt('test1', unpack=True)
+    if np.mean(amps) < 1e-3:
+        ylabel = 'Amplitude (micro values)'
+        amps *= 1e6
     else:
-        orig_fri = pim.cnt_params['FRINGE_FILE:']
-        orig_frr = pim.cnt_params['FRIRES_FILE:']
-        tmp_fri = tempfile.NamedTemporaryFile(suffix='.fri')
-        tmp_frr = tempfile.NamedTemporaryFile(suffix='.frr')
-        pim.update_cnt({'FRINGE_FILE:': tmp_fri.name,
-                        'FRIRES_FILE:': tmp_frr.name})
+        ylabel = 'Amplitude'
 
-        fri_file = pim.fine(['FRIB.OBS:', str(obs),
-                             'SCAN_LEN_SKIP:', '0.0',
-                             'SCAN_LEN_USED:', '1200.0'])
-        fri = Fri(fri_file)
-        full_duration = fri[0]['duration']
-        sta1 = fri[0]['sta1']
-        sta2 = fri[0]['sta2']
+    def sqrt_func(dur, amp):
+        return amp * np.sqrt(dur)
 
-        for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
-            dur = full_duration / (delim)
-            for j in range(math.ceil(delim)):
-                skip = j * dur
-                fri_file = pim.fine(['FRIB.OBS:', str(obs),
-                                     'SCAN_LEN_SKIP:', str(skip),
-                                     'SCAN_LEN_USED:', str(dur)])
-                fri = Fri(fri_file)
-                if len(fri) == 0:
-                    continue
-
-                if fri[0]['SNR'] < 5.7:
-                    continue
-
-                durs.append(fri[0]['duration'])
-                amps.append(fri[0]['ampl_lsq'])
-                snrs.append(fri[0]['SNR'])
-
-                print('{} {} {}'.format(durs[-1], amps[-1], snrs[-1]))
-
-        # Restore original fri and frr files
-        pim.update_cnt({'FRINGE_FILE:': orig_fri,
-                        'FRIRES_FILE:': orig_frr})
-        tmp_fri.close()
-        tmp_frr.close()
-
-    durs = np.array(durs)
-    amps = np.array(amps) * 1e6  # Amplitude in micro values
-    snrs = np.array(snrs)
-
-    p, pcov = curve_fit(func, durs[durs < 400], snrs[durs < 400])
+    params, pcov = curve_fit(sqrt_func, durs[durs < 400], snrs[durs < 400])
     # err = np.sqrt(np.diag(pcov))
 
     durs0 = np.linspace(0, durs.max())
-    sqrt_snr = func(durs0, *p)
+    sqrt_snr = sqrt_func(durs0, *params)
     const_amp = np.ones(durs0.shape) * amps[durs < 400].mean()
 
     # Plotting
-    f, (ax1, ax2) = plt.subplots(2, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, sharex=True)
 
     ax1.set_ymargin(0.2)
     ax1.plot(durs, amps, 'o', durs0, const_amp, 'r-')
-    ax1.set_ylabel('Amplitude (micro values)')
+    ax1.set_ylabel(ylabel)
     title = '{}({}): {} / {}'.format(exper.lower(), band.upper(), sta1, sta2)
     ax1.set_title(title)
 #    ax1.set_ylim(ymin=0)
@@ -115,8 +59,86 @@ def main(exper, band, obs):
 
     pic_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs)
     plt.savefig(pic_file_name, format='pdf')
-#    plt.show()
+
+
+def proc_obs(exper, band, obs):
+    """Main"""
+    try:
+        pim = Pima(exper, band)
+    except PIMAError as err:
+        logging.error('PIMA Error: %s', err)
+        return 1
+    except OSError as err:
+        logging.error('OSError: %s', err)
+        return 1
+
+    if obs <= 0 or obs > pim.obs_number():
+        logging.error('Incorrect observation number %s, must be in range [%s %s]',
+                      obs, 1, pim.obs_number())
+        return 1
+
+    # Prepare temporary fri and frr files
+    with NamedTemporaryFile(suffix='.fri', delete=False) as tmp:
+        tmp_fri = tmp.name
+    with NamedTemporaryFile(suffix='.frr', delete=False) as tmp:
+        tmp_frr = tmp.name
+
+    fri_file = pim.fine(['FRIB.OBS:', str(obs),
+                         'SCAN_LEN_SKIP:', '0.0',
+                         'SCAN_LEN_USED:', '1200.0',
+                         'FRINGE_FILE:', tmp_fri,
+                         'FRIRES_FILE:', tmp_frr])
+
+    fri = Fri(fri_file)
+    full_duration = fri[0]['duration']
+    sta1 = fri[0]['sta1']
+    sta2 = fri[0]['sta2']
+
+    durs = []
+    amps = []
+    snrs = []
+
+    for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
+        dur = full_duration / (delim)
+        for j in range(math.ceil(delim)):
+            skip = j * dur
+            fri_file = pim.fine(['FRIB.OBS:', str(obs),
+                                 'SCAN_LEN_SKIP:', str(skip),
+                                 'SCAN_LEN_USED:', str(dur),
+                                 'FRINGE_FILE:', tmp_fri,
+                                 'FRIRES_FILE:', tmp_frr])
+            fri = Fri(fri_file)
+            if len(fri) == 0:
+                continue
+
+            if fri[0]['SNR'] < 5.7:
+                continue
+
+            durs.append(fri[0]['duration'])
+            amps.append(fri[0]['ampl_lsq'])
+            snrs.append(fri[0]['SNR'])
+
+            print('{} {} {}'.format(durs[-1], amps[-1], snrs[-1]))
+
+    # Delete temporary files
+    if os.path.isfile(tmp_fri):
+        os.remove(tmp_fri)
+    if os.path.isfile(tmp_frr):
+        os.remove(tmp_frr)
+
+    plot(obs, np.array(durs), np.array(amps), np.array(snrs),
+         exper, band, sta1, sta2)
+
     return 0
+
+
+def main(args):
+    """Main"""
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        level=logging.INFO)
+
+    for obs_id in args.obs_list.split(','):
+        proc_obs(args.exper, args.band, int(obs_id))
 
 
 if __name__ == '__main__':
@@ -126,7 +148,4 @@ if __name__ == '__main__':
     parser.add_argument('obs_list',
                         help='coma separated list of observation numbers')
 
-    args = parser.parse_args()
-
-    for obs in args.obs_list.split(','):
-        main(args.exper, args.band, int(obs))
+    main(parser.parse_args())
