@@ -7,6 +7,7 @@ Created on Fri Dec 13 17:50:20 2013
 """
 
 import argparse
+import logging
 import os.path
 import psycopg2
 import sys
@@ -22,6 +23,9 @@ from pypima.fri import Fri
 
 def main(args):
     """Main"""
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
+                        level=logging.INFO)
+
     exper = args.exper.lower()
     band = args.band.lower()
     polar = args.polar
@@ -53,10 +57,10 @@ def main(args):
         # Copy final UV-FITS files to the system tmp directory
         ra_exp.copy_uvfits(tempfile.gettempdir())
     except pypima.pima.Error as err:
-        print('PIMA Error: ', err)
+#        print('PIMA Error: ', err)
         return 1
     except pypima.raexperiment.Error as err:
-        print('RaExperiment Error: ', err)
+#        print('RaExperiment Error: ', err)
         return 1
     except psycopg2.Error as err:
         print('DBError: ', err)

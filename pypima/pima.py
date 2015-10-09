@@ -7,6 +7,7 @@ Created on Tue Dec 10 17:21:29 2013
 
 from datetime import datetime
 import glob
+import logging
 import os.path
 import shutil
 import subprocess
@@ -19,7 +20,6 @@ class Error(Exception):
         self.exper = exper
         self.band = band
         self.msg = msg
-        self.time = str(datetime.now())
 
     def __str__(self):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
@@ -111,28 +111,29 @@ class Pima(object):
         self.band = band.lower()
         self.work_dir = work_dir
 
-        if work_dir is None:
+        self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
+
+        if not work_dir:
             self.work_dir = os.getcwd()
 
         self.pima_dir = os.getenv('PIMA_DIR')
 
-        if self.pima_dir is None or not os.path.isdir(self.pima_dir):
-            raise Error(self.exper, self.band, 'Could not find PIMA directory.\
- Please, set $PIMA_DIR environment variable.')
+        if not self.pima_dir or not os.path.isdir(self.pima_dir):
+            self._error('Could not find PIMA directory. \
+Please, set $PIMA_DIR environment variable.')
 
         self.pima_exec = os.path.join(self.pima_dir, 'bin', 'pima')
 
         if not os.path.isfile(self.pima_exec):
-            raise Error(self.exper, self.band, 'Could not find pima \
-executable. Check your PIMA installation!')
+            self._error('Could not find pima executable. \
+Check your PIMA installation!')
 
         # PIMA control file path
         self.cnt_file_name = '{}_{}_pima.cnt'.format(self.exper, self.band)
         self.cnt_file_name = os.path.join(self.work_dir, self.cnt_file_name)
 
         if not os.path.isfile(self.cnt_file_name):
-            raise Error(self.exper, self.band, 'Could not find control file \
-{}'.format(self.cnt_file_name))
+            self._error('Could not find control file ', self.cnt_file_name)
 
         # Dictionary with all parameters from cnt-file
         self.cnt_params = {}
@@ -239,12 +240,11 @@ executable. Check your PIMA installation!')
 
     def _print_info(self, msg):
         """Print some information"""
-        now = str(datetime.now())
-        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg))
-        sys.stdout.flush()
+        self.logger.info(msg)
 
     def _error(self, msg):
         """Raise pima.Error exception"""
+        self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
     def load(self):
