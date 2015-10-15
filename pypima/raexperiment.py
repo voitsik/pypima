@@ -575,13 +575,11 @@ bandpass: ' + str(obs['SNR']))
             if self._select_ref_sta(fri):
                 try:
                     self.pima.bpas()
-                except pypima.pima.Error as err:
-                    print(err)
+                except pypima.pima.Error:
                     self._print_info('Try INIT bandpass')
                     try:
                         self.pima.bpas(['BPS.MODE:', 'INIT'])
-                    except pypima.pima.Error as err:
-                        print(err)
+                    except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
 
