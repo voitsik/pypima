@@ -7,6 +7,7 @@ Created on 18.02.2014
 """
 
 import argparse
+import logging
 import os.path
 import psycopg2
 import shutil
@@ -144,12 +145,15 @@ def main(args):
         this file must have two words: experiment code and band code.
 
     """
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
+                        level=logging.INFO)
+
     exp_list = []
 
     try:
         database = DB()
     except psycopg2.Error as err:
-        print('DBError: ', err, file=sys.stderr)
+        logging.error('DBError: %s', err)
         return 1
 
     data_dir = os.getenv('PYPIMA_DATA_DIR',
@@ -169,7 +173,7 @@ def main(args):
                                                  data_dir=data_dir,
                                                  gvlbi=args.gvlbi))
     except OSError as err:
-        print('OSError: ', err, file=sys.stderr)
+        logging.error('OSError: %s', err)
         return 1
 
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
@@ -197,22 +201,22 @@ def main(args):
                 process_radioastron(ra_exp, out_dir, spec_out_dir,
                                     not args.no_accel)
         except pypima.pima.Error as err:
-            print('PIMA Error: ', err)
+#            print('PIMA Error: ', err)
             database.set_error_msg(ra_exp.run_id, str(err))
             continue
         except pypima.raexperiment.Error as err:
-            print('RaExperiment Error: ', err)
+#            print('RaExperiment Error: ', err)
             continue
         except KeyboardInterrupt:
-            print('KeyboardInterrupt', file=sys.stderr)
+            logging.warn('KeyboardInterrupt')
             return 1
         except:
-            print("Unexpected error: ", sys.exc_info()[0])
+            logging.error("Unexpected error: %s", sys.exc_info()[0])
             raise
 
     load_thread.join()
 
-    print("Quitting normally")
+    logging.info("Quitting normally")
 
     return 0
 
