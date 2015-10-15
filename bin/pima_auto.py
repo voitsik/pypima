@@ -29,27 +29,27 @@ def download_it(ra_exps):
     """
     my_name = 'Download thread'
 
-    print(my_name, ' started')
+    logging.info('% %', my_name, ' started')
 
     for exp in ra_exps:
         df = shutil.disk_usage(exp.data_dir)
         if df.free / df.total < 0.1:
-            print(my_name, 'less then 10% of free space left on disk')
+            logging.warn('% %', my_name,
+                         'less then 10% of free space left on disk')
             return
 
         try:
             exp.load(download_only=True)
-        except pypima.pima.Error as err:
-            print(my_name, 'PIMA Error: ', err)
+        except pypima.pima.Error:
             continue
-        except pypima.raexperiment.Error as err:
-            print(my_name, 'RaExperiment Error: ', err)
+        except pypima.raexperiment.Error:
             continue
         except KeyboardInterrupt:
-            print(my_name, 'KeyboardInterrupt')
+            logging.warn('% %', my_name, 'KeyboardInterrupt')
             return
         except:
-            print(my_name, "Unexpected error: ", sys.exc_info()[0])
+            logging.error('% % %', my_name, "Unexpected error: ",
+                          sys.exc_info()[0])
             raise
 
 
