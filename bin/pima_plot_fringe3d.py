@@ -148,6 +148,9 @@ def main(args):
     elif band == 'c':
         params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
                        'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
+    elif band == 'l':
+        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
+                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '8.D-12'])
 
     with tempfile.NamedTemporaryFile(suffix='.fri') as tmp_fri:
         params.extend(['FRINGE_FILE:', tmp_fri.name])
@@ -161,7 +164,7 @@ def main(args):
     sta1 = fri[0]['sta1'].lower()
     sta1 = sta1 + '_' * (8 - len(sta1))
     sta2 = fri[0]['sta2'].lower()
-    sta2 = sta2 + '_' * (8 - len(sta2))
+    # sta2 = sta2 + '_' * (8 - len(sta2))
     path = '{}/{}_fpl/fr2d_{}__{}_{}_{}.txt'.format(
         pim.cnt_params['EXPER_DIR:'],
         pim.cnt_params['SESS_CODE:'],
