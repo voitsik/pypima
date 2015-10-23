@@ -27,15 +27,14 @@ def download_it(ra_exps):
     Download FITS files for the list of the experiments.
 
     """
-    my_name = 'Download thread'
+    logger = logging.getLogger('download_thread')
 
-    logging.info('% %', my_name, ' started')
+    logger.info('started')
 
     for exp in ra_exps:
         df = shutil.disk_usage(exp.data_dir)
         if df.free / df.total < 0.1:
-            logging.warn('% %', my_name,
-                         'less then 10% of free space left on disk')
+            logger.warn('less then 10% of free space left on disk')
             return
 
         try:
@@ -45,11 +44,10 @@ def download_it(ra_exps):
         except pypima.raexperiment.Error:
             continue
         except KeyboardInterrupt:
-            logging.warn('% %', my_name, 'KeyboardInterrupt')
+            logger.warn('KeyboardInterrupt')
             return
         except:
-            logging.error('% % %', my_name, "Unexpected error: ",
-                          sys.exc_info()[0])
+            logger.error("Unexpected error: %", sys.exc_info()[0])
             raise
 
 
