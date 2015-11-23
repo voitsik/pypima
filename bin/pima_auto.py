@@ -34,7 +34,7 @@ def download_it(ra_exps):
     for exp in ra_exps:
         df = shutil.disk_usage(exp.data_dir)
         if df.free / df.total < 0.1:
-            logger.warn('less then 10% of free space left on disk')
+            logger.warning('less then 10% of free space left on disk')
             return
 
         try:
@@ -47,7 +47,7 @@ def download_it(ra_exps):
             logger.warn('KeyboardInterrupt')
             return
         except:
-            logger.error("Unexpected error: %", sys.exc_info()[0])
+            logger.error('Unexpected error: %s', sys.exc_info()[0])
             raise
 
 
@@ -144,7 +144,7 @@ def main(args):
 
     """
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
-                        level=logging.INFO)
+                        level=logging.INFO, filename=args.log_file)
 
     exp_list = []
 
@@ -199,14 +199,12 @@ def main(args):
                 process_radioastron(ra_exp, out_dir, spec_out_dir,
                                     not args.no_accel)
         except pypima.pima.Error as err:
-#            print('PIMA Error: ', err)
             database.set_error_msg(ra_exp.run_id, str(err))
             continue
         except pypima.raexperiment.Error as err:
-#            print('RaExperiment Error: ', err)
             continue
         except KeyboardInterrupt:
-            logging.warn('KeyboardInterrupt')
+            logging.warning('KeyboardInterrupt')
             return 1
         except:
             logging.error("Unexpected error: %s", sys.exc_info()[0])
@@ -229,5 +227,7 @@ if __name__ == '__main__':
                         help='process ground-only part of the experiments')
     parser.add_argument('--no-accel', action='store_true',
                         help='disable parabolic term fitting')
+    parser.add_argument('-l', '--log-file', metavar='LOG',
+                        help='log file')
 
     sys.exit(main(parser.parse_args()))
