@@ -56,7 +56,7 @@ class DB:
 
         # TODO: Check fits-file versions
         query = """
-        SELECT path, size FROM fits_files WHERE
+        SELECT path, size, ftp_user FROM fits_files WHERE
         LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
         path LIKE %s
         ORDER BY corr_date DESC, path DESC;
@@ -72,9 +72,10 @@ class DB:
         if reply:
             path = reply[0]
             size = reply[1]
+            ftp_user = reply[2]
             url = url_base + path
 
-        return url, size
+        return url, size, ftp_user
 
     def get_orbit_url(self, exper):
         """

@@ -197,8 +197,9 @@ class RaExperiment:
 
         """
         data_dir = os.path.join(self.data_dir, self.exper)
-        fits_url, size = self.db.get_uvfits_url(self.exper, self.band,
-                                                self.gvlbi)
+        fits_url, size, ftp_user = self.db.get_uvfits_url(self.exper,
+                                                          self.band,
+                                                          self.gvlbi)
 
         if not fits_url:
             self._error('Could not find FITS file name in DB')
@@ -215,7 +216,8 @@ class RaExperiment:
             self._print_info('Start downloading file {}...'.format(fits_url))
             try:
                 with open(uv_fits, 'wb') as fil:
-                    _download_it(fits_url, fil, 2)
+                    _download_it(fits_url, fil, max_retries=2,
+                                 ftp_user=ftp_user)
             except pycurl.error as err:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
@@ -742,7 +744,7 @@ calibartion information')
             os.chmod(plot_path, 0o644)  # Read access from all
 
 
-def _download_it(url, buffer, max_retries=0):
+def _download_it(url, buffer, max_retries=0, ftp_user=None):
     """
     Download data from `url` and write it to `buffer` using pycurl.
 
@@ -764,8 +766,10 @@ def _download_it(url, buffer, max_retries=0):
     curl.setopt(pycurl.CONNECTTIMEOUT, 30)
     curl.setopt(pycurl.LOW_SPEED_LIMIT, 10000)
     curl.setopt(pycurl.LOW_SPEED_TIME, 60)
-    curl.setopt(pycurl.WRITEDATA, buffer)
     curl.setopt(pycurl.NETRC, 1)
+    if ftp_user:
+        curl.setopt(pycurl.USERNAME, ftp_user)
+    curl.setopt(pycurl.WRITEDATA, buffer)
 
     while not done:
         try:
