@@ -7,6 +7,7 @@ Created on 18.02.2014
 """
 
 import argparse
+import logging
 import os.path
 import psycopg2
 import shutil
@@ -26,29 +27,27 @@ def download_it(ra_exps):
     Download FITS files for the list of the experiments.
 
     """
-    my_name = 'Download thread'
+    logger = logging.getLogger('download_thread')
 
-    print(my_name, ' started')
+    logger.info('started')
 
     for exp in ra_exps:
         df = shutil.disk_usage(exp.data_dir)
         if df.free / df.total < 0.1:
-            print(my_name, 'less then 10% of free space left on disk')
+            logger.warning('less then 10% of free space left on disk')
             return
 
         try:
             exp.load(download_only=True)
-        except pypima.pima.Error as err:
-            print(my_name, 'PIMA Error: ', err)
+        except pypima.pima.Error:
             continue
-        except pypima.raexperiment.Error as err:
-            print(my_name, 'RaExperiment Error: ', err)
+        except pypima.raexperiment.Error:
             continue
         except KeyboardInterrupt:
-            print(my_name, 'KeyboardInterrupt')
+            logger.warn('KeyboardInterrupt')
             return
         except:
-            print(my_name, "Unexpected error: ", sys.exc_info()[0])
+            logger.error('Unexpected error: %s', sys.exc_info()[0])
             raise
 
 
@@ -144,12 +143,15 @@ def main(args):
         this file must have two words: experiment code and band code.
 
     """
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
+                        level=logging.INFO, filename=args.log_file)
+
     exp_list = []
 
     try:
         database = DB()
     except psycopg2.Error as err:
-        print('DBError: ', err, file=sys.stderr)
+        logging.error('DBError: %s', err)
         return 1
 
     data_dir = os.getenv('PYPIMA_DATA_DIR',
@@ -169,7 +171,7 @@ def main(args):
                                                  data_dir=data_dir,
                                                  gvlbi=args.gvlbi))
     except OSError as err:
-        print('OSError: ', err, file=sys.stderr)
+        logging.error('OSError: %s', err)
         return 1
 
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
@@ -197,22 +199,20 @@ def main(args):
                 process_radioastron(ra_exp, out_dir, spec_out_dir,
                                     not args.no_accel)
         except pypima.pima.Error as err:
-            print('PIMA Error: ', err)
             database.set_error_msg(ra_exp.run_id, str(err))
             continue
         except pypima.raexperiment.Error as err:
-            print('RaExperiment Error: ', err)
             continue
         except KeyboardInterrupt:
-            print('KeyboardInterrupt', file=sys.stderr)
+            logging.warning('KeyboardInterrupt')
             return 1
         except:
-            print("Unexpected error: ", sys.exc_info()[0])
+            logging.error("Unexpected error: %s", sys.exc_info()[0])
             raise
 
     load_thread.join()
 
-    print("Quitting normally")
+    logging.info("Quitting normally")
 
     return 0
 
@@ -227,5 +227,7 @@ if __name__ == '__main__':
                         help='process ground-only part of the experiments')
     parser.add_argument('--no-accel', action='store_true',
                         help='disable parabolic term fitting')
+    parser.add_argument('-l', '--log-file', metavar='LOG',
+                        help='log file')
 
     sys.exit(main(parser.parse_args()))

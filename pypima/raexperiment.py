@@ -8,6 +8,7 @@ Created on Sun Dec 29 04:02:35 2013
 from datetime import datetime
 import glob
 from io import BytesIO
+import logging
 import os.path
 import pycurl
 import shutil
@@ -71,6 +72,7 @@ class RaExperiment:
         self.sta_ref = 'RADIO-AS'
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
+        self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -132,18 +134,15 @@ class RaExperiment:
 
     def _print_info(self, msg):
         """Print some information"""
-        now = str(datetime.now())
-        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg),
-              flush=True)
+        self.logger.info(msg)
 
     def _print_warn(self, msg):
         """Print warning"""
-        now = str(datetime.now())
-        print(now, 'Warning: {}({}): {}'.format(self.exper, self.band, msg),
-              flush=True)
+        self.logger.warn(msg)
 
     def _error(self, msg):
         """Raise pima.Error exception"""
+        self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
     def _mk_cnt(self):
@@ -576,13 +575,11 @@ bandpass: ' + str(obs['SNR']))
             if self._select_ref_sta(fri):
                 try:
                     self.pima.bpas()
-                except pypima.pima.Error as err:
-                    print(err)
+                except pypima.pima.Error:
                     self._print_info('Try INIT bandpass')
                     try:
                         self.pima.bpas(['BPS.MODE:', 'INIT'])
-                    except pypima.pima.Error as err:
-                        print(err)
+                    except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
 
