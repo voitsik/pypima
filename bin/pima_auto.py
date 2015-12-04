@@ -22,7 +22,7 @@ from pypima.db import DB
 from pypima.fri import Fri
 
 
-def download_it(ra_exps):
+def download_it(ra_exps, force_small):
     """
     Download FITS files for the list of the experiments.
 
@@ -38,7 +38,7 @@ def download_it(ra_exps):
             return
 
         try:
-            exp.load(download_only=True)
+            exp.load(download_only=True, force_small=force_small)
         except pypima.pima.Error:
             continue
         except pypima.raexperiment.Error:
@@ -189,7 +189,8 @@ def main(args):
     if not os.path.exists(spec_out_dir):
         os.mkdir(spec_out_dir)
 
-    load_thread = threading.Thread(target=download_it, args=(exp_list,))
+    load_thread = threading.Thread(target=download_it, args=(exp_list,
+                                                             args.force_small))
     load_thread.daemon = True
     load_thread.start()
 
