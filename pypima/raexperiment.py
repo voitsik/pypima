@@ -191,7 +191,7 @@ class RaExperiment:
         cnt_templ.close()
         cnt_file.close()
 
-    def _download_fits(self):
+    def _download_fits(self, force_small=False):
         """
         Download FITS-file from the FTP archive.
 
@@ -199,7 +199,8 @@ class RaExperiment:
         data_dir = os.path.join(self.data_dir, self.exper)
         fits_url, size, ftp_user = self.db.get_uvfits_url(self.exper,
                                                           self.band,
-                                                          self.gvlbi)
+                                                          self.gvlbi,
+                                                          force_small)
 
         if not fits_url:
             self._error('Could not find FITS file name in DB')
@@ -385,7 +386,7 @@ first line'.format(antab))
         return new_antab
 
     def load(self, download_only=False, update_db=False,
-             scan_length=1200, scan_part=1):
+             scan_length=1200, scan_part=1, force_small=False):
         """
         Download data, run pima load, and do some checks.
 
@@ -407,7 +408,7 @@ first line'.format(antab))
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
             if self.uv_fits is None:
-                self._download_fits()
+                self._download_fits(force_small)
 
         if download_only:
             return

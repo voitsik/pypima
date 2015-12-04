@@ -24,7 +24,7 @@ class DB:
         self.connw = psycopg2.connect(database='ra_results', user='editor',
                                       host='odin')
 
-    def get_uvfits_url(self, exper, band, gvlbi=False):
+    def get_uvfits_url(self, exper, band, gvlbi=False, small=False):
         """
         Get FITS-file URL and size from the database for the given experiment
         and band.
@@ -58,9 +58,14 @@ class DB:
         query = """
         SELECT path, size, ftp_user FROM fits_files WHERE
         LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
-        path LIKE %s
+        path LIKE %s #EXT#
         ORDER BY corr_date DESC, path DESC;
         """
+
+        if small:
+            query = query.replace('#EXT#', 'AND ch_num = 64')
+        else:
+            query = query.replace('#EXT#', '')
 
         with self.conn.cursor() as cursor:
             if gvlbi:
