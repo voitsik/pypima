@@ -187,7 +187,7 @@ class Fri(object):
         """
         if self.records:
             lengths = [rec['duration'] for rec in self.records]
-            max_len = sorted(lengths, reverse=True)[0]
+            max_len = max(lengths)
         else:
             max_len = 0
 
