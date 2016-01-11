@@ -134,6 +134,25 @@ class Fri(object):
                     self.records[-1]['uv_rad_ed'] = \
                         self.records[-1]['uv_rad'] * wave_len / ED
 
+    def rec_by_obs(self, obs):
+        """
+        Return record with given observation number.
+
+        Parameters
+        ----------
+        obs : int
+            Observation number.
+
+        """
+        result = None
+
+        for rec in self.records:
+            if rec['obs'] == obs:
+                result = rec
+                break
+
+        return result
+
     def max_snr(self, station=None):
         """
         Return observation record with maximum SNR.

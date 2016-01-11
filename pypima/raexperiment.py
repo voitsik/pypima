@@ -478,8 +478,7 @@ first line'.format(antab))
                 self.pima.load_gains(self.antab)
                 self.pima.load_tsys(self.antab)
                 self.calibration_loaded = True
-            except pypima.pima.Error as err:
-                print(err)
+            except pypima.pima.Error:
                 self._print_warn('Could not load calibration information')
                 self.calibration_loaded = False
 
