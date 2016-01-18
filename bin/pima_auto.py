@@ -128,6 +128,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                 fri_file = ra_exp.fringe_fitting(True, accel)
                 fri = Fri(fri_file)
                 print(fri)
+                ra_exp.fringes2db()
                 ra_exp.split(average=scan_len)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
