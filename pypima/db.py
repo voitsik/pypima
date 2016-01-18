@@ -15,7 +15,7 @@ class DB:
     """
     def __init__(self):
         """
-        Connect to the database and load logins and passwords from ``.netrc``.
+        Connect to the database.
 
         """
         self.conn = psycopg2.connect(database='ra_results', user='guest',
@@ -40,9 +40,9 @@ class DB:
 
         Returns
         -------
-        url, size : (str, int)
-            Tuple of file URL and size. Returns (None, 0) if the database reply
-            is empty.
+        url, size, ftp_user : (str, int, str)
+            Tuple of the file URL, size and FTP user. Returns (None, 0, None)
+            if the database reply is empty.
 
         Notes
         -----
@@ -52,9 +52,9 @@ class DB:
         """
         url = None
         size = 0
+        ftp_user = None
         url_base = 'ftp://archive.asc.rssi.ru'
 
-        # TODO: Check fits-file versions
         query = """
         SELECT path, size, ftp_user FROM fits_files WHERE
         LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
