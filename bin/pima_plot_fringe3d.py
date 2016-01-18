@@ -120,7 +120,12 @@ def plot(file_name, fri, format, title=False):
 
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
     file_name = '{}.{}'.format(file_name, format)
-    plt.savefig(file_name, format=format, bbox_inches='tight', pad_inches=0.1)
+    if format == 'png':
+        dpi = 300
+    else:
+        dpi = None
+    plt.savefig(file_name, format=format, bbox_inches='tight', pad_inches=0.1,
+                dpi=dpi)
 
 
 def main(args):
