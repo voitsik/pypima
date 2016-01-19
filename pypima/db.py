@@ -104,7 +104,8 @@ class DB:
         SELECT scf_files.file_name FROM scf_files, vex_files
         WHERE vex_files.exper_name = %s AND
         scf_files.start_time <= vex_files.exper_nominal_start AND
-        scf_files.stop_time >= vex_files.exper_nominal_stop
+        scf_files.stop_time >= vex_files.exper_nominal_stop AND
+        step = 1
         ORDER BY creation_date DESC, file_name DESC;
         """
 
