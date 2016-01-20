@@ -663,12 +663,18 @@ calibartion information')
                 continue
 
             # Use B1950 name for output directory
-            out_fits_dir = os.path.join(out_dir, source_names[2])
+            b1950_name = source_names[2]
+
+            # Fix source names
+            if b1950_name == 'OJ287':
+                b1950_name = '0851+202'
+
+            out_fits_dir = os.path.join(out_dir, b1950_name)
             if not os.path.isdir(out_fits_dir):
                 os.mkdir(out_fits_dir)
 
             out_fits_name = \
-                '{}_{}_{}_{}_{:04d}s_uva.fits'.format(source_names[2],
+                '{}_{}_{}_{}_{:04d}s_uva.fits'.format(b1950_name,
                                                       self.exper,
                                                       self.band.upper(),
                                                       polar,
