@@ -372,12 +372,26 @@ first line'.format(antab))
                     toks[4] = toks[4].upper()
                     if toks[4] not in sta_list:
                         toks.insert(0, '!')
-                # EF, L-band GAINs
-                elif toks[0] == 'GAIN' and toks[-1] == '/':
-                    for ind in range(len(toks)):
-                        if toks[ind].startswith('POLY'):
-                            toks[ind] = "\n" + toks[ind]
-                            break
+                elif toks[0] == 'GAIN':
+                    # EF, L-band GAINs
+                    if toks[-1] == '/':
+                        for ind in range(len(toks)):
+                            if toks[ind].startswith('POLY'):
+                                toks[ind] = "\n" + toks[ind]
+                                break
+
+                    # Deselect gains for another frequency
+                    for tok in toks:
+                        if tok.startswith('FREQ='):
+                            fr1, fr2 = tok.replace('FREQ=', '').split(',')
+                            fr1 = float(fr1)  # Lower limit
+                            fr2 = float(fr2)  # Upper limit
+                            # Central frequency
+                            freq = freq_setup[1]['freq'] * 1e-6
+                            if freq < fr1 or freq > fr2:
+                                toks.insert(0, '!')
+                                break
+
                 elif toks[0] == '/' and len(toks) > 1:
                     toks[1] = "\n" + toks[1]
 
@@ -498,7 +512,7 @@ first line'.format(antab))
         fri : pypima.fri.Fri
 
         """
-        snr_detecton = self.pima.cnt_params['FRIB.SNR_DETECTION:']
+        snr_detecton = float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
