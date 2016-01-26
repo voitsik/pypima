@@ -468,6 +468,13 @@ first line'.format(antab))
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
+        # TODO: Set reasonable SNR detection limit
+        if self.band == 'k':
+            det_limit = 5.9
+        else:
+            det_limit = 5.7
+        self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
+
         # Always download antab-file.
         if not self.antab_downloaded:
             self._get_antab()
@@ -491,12 +498,12 @@ first line'.format(antab))
         fri : pypima.fri.Fri
 
         """
-        snr_detecton = 5.6
+        snr_detecton = self.pima.cnt_params['FRIB.SNR_DETECTION:']
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
 
-        if len(obs):
+        if obs:
             if obs['SNR'] < snr_detecton:
                 self._print_warn('SNR is too low on space baseline for \
 bandpass: ' + str(obs['SNR']))
@@ -508,7 +515,7 @@ bandpass: ' + str(obs['SNR']))
         else:
             self._print_info('There is no scans with RADIO-AS')
 
-        if self.sta_ref is None:
+        if not self.sta_ref:
             obs = fri.max_snr()
             if obs['SNR'] < snr_detecton:
                 self._print_warn('SNR is too low for bandpass: ' +
@@ -526,8 +533,7 @@ bandpass: ' + str(obs['SNR']))
             snr = min(10.0, obs['SNR']-0.1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
-                                  'BPS.SNR_MIN_FINE:': str(snr),
-                                  'FRIB.SNR_DETECTION:': str(snr_detecton)})
+                                  'BPS.SNR_MIN_FINE:': str(snr)})
             self._print_info('new reference station is {}'.
                              format(self.sta_ref))
             self._print_info('set SNR_MIN to {:.1f}'.format(snr))
@@ -584,9 +590,6 @@ bandpass: ' + str(obs['SNR']))
                     except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
-
-            # Set reasonable SNR detection limit
-            self.pima.update_cnt({'FRIB.SNR_DETECTION:': 5.7})
 
         return self.pima.fine()
 
