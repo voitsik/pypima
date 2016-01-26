@@ -380,9 +380,9 @@ first line'.format(antab))
                                 toks[ind] = "\n" + toks[ind]
                                 break
 
-                    # Deselect gains for another frequency
+                    # Comment out GAIN line for different frequency
                     for tok in toks:
-                        if tok.startswith('FREQ='):
+                        if tok.startswith('FREQ=') and ',' in tok:
                             fr1, fr2 = tok.replace('FREQ=', '').split(',')
                             fr1 = float(fr1)  # Lower limit
                             fr2 = float(fr2)  # Upper limit
