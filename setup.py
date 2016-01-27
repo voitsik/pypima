@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from distutils.core import setup
+import pypima
 
 setup(
     name='pypima',
-    version='2.2dev',
+    version=pypima.__version__,
     description='Python interface to PIMA',
     author='Petr Voytsik',
     author_email='voitsik@asc.rssi.ru',
