@@ -4,10 +4,10 @@
 New Features
 ^^^^^^^^^^^^
 
-- Use ``logging`` module. Add --log-file command-line option to ``pima_auto.py``
+- Use ``logging`` module. Add `--log-file` command-line option to ``pima_auto.py``
   script.
 
-- Add --force-small command-line option to ``pima_auto.py`` script to select
+- Add `--force-small` command-line option to ``pima_auto.py`` script to select
   FITS files correlated with small window only.
 
 - Support new ASC FTP archive structure.
