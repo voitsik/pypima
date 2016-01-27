@@ -7,6 +7,7 @@ Created on Fri Dec 13 17:50:20 2013
 """
 
 import argparse
+import logging
 import os.path
 import psycopg2
 import sys
@@ -22,6 +23,9 @@ from pypima.fri import Fri
 
 def main(args):
     """Main"""
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
+                        level=logging.INFO)
+
     exper = args.exper.lower()
     band = args.band.lower()
     polar = args.polar
@@ -33,7 +37,7 @@ def main(args):
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
                               data_dir=data_dir)
-        ra_exp.load(update_db=False)
+        ra_exp.load(update_db=False, force_small=args.force_small)
 
         if not polar:
             if band == 'l':
@@ -53,10 +57,8 @@ def main(args):
         # Copy final UV-FITS files to the system tmp directory
         ra_exp.copy_uvfits(tempfile.gettempdir())
     except pypima.pima.Error as err:
-        print('PIMA Error: ', err)
         return 1
     except pypima.raexperiment.Error as err:
-        print('RaExperiment Error: ', err)
         return 1
     except psycopg2.Error as err:
         print('DBError: ', err)
@@ -85,5 +87,7 @@ if __name__ == "__main__":
                         help='process GVLBI FITS-file')
     parser.add_argument('--no-accel', action='store_true',
                         help='disable acceleration term fitting')
+    parser.add_argument('--force-small', action='store_true',
+                        help='force to use 64-channel FITS file (if any)')
 
     sys.exit(main(parser.parse_args()))

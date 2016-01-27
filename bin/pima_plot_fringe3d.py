@@ -120,7 +120,12 @@ def plot(file_name, fri, format, title=False):
 
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
     file_name = '{}.{}'.format(file_name, format)
-    plt.savefig(file_name, format=format, bbox_inches='tight', pad_inches=0.1)
+    if format == 'png':
+        dpi = 300
+    else:
+        dpi = None
+    plt.savefig(file_name, format=format, bbox_inches='tight', pad_inches=0.1,
+                dpi=dpi)
 
 
 def main(args):
@@ -148,6 +153,9 @@ def main(args):
     elif band == 'c':
         params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
                        'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
+    elif band == 'l':
+        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
+                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '8.D-12'])
 
     with tempfile.NamedTemporaryFile(suffix='.fri') as tmp_fri:
         params.extend(['FRINGE_FILE:', tmp_fri.name])
@@ -161,7 +169,7 @@ def main(args):
     sta1 = fri[0]['sta1'].lower()
     sta1 = sta1 + '_' * (8 - len(sta1))
     sta2 = fri[0]['sta2'].lower()
-    sta2 = sta2 + '_' * (8 - len(sta2))
+    # sta2 = sta2 + '_' * (8 - len(sta2))
     path = '{}/{}_fpl/fr2d_{}__{}_{}_{}.txt'.format(
         pim.cnt_params['EXPER_DIR:'],
         pim.cnt_params['SESS_CODE:'],

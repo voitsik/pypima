@@ -8,6 +8,7 @@ Created on Sun Dec 29 04:02:35 2013
 from datetime import datetime
 import glob
 from io import BytesIO
+import logging
 import os.path
 import pycurl
 import shutil
@@ -71,6 +72,7 @@ class RaExperiment:
         self.sta_ref = 'RADIO-AS'
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
+        self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -132,18 +134,15 @@ class RaExperiment:
 
     def _print_info(self, msg):
         """Print some information"""
-        now = str(datetime.now())
-        print(now, 'Info: {}({}): {}'.format(self.exper, self.band, msg),
-              flush=True)
+        self.logger.info(msg)
 
     def _print_warn(self, msg):
         """Print warning"""
-        now = str(datetime.now())
-        print(now, 'Warning: {}({}): {}'.format(self.exper, self.band, msg),
-              flush=True)
+        self.logger.warn(msg)
 
     def _error(self, msg):
         """Raise pima.Error exception"""
+        self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
     def _mk_cnt(self):
@@ -192,14 +191,16 @@ class RaExperiment:
         cnt_templ.close()
         cnt_file.close()
 
-    def _download_fits(self):
+    def _download_fits(self, force_small=False):
         """
         Download FITS-file from the FTP archive.
 
         """
         data_dir = os.path.join(self.data_dir, self.exper)
-        fits_url, size = self.db.get_uvfits_url(self.exper, self.band,
-                                                self.gvlbi)
+        fits_url, size, ftp_user = self.db.get_uvfits_url(self.exper,
+                                                          self.band,
+                                                          self.gvlbi,
+                                                          force_small)
 
         if not fits_url:
             self._error('Could not find FITS file name in DB')
@@ -216,7 +217,8 @@ class RaExperiment:
             self._print_info('Start downloading file {}...'.format(fits_url))
             try:
                 with open(uv_fits, 'wb') as fil:
-                    _download_it(fits_url, fil, 2)
+                    _download_it(fits_url, fil, max_retries=2,
+                                 ftp_user=ftp_user)
             except pycurl.error as err:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
@@ -370,12 +372,26 @@ first line'.format(antab))
                     toks[4] = toks[4].upper()
                     if toks[4] not in sta_list:
                         toks.insert(0, '!')
-                # EF, L-band GAINs
-                elif toks[0] == 'GAIN' and toks[-1] == '/':
-                    for ind in range(len(toks)):
-                        if toks[ind].startswith('POLY'):
-                            toks[ind] = "\n" + toks[ind]
-                            break
+                elif toks[0] == 'GAIN':
+                    # EF, L-band GAINs
+                    if toks[-1] == '/':
+                        for ind in range(len(toks)):
+                            if toks[ind].startswith('POLY'):
+                                toks[ind] = "\n" + toks[ind]
+                                break
+
+                    # Comment out GAIN line for different frequency
+                    for tok in toks:
+                        if tok.startswith('FREQ=') and ',' in tok:
+                            fr1, fr2 = tok.replace('FREQ=', '').split(',')
+                            fr1 = float(fr1)  # Lower limit
+                            fr2 = float(fr2)  # Upper limit
+                            # Central frequency
+                            freq = freq_setup[1]['freq'] * 1e-6
+                            if freq < fr1 or freq > fr2:
+                                toks.insert(0, '!')
+                                break
+
                 elif toks[0] == '/' and len(toks) > 1:
                     toks[1] = "\n" + toks[1]
 
@@ -384,7 +400,7 @@ first line'.format(antab))
         return new_antab
 
     def load(self, download_only=False, update_db=False,
-             scan_length=1200, scan_part=1):
+             scan_length=1200, scan_part=1, force_small=False):
         """
         Download data, run pima load, and do some checks.
 
@@ -406,7 +422,7 @@ first line'.format(antab))
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
             if self.uv_fits is None:
-                self._download_fits()
+                self._download_fits(force_small)
 
         if download_only:
             return
@@ -466,6 +482,13 @@ first line'.format(antab))
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
+        # TODO: Set reasonable SNR detection limit
+        if self.band == 'k':
+            det_limit = 5.9
+        else:
+            det_limit = 5.7
+        self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
+
         # Always download antab-file.
         if not self.antab_downloaded:
             self._get_antab()
@@ -476,8 +499,7 @@ first line'.format(antab))
                 self.pima.load_gains(self.antab)
                 self.pima.load_tsys(self.antab)
                 self.calibration_loaded = True
-            except pypima.pima.Error as err:
-                print(err)
+            except pypima.pima.Error:
                 self._print_warn('Could not load calibration information')
                 self.calibration_loaded = False
 
@@ -490,12 +512,12 @@ first line'.format(antab))
         fri : pypima.fri.Fri
 
         """
-        snr_detecton = 5.6
+        snr_detecton = float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
         self.sta_ref = None
         snr = 0
         obs = fri.max_snr('RADIO-AS')
 
-        if len(obs):
+        if obs:
             if obs['SNR'] < snr_detecton:
                 self._print_warn('SNR is too low on space baseline for \
 bandpass: ' + str(obs['SNR']))
@@ -507,7 +529,7 @@ bandpass: ' + str(obs['SNR']))
         else:
             self._print_info('There is no scans with RADIO-AS')
 
-        if self.sta_ref is None:
+        if not self.sta_ref:
             obs = fri.max_snr()
             if obs['SNR'] < snr_detecton:
                 self._print_warn('SNR is too low for bandpass: ' +
@@ -525,8 +547,7 @@ bandpass: ' + str(obs['SNR']))
             snr = min(10.0, obs['SNR']-0.1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
-                                  'BPS.SNR_MIN_FINE:': str(snr),
-                                  'FRIB.SNR_DETECTION:': str(snr_detecton)})
+                                  'BPS.SNR_MIN_FINE:': str(snr)})
             self._print_info('new reference station is {}'.
                              format(self.sta_ref))
             self._print_info('set SNR_MIN to {:.1f}'.format(snr))
@@ -576,18 +597,13 @@ bandpass: ' + str(obs['SNR']))
             if self._select_ref_sta(fri):
                 try:
                     self.pima.bpas()
-                except pypima.pima.Error as err:
-                    print(err)
+                except pypima.pima.Error:
                     self._print_info('Try INIT bandpass')
                     try:
                         self.pima.bpas(['BPS.MODE:', 'INIT'])
-                    except pypima.pima.Error as err:
-                        print(err)
+                    except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
-
-            # Set reasonable SNR detection limit
-            self.pima.update_cnt({'FRIB.SNR_DETECTION:': 5.7})
 
         return self.pima.fine()
 
@@ -664,12 +680,18 @@ calibartion information')
                 continue
 
             # Use B1950 name for output directory
-            out_fits_dir = os.path.join(out_dir, source_names[2])
+            b1950_name = source_names[2]
+
+            # Fix source names
+            if b1950_name == 'OJ287':
+                b1950_name = '0851+202'
+
+            out_fits_dir = os.path.join(out_dir, b1950_name)
             if not os.path.isdir(out_fits_dir):
                 os.mkdir(out_fits_dir)
 
             out_fits_name = \
-                '{}_{}_{}_{}_{:04d}s_uva.fits'.format(source_names[2],
+                '{}_{}_{}_{}_{:04d}s_uva.fits'.format(b1950_name,
                                                       self.exper,
                                                       self.band.upper(),
                                                       polar,
@@ -745,7 +767,7 @@ calibartion information')
             os.chmod(plot_path, 0o644)  # Read access from all
 
 
-def _download_it(url, buffer, max_retries=0):
+def _download_it(url, buffer, max_retries=0, ftp_user=None):
     """
     Download data from `url` and write it to `buffer` using pycurl.
 
@@ -767,8 +789,10 @@ def _download_it(url, buffer, max_retries=0):
     curl.setopt(pycurl.CONNECTTIMEOUT, 30)
     curl.setopt(pycurl.LOW_SPEED_LIMIT, 10000)
     curl.setopt(pycurl.LOW_SPEED_TIME, 60)
-    curl.setopt(pycurl.WRITEDATA, buffer)
     curl.setopt(pycurl.NETRC, 1)
+    if ftp_user:
+        curl.setopt(pycurl.USERNAME, ftp_user)
+    curl.setopt(pycurl.WRITEDATA, buffer)
 
     while not done:
         try:

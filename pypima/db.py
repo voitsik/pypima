@@ -15,7 +15,7 @@ class DB:
     """
     def __init__(self):
         """
-        Connect to the database and load logins and passwords from ``.netrc``.
+        Connect to the database.
 
         """
         self.conn = psycopg2.connect(database='ra_results', user='guest',
@@ -24,7 +24,7 @@ class DB:
         self.connw = psycopg2.connect(database='ra_results', user='editor',
                                       host='odin')
 
-    def get_uvfits_url(self, exper, band, gvlbi=False):
+    def get_uvfits_url(self, exper, band, gvlbi=False, small=False):
         """
         Get FITS-file URL and size from the database for the given experiment
         and band.
@@ -40,9 +40,9 @@ class DB:
 
         Returns
         -------
-        url, size : (str, int)
-            Tuple of file URL and size. Returns (None, 0) if the database reply
-            is empty.
+        url, size, ftp_user : (str, int, str)
+            Tuple of the file URL, size and FTP user. Returns (None, 0, None)
+            if the database reply is empty.
 
         Notes
         -----
@@ -52,15 +52,20 @@ class DB:
         """
         url = None
         size = 0
+        ftp_user = None
         url_base = 'ftp://archive.asc.rssi.ru'
 
-        # TODO: Check fits-file versions
         query = """
-        SELECT path, size FROM fits_files WHERE
+        SELECT path, size, ftp_user FROM fits_files WHERE
         LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
-        path LIKE %s
+        path LIKE %s #EXT#
         ORDER BY corr_date DESC, path DESC;
         """
+
+        if small:
+            query = query.replace('#EXT#', 'AND ch_num = 64')
+        else:
+            query = query.replace('#EXT#', '')
 
         with self.conn.cursor() as cursor:
             if gvlbi:
@@ -72,9 +77,10 @@ class DB:
         if reply:
             path = reply[0]
             size = reply[1]
+            ftp_user = reply[2]
             url = url_base + path
 
-        return url, size
+        return url, size, ftp_user
 
     def get_orbit_url(self, exper):
         """
@@ -98,7 +104,8 @@ class DB:
         SELECT scf_files.file_name FROM scf_files, vex_files
         WHERE vex_files.exper_name = %s AND
         scf_files.start_time <= vex_files.exper_nominal_start AND
-        scf_files.stop_time >= vex_files.exper_nominal_stop
+        scf_files.stop_time >= vex_files.exper_nominal_stop AND
+        step = 1
         ORDER BY creation_date DESC, file_name DESC;
         """
 
