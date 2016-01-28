@@ -47,20 +47,20 @@ class RaExperiment:
         experiment_code : str
             Experiment code.
         band : srt
-            One letter frequency bad code.
+            One letter frequency band code.
         data_base : pypima.db.DB
             pypima.db.DB instance.
         data_dir : str, optional
-            Directory from FITS-IDI. If `None` working directory of the current
-            experiment is used.
+            Directory from FITS-IDI. If ``None`` working directory of the
+            current experiment is used.
         uv_fits : str, optional
-            Path to the data file (FITS-IDI). If `None` get a file name from
-            data base and download file from the FTP archive.
+            Path to the data file (FITS-IDI). If ``None`` (default) get a file
+            name from data base and download file from the FTP archive.
         orbit : str, optional
-            Path to a file with reconstracted orbit. If `None` download it from
-            the FTP archive.
+            Path to a file with reconstructed orbit. If ``None`` (default),
+            download it from the FTP archive.
         gvlbi : bool, optional
-            If `True`, process ground only of part of the experiment (GVLBI
+            If ``True``, process ground only of part of the experiment (GVLBI
             FITS file).
 
         """
@@ -407,9 +407,9 @@ first line'.format(antab))
         Parameters
         ----------
         download_only : bool, optional
-            If True, download FITS-file and return.
+            If ``True``, download FITS-file and return.
         update_db : bool, optional
-            If True, update database with experiment information.
+            If ``True``, update database with experiment information.
         scan_length : float, optional
             Set maximum length of scan. Default is 20 min.
         scan_part : int, optional
@@ -562,10 +562,10 @@ bandpass: ' + str(obs['SNR']))
         Parameters
         ----------
         bandpass : bool, optional
-            If True try to do bandpass calibration. Default is False.
+            If ``True`` try to do bandpass calibration. Default is ``False``.
 
         accel : boot, optional
-            If True turn on phase acceleration fitting.
+            If ``True`` turn on phase acceleration fitting.
 
         Returns
         -------
