@@ -574,9 +574,13 @@ bandpass: ' + str(obs['SNR']))
 
         """
         if accel:
-            self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC',
-                                  'PHASE_ACCEL_MIN:': '-1.D-14',
-                                  'PHASE_ACCEL_MAX:': '1.D-14'})
+            self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC'})
+            if self.band == 'l':
+                self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-1.D-13',
+                                      'PHASE_ACCEL_MAX:': '1.D-13'})
+            else:
+                self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-1.D-14',
+                                      'PHASE_ACCEL_MAX:': '1.D-14'})
         else:
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'LSQ',
                                   'PHASE_ACCEL_MIN:': '0',
