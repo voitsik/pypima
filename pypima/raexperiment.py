@@ -709,8 +709,9 @@ calibartion information')
                                                     out_fits_path))
             shutil.copy(pima_fits_path, out_fits_path)
 
-            # Run `fits_to_radplot`
-            pypima.pima.fits_to_txt(out_fits_path)
+            # Run `fits_to_radplot` only for averaged uv-fits
+            if self.split_time_aver > 1:
+                pypima.pima.fits_to_txt(out_fits_path)
 
     def fringes2db(self):
         """
