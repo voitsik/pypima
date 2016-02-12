@@ -96,7 +96,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         max_scan_len = fri.max_scan_length()
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded and \
+                polar in ('RR', 'LL'):
             for aver in (0, round(max_scan_len)):
                 ra_exp.split(average=aver)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
@@ -113,7 +114,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         print(fri)
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded and \
+                polar in ('RR', 'LL'):
             ra_exp.split(average=scan_len)
             ra_exp.copy_uvfits(uv_fits_out_dir)
 
