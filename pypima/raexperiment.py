@@ -138,7 +138,7 @@ class RaExperiment:
 
     def _print_warn(self, msg):
         """Print warning"""
-        self.logger.warn(msg)
+        self.logger.warning(msg)
 
     def _error(self, msg):
         """Raise pima.Error exception"""
@@ -519,8 +519,8 @@ first line'.format(antab))
 
         if obs:
             if obs['SNR'] < snr_detecton:
-                self._print_warn('SNR is too low on space baseline for \
-bandpass: ' + str(obs['SNR']))
+                self.logger.debug('SNR is too low on space baseline for \
+bandpass: %s', obs['SNR'])
             else:
                 if obs['sta1'] == 'RADIO-AS':
                     self.sta_ref = obs['sta2']
@@ -532,8 +532,8 @@ bandpass: ' + str(obs['SNR']))
         if not self.sta_ref:
             obs = fri.max_snr()
             if obs['SNR'] < snr_detecton:
-                self._print_warn('SNR is too low for bandpass: ' +
-                                 str(obs['SNR']))
+                self.logger.debug('SNR is too low for bandpass: %s',
+                                  obs['SNR'])
             else:
                 good_stations = ['ARECIBO', 'GBT-VLBA', 'EFLSBERG']
                 for sta in good_stations:
@@ -608,6 +608,9 @@ bandpass: ' + str(obs['SNR']))
                     except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+            else:
+                self.logger.info('skip bandpass due to absence of the useful \
+scans')
 
         return self.pima.fine()
 
@@ -626,7 +629,7 @@ bandpass: ' + str(obs['SNR']))
 
         """
         if not self.calibration_loaded:
-            self._print_warn('Could not do split due to absence of \
+            self._print_warn('could not do split due to absence of \
 calibartion information')
             return
 
