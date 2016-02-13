@@ -316,6 +316,7 @@ class RaExperiment:
             return new_antab
 
         freq_setup = self.pima.frequencies()
+        freq_list = [1e-6 * freq['freq'] for freq in freq_setup]
 
         # Should we fix frequency setup?
         fix_freq = False
@@ -364,8 +365,7 @@ first line'.format(antab))
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == 'L':
                         toks[6] = 'U'
-                        toks[9] = '{:.2f}MHz'.format(
-                            freq_setup[0]['freq'] * 1e-6)
+                        toks[9] = '{:.2f}MHz'.format(freq_list[0])
 
                 # Deselect stations
                 if toks[0] == 'TSYS' and len(toks) > 4:
@@ -386,9 +386,7 @@ first line'.format(antab))
                             fr1, fr2 = tok.replace('FREQ=', '').split(',')
                             fr1 = float(fr1)  # Lower limit
                             fr2 = float(fr2)  # Upper limit
-                            # Central frequency
-                            freq = freq_setup[1]['freq'] * 1e-6
-                            if freq < fr1 or freq > fr2:
+                            if min(freq_list) < fr1 or max(freq_list) > fr2:
                                 toks.insert(0, '!')
                                 break
 
