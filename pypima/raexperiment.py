@@ -352,6 +352,8 @@ first line'.format(antab))
                 # VLA (raes11a and friends)
                 if 'YY' in sta_list and 'Y27' in line:
                     line = line.replace('Y27', 'YY')
+                elif 'KZ' in sta_list and 'KL' in line:
+                    line = line.replace('KL', 'KZ')
 
                 toks = line.split()
 
