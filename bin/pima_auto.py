@@ -51,6 +51,30 @@ def download_it(ra_exps, force_small):
             raise
 
 
+def generate_autospec(ra_exp, spec_out_dir, force_small=False):
+    """
+    Run ``PIMA`` only for average autocorrelation spectrum computing by
+    ``acta`` task.
+
+    Parameters
+    ----------
+    ra_exp : RaExperiment object
+        Experiment setup.
+    spec_out_dir : str
+        Directory name for autocorrelation plots.
+    force_small : bool
+        Use FITS-IDI with 64 spectarl channels only.
+
+    """
+    ra_exp.load(update_db=False, scan_part=1, force_small=force_small)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        ra_exp.generate_autospectra(spec_out_dir)
+
+    ra_exp.delete_uvfits()
+
+
 def process_gvlbi(ra_exp, accel=False, force_small=False):
     """
     Process ground-only part of the experiment.
@@ -82,6 +106,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         Directory name for autocorrelation plots.
     accel : bool
         If True, do the parabolic term fitting.
+    force_small : bool
+        Use FITS-IDI with 64 spectarl channels only.
 
     """
     # First run on full scan
@@ -199,11 +225,14 @@ def main(args):
 
     for ra_exp in exp_list:
         try:
-            if ra_exp.gvlbi:
-                process_gvlbi(ra_exp, not args.no_accel, args.force_small)
+            if args.autospec_only:
+                generate_autospec(ra_exp, args.force_small)
             else:
-                process_radioastron(ra_exp, out_dir, spec_out_dir,
-                                    not args.no_accel, args.force_small)
+                if ra_exp.gvlbi:
+                    process_gvlbi(ra_exp, not args.no_accel, args.force_small)
+                else:
+                    process_radioastron(ra_exp, out_dir, spec_out_dir,
+                                        not args.no_accel, args.force_small)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             continue
@@ -237,5 +266,7 @@ if __name__ == '__main__':
                         help='log file')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
+    parser.add_argument('--autospec-only', action='store_true',
+                        help='generate autocorrelation spectra only')
 
     sys.exit(main(parser.parse_args()))

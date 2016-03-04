@@ -46,16 +46,27 @@ def main(args):
                 polar = 'LL'
 
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
-        fri = Fri(fri_file)
-        print(fri)
-#        p.fringes2db()
-        max_scan_len = fri.max_scan_length()
-        print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
-        ra_exp.split(average=0)
 
-        # Copy final UV-FITS files to the system tmp directory
-        ra_exp.copy_uvfits(tempfile.gettempdir())
+        if args.autospec_only:
+            # Define and create directory for auto spectrum plot files
+            spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR',
+                                     default=os.path.join(os.getenv('HOME'),
+                                                          'pima_autospec'))
+            if not os.path.exists(spec_out_dir):
+                os.mkdir(spec_out_dir)
+
+            ra_exp.generate_autospectra(spec_out_dir)
+        else:
+            fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
+            fri = Fri(fri_file)
+            print(fri)
+    #        p.fringes2db()
+            max_scan_len = fri.max_scan_length()
+            print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
+            ra_exp.split(average=0)
+
+            # Copy final UV-FITS files to the system tmp directory
+            ra_exp.copy_uvfits(tempfile.gettempdir())
     except pypima.pima.Error as err:
         return 1
     except pypima.raexperiment.Error as err:
@@ -89,5 +100,7 @@ if __name__ == "__main__":
                         help='disable acceleration term fitting')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
+    parser.add_argument('--autospec-only', action='store_true',
+                        help='generate autocorrelation spectra only')
 
     sys.exit(main(parser.parse_args()))
