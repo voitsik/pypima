@@ -12,6 +12,7 @@ import logging
 import os.path
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
+import numpy as np
 import pycurl
 import shutil
 import threading
@@ -757,6 +758,7 @@ calibartion information')
 
         polar = self.pima.cnt_params['POLAR:']
 
+        central_freq = 1e-6 * self.pima.frequencies()[-1]['freq']
         utc_tai = timedelta(seconds=self.pima.exper_info['utc_minus_tai'])
         out_format = 'pdf'
         fig = Figure()
@@ -778,7 +780,8 @@ calibartion information')
             ax.set_xlabel('Frequency (MHz)')
             ax.set_ylabel('Amplitude')
             ax.grid(True)
-            ax.plot(acta_file.freq, acta_file.ampl, marker='o', ms=2)
+            ax.plot(np.asarray(acta_file.freq) - central_freq,
+                    acta_file.ampl, marker='o', ms=2)
 
             date_str = date.strftime('%Y%m%dT%H%M')
             out_file = \
