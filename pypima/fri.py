@@ -89,6 +89,10 @@ class Fri(object):
                         header['FRIB.FINE_SEARCH'] = toks[-1]
                     elif toks[1] == 'PHASE_ACCELERATION:':
                         header['accel'] = float(toks[2].replace('D', 'e'))
+                    elif toks[1] == 'FRIB.BEG_IFRQ:':
+                        header['beg_ifrq'] = int(toks[2])
+                    elif toks[1] == 'FRIB.END_IFRQ:':
+                        header['end_ifrq'] = int(toks[2])
                 elif toks[6] != 'FAILURE':
                     self.records.append({})
                     self.records[-1].update(header)
