@@ -5,17 +5,16 @@ Created on Sun Dec 29 04:02:35 2013
 @author: Petr Voytsik
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import glob
 from io import BytesIO
 import logging
 import os.path
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 import pycurl
 import shutil
-# import sys
-from tempfile import NamedTemporaryFile
 import threading
-# import time
 
 
 import pypima.pima
@@ -737,7 +736,7 @@ calibartion information')
 
     def generate_autospectra(self, out_dir):
         """
-        Plot autospectra for each station for each scan.
+        Plot autospectrum for each station for each scan.
 
         """
         # Sometimes PIMA crashes on `acta` task
@@ -752,27 +751,46 @@ calibartion information')
 
             return
 
+        out_dir = os.path.join(out_dir, '{}_{}'.format(self.exper, self.band))
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
         polar = self.pima.cnt_params['POLAR:']
-        plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
 
-        # Check destination
-        final_dir = os.path.join(out_dir, plot_dir)
-        if os.path.exists(final_dir):
-            shutil.rmtree(final_dir)
-        os.mkdir(final_dir)
+        utc_tai = timedelta(seconds=self.pima.exper_info.utc_minus_tai)
+        out_format = 'pdf'
+        fig = Figure()
+        FigureCanvas(fig)
+        ax = fig.add_subplot(111)
 
         for txt_path in file_list:
-            with NamedTemporaryFile(suffix='.gif', delete=False) as tmp:
-                tmp_plot_name = tmp.name
-            pypima.pima.acta_plot(txt_path, tmp_plot_name)
+            acta_file = pypima.pima.ActaFile(txt_path)
 
-            plot_name = os.path.basename(txt_path).replace('.txt', '.gif')
-            plot_path = os.path.join(final_dir, plot_name)
-            shutil.move(tmp_plot_name, plot_path)
-            os.chmod(plot_path, 0o644)  # Read access from all
+            # Convert TAI to UTC
+            date = acta_file.header['start_date'] + utc_tai
+
+            date_str = date.strftime('%Y-%m-%d %H:%M:%S')
+            ax.cla()
+            ax.set_title('{} - {}({}) - {}'.format(acta_file.header['station'],
+                                                   self.exper,
+                                                   self.band.upper(),
+                                                   date_str))
+            ax.set_xlabel('Frequency (MHz)')
+            ax.set_ylabel('Amplitude')
+            ax.grid(True)
+            ax.plot(acta_file.freq, acta_file.ampl, marker='o', ms=2)
+
+            date_str = date.strftime('%Y%m%dT%H%M')
+            out_file = \
+                'AUTOSPEC_{}_{}_{}_{}_{}.{}'.format(date_str,
+                                                    self.exper,
+                                                    self.band.upper(),
+                                                    polar,
+                                                    acta_file.header['station'],
+                                                    out_format)
+
+            out_file = os.path.join(out_dir, out_file)
+            fig.savefig(out_file, format=out_format)
 
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):
