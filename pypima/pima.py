@@ -108,12 +108,13 @@ class Pima(object):
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
-        self.work_dir = work_dir
 
         self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
 
         if not work_dir:
             self.work_dir = os.getcwd()
+        else:
+            self.work_dir = work_dir
 
         self.pima_dir = os.getenv('PIMA_DIR')
 
@@ -130,9 +131,6 @@ Check your PIMA installation!')
         # PIMA control file path
         self.cnt_file_name = '{}_{}_pima.cnt'.format(self.exper, self.band)
         self.cnt_file_name = os.path.join(self.work_dir, self.cnt_file_name)
-
-        if not os.path.isfile(self.cnt_file_name):
-            self._error('Could not find control file ', self.cnt_file_name)
 
         # Dictionary with all parameters from cnt-file
         self.cnt_params = {}
@@ -164,12 +162,9 @@ Check your PIMA installation!')
 
     def update_cnt(self, opts):
         """
-        Update pima cnt-file according 'opts' dictionary.
+        Update pima cnt-file according `opts` dictionary.
 
         """
-        if not isinstance(opts, dict):
-            return
-
         uv_fits = False
 
         old_cnt = open(self.cnt_file_name, 'r')
@@ -764,18 +759,6 @@ def fits_to_txt(fits_file):
     return out
 
 
-def acta_plot(input_file, output_file):
-    """
-    """
-    if not os.path.isfile(input_file):
-        raise IOError(2, 'No such file: {}'.format(input_file))
-
-    cmd_line = ['acta_plot', input_file, output_file]
-    out = subprocess.check_output(cmd_line, universal_newlines=True)
-
-    return out
-
-
 class ActaFile:
     """
     This class describes PIMA ``ACTA`` file.
@@ -840,3 +823,17 @@ class ActaFile:
         Return list of the amplitudes of the autospectrum.
         """
         return self._ampl
+
+
+def acta_plot(input_file, output_file):
+    """
+    Run ``acta_plot`` program.
+
+    """
+    if not os.path.isfile(input_file):
+        raise IOError(2, 'No such file: {}'.format(input_file))
+
+    cmd_line = ['acta_plot', input_file, output_file]
+    out = subprocess.check_output(cmd_line, universal_newlines=True)
+
+    return out
