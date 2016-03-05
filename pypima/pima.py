@@ -31,20 +31,7 @@ class ExperInfo:
         self.exper = exper_name
         self.band = band
 
-        self.sp_chann_num = None
-        self.time_epochs_num = None
-        self.scans_num = None
-        self.obs_num = None
-        self.uv_points_num = None
-        self.uv_points_used_num = None
-        self.deselected_points_num = None
-        self.no_auto_points_num = None
-        self.accum_length = None
-        self.utc_minus_tai = None
-        self.nominal_start = None
-        self.nominal_end = None
-        self.pima_version = None
-        self.hostname = None
+        self._data = {}
 
         if stt_file:
             self.update(stt_file)
@@ -56,20 +43,23 @@ class ExperInfo:
 
         with open(stt_file, 'r') as fil:
             for line in fil:
-                if line.startswith('Number of spectral channels:'):
-                    self.sp_chann_num = int(line.split()[4])
+                if line.startswith('Number of frequencies:'):
+                    self._data['if_num'] = int(line.split()[3])
+                elif line.startswith('Number of spectral channels:'):
+                    self._data['sp_chann_num'] = int(line.split()[4])
                 elif line.startswith('Number of time epochs:'):
-                    self.time_epochs_num = int(line.split()[4])
+                    self._data['time_epochs_num'] = int(line.split()[4])
                 elif line.startswith('Number of scans:'):
-                    self.scans_num = int(line.split()[3])
+                    self._data['scans_num'] = int(line.split()[3])
                 elif line.startswith('Number of observations:'):
-                    self.obs_num = int(line.split()[3])
+                    self._data['obs_num'] = int(line.split()[3])
                 elif line.startswith('Total number of UV points:'):
-                    self.uv_points_num = int(line.split()[5])
+                    self._data['uv_points_num'] = int(line.split()[5])
                 elif line.startswith('Total number of used UV points:'):
-                    self.uv_points_used_num = int(line.split()[6])
+                    self._data['uv_points_used_num'] = int(line.split()[6])
                 elif line.startswith('Total number of deselected points:'):
-                    self.deselected_points_num = int(line.split(':')[1])
+                    self._data['deselected_points_num'] = \
+                        int(line.split(':')[1])
                 elif line.startswith('Number of cross-correl NO_AUTO_1 \
 deselected points:'):
                     no_auto1 = int(line.split(':')[1])
@@ -81,22 +71,25 @@ deselected points:'):
                 elif line.startswith('Accummulation period length_max:'):
                     acc_max = float(line.split(':')[1])
                 elif line.startswith('UTC_minus_TAI:'):
-                    self.utc_minus_tai = float(line.split(':')[1])
+                    self._data['utc_minus_tai'] = float(line.split(':')[1])
                 elif line.startswith('Experiment nominal start:'):
-                    self.nominal_start = datetime.strptime(
+                    self._data['nominal_start'] = datetime.strptime(
                         line.split(':', 1)[1].strip()[:23],
                         '%Y.%m.%d-%H:%M:%S.%f')
                 elif line.startswith('Experiment nominal end:'):
-                    self.nominal_end = datetime.strptime(
+                    self._data['nominal_end'] = datetime.strptime(
                         line.split(':', 1)[1].strip()[:23],
                         '%Y.%m.%d-%H:%M:%S.%f')
                 elif line.startswith('# Generated    at'):
-                    self.hostname = line.split()[3]
+                    self._data['hostname'] = line.split()[3]
                 elif line.startswith('#                 by PIMA'):
-                    self.pima_version = line.split()[4]
+                    self._data['pima_version'] = line.split()[4]
 
-        self.accum_length = (acc_min + acc_max) / 2.
-        self.no_auto_points_num = no_auto1 + no_auto2
+        self._data['accum_length'] = (acc_min + acc_max) / 2.
+        self._data['no_auto_points_num'] = no_auto1 + no_auto2
+
+    def __getitem__(self, key):
+        return self._data[key]
 
 
 class Pima(object):
@@ -561,7 +554,7 @@ Check your PIMA installation!')
         Return total number of deselected points
 
         """
-        return self.exper_info.deselected_points_num
+        return self.exper_info['deselected_points_num']
 
     def station_list(self, ivs_name=True):
         """
@@ -645,14 +638,14 @@ Check your PIMA installation!')
         Return number of the observations in the experiment.
 
         """
-        return self.exper_info.obs_num
+        return self.exper_info['obs_num']
 
     def chan_number(self):
         """
         Return number of the spectral channels in uv-data.
 
         """
-        return self.exper_info.sp_chann_num
+        return self.exper_info['sp_chann_num']
 
     def frequencies(self):
         """

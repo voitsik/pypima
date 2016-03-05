@@ -211,7 +211,7 @@ run_id = %s AND polar = %s AND snr <= %s;'
             WHERE run_id = %s AND polar = %s AND snr > %s AND
             abs(delay) < %s AND abs(rate) < %s;
             """
-            if exper_info.sp_chann_num <= 128:
+            if exper_info['sp_chann_num'] <= 128:
                 # delay < 1 us
                 cur.execute(query_update, ('y', run_id, polar, 5.7,
                                            1e-6, 1e-11))
@@ -275,21 +275,22 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         WHERE id = %s
         '''
 
+        utc_tai = timedelta(seconds=exper_info['utc_minus_tai'])
         with self.connw.cursor() as cursor:
-            cursor.execute(query, (exper_info.sp_chann_num,
-                                   exper_info.time_epochs_num,
-                                   exper_info.scans_num,
-                                   exper_info.obs_num,
-                                   exper_info.uv_points_num,
-                                   exper_info.uv_points_used_num,
-                                   exper_info.deselected_points_num,
-                                   exper_info.no_auto_points_num,
-                                   exper_info.accum_length,
-                                   timedelta(seconds=exper_info.utc_minus_tai),
-                                   exper_info.nominal_start,
-                                   exper_info.nominal_end,
-                                   exper_info.hostname,
-                                   exper_info.pima_version,
+            cursor.execute(query, (exper_info['sp_chann_num'],
+                                   exper_info['time_epochs_num'],
+                                   exper_info['scans_num'],
+                                   exper_info['obs_num'],
+                                   exper_info['uv_points_num'],
+                                   exper_info['uv_points_used_num'],
+                                   exper_info['deselected_points_num'],
+                                   exper_info['no_auto_points_num'],
+                                   exper_info['accum_length'],
+                                   utc_tai,
+                                   exper_info['nominal_start'],
+                                   exper_info['nominal_end'],
+                                   exper_info['hostname'],
+                                   exper_info['pima_version'],
                                    rec_id))
 
         self.connw.commit()

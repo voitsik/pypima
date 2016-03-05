@@ -757,7 +757,7 @@ calibartion information')
 
         polar = self.pima.cnt_params['POLAR:']
 
-        utc_tai = timedelta(seconds=self.pima.exper_info.utc_minus_tai)
+        utc_tai = timedelta(seconds=self.pima.exper_info['utc_minus_tai'])
         out_format = 'pdf'
         fig = Figure()
         FigureCanvas(fig)
