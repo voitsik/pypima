@@ -226,7 +226,7 @@ def main(args):
     for ra_exp in exp_list:
         try:
             if args.autospec_only:
-                generate_autospec(ra_exp, args.force_small)
+                generate_autospec(ra_exp, spec_out_dir, args.force_small)
             else:
                 if ra_exp.gvlbi:
                     process_gvlbi(ra_exp, not args.no_accel, args.force_small)
