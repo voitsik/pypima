@@ -57,6 +57,7 @@ def main(args):
 
             ra_exp.generate_autospectra(spec_out_dir)
         else:
+            ra_exp.load_antab()
             fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
             fri = Fri(fri_file)
             print(fri)

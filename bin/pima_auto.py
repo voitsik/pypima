@@ -112,6 +112,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     """
     # First run on full scan
     ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+    ra_exp.load_antab()
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
@@ -132,6 +133,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     scan_len = round(max_scan_len/2)
     ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2,
                 force_small=force_small)
+    ra_exp.load_antab()
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
@@ -151,6 +153,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
             scan_len = round(max_scan_len / scan_part)
             ra_exp.load(update_db=False, scan_length=scan_len,
                         scan_part=scan_part, force_small=force_small)
+            ra_exp.load_antab()
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
                 fri_file = ra_exp.fringe_fitting(True, accel)

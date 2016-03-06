@@ -489,6 +489,11 @@ first line'.format(antab))
             det_limit = 5.7
         self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
 
+    def load_antab(self):
+        """
+        Download ANTAB file and load calibration information to PIMA.
+
+        """
         # Always download antab-file.
         if not self.antab_downloaded:
             self._get_antab()
