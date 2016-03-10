@@ -81,7 +81,11 @@ deselected points:'):
                         line.split(':', 1)[1].strip()[:23],
                         '%Y.%m.%d-%H:%M:%S.%f')
                 elif line.startswith('# Generated    at'):
-                    self._data['hostname'] = line.split()[3]
+                    cols = line.split()
+                    if len(cols) == 4:
+                        self._data['hostname'] = cols[3]
+                    else:
+                        self._data['hostname'] = ''
                 elif line.startswith('#                 by PIMA'):
                     self._data['pima_version'] = line.split()[4]
 
