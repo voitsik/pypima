@@ -749,7 +749,7 @@ calibartion information')
         try:
             file_list = self.pima.acta()
         except pypima.pima.Error as err:
-            print('PIMA Error: ', err)
+            self.logger.error('PIMA Error: %s', err)
 
             # Remove core dump file.
             if os.path.isfile('core'):
