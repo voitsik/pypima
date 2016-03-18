@@ -73,6 +73,13 @@ class RaExperiment:
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
         self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
+        self.antab = None
+        self.antab_downloaded = False
+        self.calibration_loaded = False
+        self.split_time_aver = 0
+        self.pima = None
+        self.uv_fits = uv_fits
+        self.orbit = orbit
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -84,53 +91,35 @@ class RaExperiment:
 
         self.pima_scr = os.getenv('pima_scr_dir')
 
-        # Create working directory and symlink
+        # Work directory path
         self.work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
         if self.gvlbi:
             self.work_dir += '_gvlbi'
-        if not os.path.exists(self.work_dir):
-            os.mkdir(self.work_dir)
 
-#        work_dir_link = os.path.join(self.exp_dir, self.exper)
-#        if os.path.islink(work_dir_link):
-#            os.remove(work_dir_link)
-#        elif os.path.exists(work_dir_link):
-#            os.rename(work_dir_link, work_dir_link + '_bak')
-#
-#        os.symlink(os.path.basename(work_dir), work_dir_link)
-#
-#        self.work_dir = work_dir_link
-        os.chdir(self.work_dir)
-
-        # Make directory for antabs
-        antab_dir = os.path.join(self.work_dir, 'antab')
-        if not os.path.exists(antab_dir):
-            os.mkdir(antab_dir)
-        self.antab = None
-        self.antab_downloaded = False
-        self.calibration_loaded = False
+        #  Select directory for raw data from a correlator
+        if data_dir:
+            self.data_dir = os.path.join(data_dir, self.exper)
+        else:
+            self.data_dir = self.work_dir
 
         # PIMA control file path
         self.cnt_file_name = os.path.join(self.work_dir, '{}_{}_pima.cnt'.
                                           format(self.exper, self.band))
 
-        # Prepare data paths
-        self.uv_fits = uv_fits
-        self.orbit = orbit
+    def init_workdir(self):
+        """
+        Create working directory and PIMA control file.
 
-        #  Select directory for raw data from a correlator
-        if data_dir:
-            self.data_dir = data_dir
-        else:
-            self.data_dir = self.work_dir
+        """
+        # Create work directory
+        os.makedirs(self.work_dir, exist_ok=True)
+
+        os.chdir(self.work_dir)
 
         # Create PIMA control file
         self._mk_cnt()
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
-
-        #
-        self.split_time_aver = 0
 
     def _print_info(self, msg):
         """Print some information"""
@@ -196,7 +185,7 @@ class RaExperiment:
         Download FITS-file from the FTP archive.
 
         """
-        data_dir = os.path.join(self.data_dir, self.exper)
+        # data_dir = os.path.join(self.data_dir, self.exper)
         fits_url, size, ftp_user = self.db.get_uvfits_url(self.exper,
                                                           self.band,
                                                           self.gvlbi,
@@ -206,15 +195,15 @@ class RaExperiment:
             self._error('Could not find FITS file name in DB')
 
         # Delete spaces in filename
-        uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
-                               replace(' ', ''))
+        uv_fits = os.path.join(self.data_dir,
+                               os.path.basename(fits_url).replace(' ', ''))
 
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
-            self._print_info('File {} already exists'.format(uv_fits))
+            self.logger.info('File %s already exists', uv_fits)
         else:
-            if not os.path.isdir(data_dir):
-                os.makedirs(data_dir)
-            self._print_info('Start downloading file {}...'.format(fits_url))
+            if not os.path.isdir(self.data_dir):
+                os.makedirs(self.data_dir)
+            self.logger.info('Start downloading file %s...', fits_url)
             try:
                 with open(uv_fits, 'wb') as fil:
                     _download_it(fits_url, fil, max_retries=2,
@@ -223,9 +212,7 @@ class RaExperiment:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
 
-            self._print_info('FITS-file downloading is complete')
-
-        self.pima.update_cnt({'UV_FITS:': uv_fits})
+            self.logger.info('FITS-file downloading is complete')
 
         # We use self.uv_fits as a flag of FITS file existence, so set it at
         # the end of this function
@@ -286,7 +273,10 @@ class RaExperiment:
         if not antab_url:
             self._print_warn('Could not get ANTAB-file url from DB.')
         else:
-            antab_file = os.path.join(self.work_dir, 'antab',
+            antab_dir = os.path.join(self.work_dir, 'antab')
+            os.makedirs(antab_dir, exist_ok=True)
+
+            antab_file = os.path.join(antab_dir,
                                       os.path.basename(antab_url) + '.orig')
             self._print_info('Start downloading file {}'.format(antab_url))
             try:
@@ -417,8 +407,6 @@ first line'.format(antab))
             used as run index.
 
         """
-        os.chdir(self.work_dir)
-
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
             if self.uv_fits is None:
@@ -426,6 +414,8 @@ first line'.format(antab))
 
         if download_only:
             return
+
+        self.pima.update_cnt({'UV_FITS:': self.uv_fits})
 
         if self.orbit is None:
             self._get_orbit()
@@ -699,8 +689,7 @@ calibartion information')
                 b1950_name = '0851+202'
 
             out_fits_dir = os.path.join(out_dir, b1950_name)
-            if not os.path.isdir(out_fits_dir):
-                os.mkdir(out_fits_dir)
+            os.makedirs(out_fits_dir, exist_ok=True)
 
             out_fits_name = \
                 '{}_{}_{}_{}_{:04d}s_uva.fits'.format(b1950_name,
@@ -758,8 +747,7 @@ calibartion information')
             return
 
         out_dir = os.path.join(out_dir, '{}_{}'.format(self.exper, self.band))
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
+        os.makedirs(out_dir, exist_ok=True)
 
         polar = self.pima.cnt_params['POLAR:']
 

@@ -32,6 +32,8 @@ def download_it(ra_exps, force_small):
     logger.info('started')
 
     for exp in ra_exps:
+        # Hack: make data directory for shutil.disk_usage
+        os.makedirs(exp.data_dir, exist_ok=True)
         df = shutil.disk_usage(exp.data_dir)
         if df.free / df.total < 0.1:
             logger.warning('less then 10% of free space left on disk')
@@ -107,7 +109,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     accel : bool
         If True, do the parabolic term fitting.
     force_small : bool
-        Use FITS-IDI with 64 spectarl channels only.
+        Use FITS-IDI with 64 spectral channels only.
 
     """
     # First run on full scan
@@ -211,15 +213,11 @@ def main(args):
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
                         default=os.path.join(os.getenv('HOME'),
                                              'pima_auto_split'))
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
 
     # Define and create directory for auto spectrum plot files
     spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR',
                              default=os.path.join(os.getenv('HOME'),
                                                   'pima_autospec'))
-    if not os.path.exists(spec_out_dir):
-        os.mkdir(spec_out_dir)
 
     load_thread = threading.Thread(target=download_it, args=(exp_list,
                                                              args.force_small))
@@ -228,6 +226,7 @@ def main(args):
 
     for ra_exp in exp_list:
         try:
+            ra_exp.init_workdir()
             if args.autospec_only:
                 generate_autospec(ra_exp, spec_out_dir, args.force_small)
             else:

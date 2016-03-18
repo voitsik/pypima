@@ -37,6 +37,7 @@ def main(args):
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
                               data_dir=data_dir)
+        ra_exp.init_workdir()
         ra_exp.load(update_db=False, force_small=args.force_small)
 
         if not polar:
