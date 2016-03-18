@@ -168,9 +168,9 @@ class DB:
 
         query_insert = 'INSERT INTO pima_obs (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id) \
+snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id) \
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
-%s, %s, %s, %s);'
+%s, %s, %s, %s, %s);'
 
         with self.connw.cursor() as cur:
             for rec in fri_file:
@@ -178,6 +178,12 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
                     accel = rec['ph_acc']
                 else:
                     accel = rec['accel']
+
+                # Set IF id to 0 if fringe fitting done over multiple IFs
+                if rec['beg_ifrq'] != rec['end_ifrq']:
+                    if_id = 0
+                else:
+                    if_id = rec['beg_ifrq']
 
                 cur.execute(query_insert, (rec['obs'],
                                            rec['start_time'],
@@ -199,7 +205,8 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
                                            rec['uv_rad_ed'],
                                            rec['ref_freq'],
                                            rec['time_code'],
-                                           run_id))
+                                           run_id,
+                                           if_id))
 
             # Update status of the observations
             query_update = 'UPDATE pima_obs SET status = %s WHERE \
