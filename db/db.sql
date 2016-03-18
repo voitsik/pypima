@@ -1,3 +1,15 @@
+-- psql ra_results
+
+CREATE TABLE sources (
+  IVS_name varchar(20) primary key,
+  J2000_name varchar(20),
+  B1950_name varchar(20),
+  aips_name varchar(20),
+  coordinates point not null,
+  comments text,
+  z real DEFAULT 0.0
+);
+
 CREATE TABLE pima_runs (
   id SERIAL PRIMARY KEY,
   exper_name varchar(20) references vex_files(exper_name),
@@ -52,7 +64,8 @@ CREATE TABLE pima_obs (
   exper_name varchar(20) NOT NULL,
   band char(1) NOT NULL,
   status char(1) DEFAULT 'u',
-  run_id int references pima_runs(id) ON DELETE CASCADE
+  run_id int references pima_runs(id) ON DELETE CASCADE,
+  if_id smallint DEFAULT 0
 );
 
 CREATE INDEX pima_obs_exper_name_band_idx ON pima_obs (exper_name, band);
@@ -90,7 +103,8 @@ CREATE TABLE fits_files (
     ch_num int
     mdate date DEFAULT '2000-01-01',
     size bigint DEFAULT 0,
-    comment varchar(64)
+    comment varchar(64),
+    ftp_user varchar(16)
 );
 CREATE INDEX fits_files_exper_name_band_idx ON fits_files (exper_name, band);
 
