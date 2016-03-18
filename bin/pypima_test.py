@@ -58,6 +58,20 @@ def main(args):
             ra_exp.generate_autospectra(spec_out_dir)
         else:
             ra_exp.load_antab()
+
+            if args.individual_ifs:
+                if_num = ra_exp.pima.exper_info['if_num']
+                for ind in range(if_num):
+                    ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
+                                            'END_FRQ:': str(ind+1)})
+                    fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
+                    print('IF #{}'.format(ind+1))
+                    print(Fri(fri_file))
+
+                # Restore
+                ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
+                                        'END_FRQ:': str(if_num)})
+
             fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
             fri = Fri(fri_file)
             print(fri)
@@ -103,5 +117,7 @@ if __name__ == "__main__":
                         help='force to use 64-channel FITS file (if any)')
     parser.add_argument('--autospec-only', action='store_true',
                         help='generate autocorrelation spectra only')
+    parser.add_argument('--individual-ifs', action='store_true',
+                        help='do fringe fittig for individual IFs')
 
     sys.exit(main(parser.parse_args()))
