@@ -93,6 +93,34 @@ def process_gvlbi(ra_exp, accel=False, force_small=False):
     ra_exp.delete_uvfits()
 
 
+def process_ind_ifs(ra_exp, accel=False, force_small=False):
+    """
+    Do fringe fitting for each IF separatly.
+
+    """
+    ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        fri_file = ra_exp.fringe_fitting(True, accel)
+        print('IF #0')
+        print(Fri(fri_file))
+        ra_exp.fringes2db()
+
+        if_num = ra_exp.pima.exper_info['if_num']
+        for ind in range(if_num):
+            ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
+                                    'END_FRQ:': str(ind+1)})
+            fri_file = ra_exp.fringe_fitting(True, accel)
+            print('IF #{}'.format(ind+1))
+            print(Fri(fri_file))
+            ra_exp.fringes2db()
+
+        # Restore IFs
+        ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
+                                'END_FRQ:': str(if_num)})
+
+
 def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                         force_small=False):
     """
@@ -229,6 +257,8 @@ def main(args):
             ra_exp.init_workdir()
             if args.autospec_only:
                 generate_autospec(ra_exp, spec_out_dir, args.force_small)
+            elif args.individual_ifs:
+                process_ind_ifs(ra_exp, not args.no_accel, args.force_small)
             else:
                 if ra_exp.gvlbi:
                     process_gvlbi(ra_exp, not args.no_accel, args.force_small)
@@ -260,15 +290,19 @@ if __name__ == '__main__':
                         help='File with list of experiments and bands')
 
     # Optional arguments
+    parser.add_argument('-l', '--log-file', metavar='LOG',
+                        help='log file')
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process ground-only part of the experiments')
     parser.add_argument('--no-accel', action='store_true',
                         help='disable parabolic term fitting')
-    parser.add_argument('-l', '--log-file', metavar='LOG',
-                        help='log file')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
-    parser.add_argument('--autospec-only', action='store_true',
-                        help='generate autocorrelation spectra only')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--autospec-only', action='store_true',
+                       help='generate autocorrelation spectra only')
+    group.add_argument('--individual-ifs', action='store_true',
+                       help='do fringe fittig for individual IFs')
 
     sys.exit(main(parser.parse_args()))
