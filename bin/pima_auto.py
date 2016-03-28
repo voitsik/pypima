@@ -120,6 +120,8 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
         ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
                                 'END_FRQ:': str(if_num)})
 
+    ra_exp.delete_uvfits()
+
 
 def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                         force_small=False):
