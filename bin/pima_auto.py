@@ -98,16 +98,12 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
     Do fringe fitting for each IF separatly.
 
     """
-    ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+    ra_exp.load(update_db=True, scan_part=-1, force_small=force_small)
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        print('IF #0')
-        print(Fri(fri_file))
-        ra_exp.fringes2db()
-
         if_num = ra_exp.pima.exper_info['if_num']
+
         for ind in range(if_num):
             ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
                                     'END_FRQ:': str(ind+1)})
