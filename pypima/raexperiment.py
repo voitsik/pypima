@@ -201,8 +201,7 @@ class RaExperiment:
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
             self.logger.info('File %s already exists', uv_fits)
         else:
-            if not os.path.isdir(self.data_dir):
-                os.makedirs(self.data_dir)
+            os.makedirs(self.data_dir, exist_ok=True)
             self.logger.info('Start downloading file %s...', fits_url)
             try:
                 with open(uv_fits, 'wb') as fil:
