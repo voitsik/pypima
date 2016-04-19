@@ -471,13 +471,6 @@ first line'.format(antab))
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
-        # TODO: Set reasonable SNR detection limit
-        if self.band == 'k':
-            det_limit = 5.9
-        else:
-            det_limit = 5.7
-        self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
-
     def load_antab(self):
         """
         Download ANTAB file and load calibration information to PIMA.
@@ -591,6 +584,8 @@ bandpass: %s', obs['SNR'])
             if not fri:
                 self._error('fri-file is empty after coarse.')
 
+            self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
+
             # Now auto select reference station
             if self._select_ref_sta(fri):
                 try:
@@ -626,6 +621,13 @@ scans')
             self._print_warn('could not do split due to absence of \
 calibartion information')
             return
+
+        # TODO: Set reasonable SNR detection limit
+        if self.band == 'k':
+            det_limit = 5.9
+        else:
+            det_limit = 5.7
+        self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
 
         split_params = []
         time_segments = 1
