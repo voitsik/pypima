@@ -36,24 +36,32 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
     def sqrt_func(dur, amp):
         return amp * np.sqrt(dur)
 
-    params, pcov = curve_fit(sqrt_func, durs[durs < 400], snrs[durs < 400])
-    # err = np.sqrt(np.diag(pcov))
-
-    durs0 = np.linspace(0, durs.max())
-    sqrt_snr = sqrt_func(durs0, *params)
-    const_amp = np.ones(durs0.shape) * amps[durs < 400].mean()
-
     # Plotting
     fig, (ax1, ax2) = plt.subplots(2, sharex=True)
-
     ax1.set_ymargin(0.2)
-    ax1.plot(durs, amps, 'o', durs0, const_amp, 'r-')
+    ax1.plot(durs, amps, 'o')
+    ax2.plot(durs, snrs, 'o')
+
+    durs_400 = durs[durs < 400]
+
+    if len(durs_400) > 1:
+        snrs_400 = snrs[durs < 400]
+        params, pcov = curve_fit(sqrt_func, durs_400, snrs_400)
+        # err = np.sqrt(np.diag(pcov))
+
+        durs0 = np.linspace(0, durs.max())
+        sqrt_snr = sqrt_func(durs0, *params)
+        const_amp = np.ones(durs0.shape) * amps[durs < 400].mean()
+
+        ax1.plot(durs0, const_amp, 'r-')
+        ax2.plot(durs0, sqrt_snr, 'r-')
+
     ax1.set_ylabel(ylabel)
-    title = '{}({}): {} / {}'.format(exper.lower(), band.upper(), sta1, sta2)
+    title = '{}({}) obs #{}: {} / {}'.format(exper.lower(), band.upper(),
+                                             obs, sta1, sta2)
     ax1.set_title(title)
 #    ax1.set_ylim(ymin=0)
 
-    ax2.plot(durs, snrs, 'o', durs0, sqrt_snr, 'r-')
     ax2.set_xlabel('Integration time (s)')
     ax2.set_ylabel('SNR')
 
@@ -90,6 +98,10 @@ def proc_obs(exper, band, obs):
                          'FRIRES_FILE:', tmp_frr])
 
     fri = Fri(fri_file)
+    if fri[0]['SNR'] < 7.0:
+        logging.warning('SNR of obs #%s is too low, skip it.', obs)
+        return 1
+
     full_duration = fri[0]['duration']
     sta1 = fri[0]['sta1']
     sta2 = fri[0]['sta2']
@@ -126,8 +138,11 @@ def proc_obs(exper, band, obs):
     if os.path.isfile(tmp_frr):
         os.remove(tmp_frr)
 
-    plot(obs, np.array(durs), np.array(amps), np.array(snrs),
-         exper, band, sta1, sta2)
+    if durs:
+        plot(obs, np.array(durs), np.array(amps), np.array(snrs),
+             exper, band, sta1, sta2)
+    else:
+        logging.warning('Nothing to plot...')
 
     return 0
 
