@@ -514,7 +514,7 @@ bandpass: %s', obs['SNR'])
                 elif obs['sta2'] == 'RADIO-AS':
                     self.sta_ref = obs['sta1']
         else:
-            self._print_info('There is no scans with RADIO-AS')
+            self._print_info('No scans with RADIO-AS')
 
         if not self.sta_ref:
             obs = fri.max_snr()
