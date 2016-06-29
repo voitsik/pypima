@@ -102,7 +102,6 @@ def plot(file_name, fri, format, title=False):
     # ax.text2D(0.05, 0.80, "Time of integration: 65s", transform=ax.transAxes)
     # ax.grid(b=False)
     # ax.w_xaxis.set_pane_color((0, 0, 0, 0))
-    # ax.w_yaxis.set_pane_color((0, 0, 0, 0))
     # ax.set_zticklabels((), alpha=0)
     # ax.view_init(elev=90, azim=0)
     source = sou2sou(fri['source'])
@@ -116,10 +115,13 @@ def plot(file_name, fri, format, title=False):
                                            sta2sta(fri['sta2']))
         title += ' ({:.1f} Earth Diameters)'.format(fri['uv_rad_ed'])
         plt.title(title)
-    # plt.show()
 
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
     file_name = '{}.{}'.format(file_name, format)
+
+    if format == 'eps':
+        ax.w_yaxis.set_pane_color((1, 1, 1, 0))
+
     if format == 'png':
         dpi = 300
     else:
