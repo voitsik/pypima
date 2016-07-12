@@ -163,11 +163,13 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                 force_small=force_small)
     ra_exp.load_antab()
 
+    max_snr = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
         fri_file = ra_exp.fringe_fitting(True, accel)
         fri = Fri(fri_file)
         print(fri)
+        max_snr.append(fri.max_snr()['SNR'])
         ra_exp.fringes2db()
 
         if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded and \
@@ -177,19 +179,28 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
 
     # For good experiments more runs
     if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
-        for scan_part in (3, 4, 5):
-            scan_len = round(max_scan_len / scan_part)
+        scan_part = 3
+        scan_len = round(max_scan_len / scan_part)
+        snr_detecton = float(ra_exp.pima.cnt_params['FRIB.SNR_DETECTION:'])
+
+        while scan_len > 100 and max(max_snr) > snr_detecton:
             ra_exp.load(update_db=True, scan_length=scan_len,
                         scan_part=scan_part, force_small=force_small)
             ra_exp.load_antab()
+            max_snr.clear()
+
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
                 fri_file = ra_exp.fringe_fitting(True, accel)
                 fri = Fri(fri_file)
                 print(fri)
+                max_snr.append(fri.max_snr()['SNR'])
                 ra_exp.fringes2db()
                 ra_exp.split(average=scan_len)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
+
+            scan_part += 1
+            scan_len = round(max_scan_len / scan_part)
 
     ra_exp.delete_uvfits()
 
