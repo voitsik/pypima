@@ -738,9 +738,7 @@ calibartion information')
         # Sometimes PIMA crashes on `acta` task
         try:
             file_list = self.pima.acta()
-        except pypima.pima.Error as err:
-            self.logger.error('PIMA Error: %s', err)
-
+        except pypima.pima.Error:
             # Remove core dump file.
             if os.path.isfile('core'):
                 os.remove('core')
