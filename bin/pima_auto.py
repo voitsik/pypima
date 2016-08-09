@@ -19,7 +19,6 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
-from pypima.fri import Fri
 
 
 def download_it(ra_exps, force_small):
@@ -86,8 +85,7 @@ def process_gvlbi(ra_exp, accel=False, force_small=False):
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        print(Fri(fri_file))
+        print(ra_exp.fringe_fitting(True, accel))
         ra_exp.fringes2db()
 
     ra_exp.delete_uvfits()
@@ -107,9 +105,9 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
         for ind in range(if_num):
             ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
                                     'END_FRQ:': str(ind+1)})
-            fri_file = ra_exp.fringe_fitting(True, accel)
+            fri = ra_exp.fringe_fitting(True, accel)
             print('IF #{}'.format(ind+1))
-            print(Fri(fri_file))
+            print(fri)
             ra_exp.fringes2db()
 
         # Restore IFs
@@ -145,13 +143,12 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
         ra_exp.generate_autospectra(spec_out_dir)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        fri = Fri(fri_file)
+        fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
         max_scan_len = fri.max_scan_length()
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded and \
+        if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
                 polar in ('RR', 'LL'):
             for aver in (0, round(max_scan_len)):
                 ra_exp.split(average=aver)
@@ -166,8 +163,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     max_snr = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        fri = Fri(fri_file)
+        fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
         max_snr.append(fri.max_snr()['SNR'])
         ra_exp.fringes2db()
@@ -191,8 +187,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
 
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
-                fri_file = ra_exp.fringe_fitting(True, accel)
-                fri = Fri(fri_file)
+                fri = ra_exp.fringe_fitting(True, accel)
                 print(fri)
                 max_snr.append(fri.max_snr()['SNR'])
                 ra_exp.fringes2db()

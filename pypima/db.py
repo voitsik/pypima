@@ -154,77 +154,72 @@ class DB:
 
         return url
 
-    def fri2db(self, fri_file, exper_info, run_id):
+    def fri2db(self, fri, exper_info, run_id):
         """
         Store information from the PIMA fri-file to the database.
 
+        Parameters
+        ----------
+        fri : fri.Fri object
+            PIMA fringe fitting results.
+        exper_info : pima.ExperInfo object
+            Experiment general information.
+        run_id : int
+            Id of the record in the ``pima_runs`` database table.
+
         """
-        if not fri_file:
+        if not fri:
             return
 
         exper = exper_info.exper
         band = exper_info.band
-        polar = fri_file[0]['polar']
+        polar = fri.records[0]['polar']
 
         query_insert = 'INSERT INTO pima_obs (obs, start_time, \
 stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id) \
+snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status) \
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
-%s, %s, %s, %s, %s);'
+%s, %s, %s, %s, %s, %s);'
+
+        rec_list = []
+        for rec in fri.records:
+            if rec['FRIB.FINE_SEARCH'] == 'ACC':
+                accel = rec['ph_acc']
+            else:
+                accel = rec['accel']
+
+            # Set IF id to 0 if fringe fitting done over multiple IFs
+            if rec['beg_ifrq'] != rec['end_ifrq']:
+                if_id = 0
+            else:
+                if_id = rec['beg_ifrq']
+
+            rec_list.append((rec['obs'],
+                             rec['start_time'],
+                             rec['stop_time'],
+                             exper,
+                             band,
+                             rec['source'],
+                             polar,
+                             rec['sta1'],
+                             rec['sta2'],
+                             rec['delay'],
+                             rec['rate'],
+                             accel,
+                             rec['SNR'],
+                             rec['ampl_lsq'],
+                             rec['duration'],
+                             rec['U'],
+                             rec['V'],
+                             rec['uv_rad_ed'],
+                             rec['ref_freq'],
+                             rec['time_code'],
+                             run_id,
+                             if_id,
+                             rec['status']))
 
         with self.connw.cursor() as cur:
-            for rec in fri_file:
-                if rec['FRIB.FINE_SEARCH'] == 'ACC':
-                    accel = rec['ph_acc']
-                else:
-                    accel = rec['accel']
-
-                # Set IF id to 0 if fringe fitting done over multiple IFs
-                if rec['beg_ifrq'] != rec['end_ifrq']:
-                    if_id = 0
-                else:
-                    if_id = rec['beg_ifrq']
-
-                cur.execute(query_insert, (rec['obs'],
-                                           rec['start_time'],
-                                           rec['stop_time'],
-                                           exper,
-                                           band,
-                                           rec['source'],
-                                           polar,
-                                           rec['sta1'],
-                                           rec['sta2'],
-                                           rec['delay'],
-                                           rec['rate'],
-                                           accel,
-                                           rec['SNR'],
-                                           rec['ampl_lsq'],
-                                           rec['duration'],
-                                           rec['U'],
-                                           rec['V'],
-                                           rec['uv_rad_ed'],
-                                           rec['ref_freq'],
-                                           rec['time_code'],
-                                           run_id,
-                                           if_id))
-
-            # Update status of the observations
-            query_update = 'UPDATE pima_obs SET status = %s WHERE \
-run_id = %s AND polar = %s AND snr <= %s;'
-            cur.execute(query_update, ('n', run_id, polar, 5.3))
-
-            query_update = """
-            UPDATE pima_obs SET status = %s
-            WHERE run_id = %s AND polar = %s AND snr > %s AND
-            abs(delay) < %s AND abs(rate) < %s;
-            """
-            if exper_info['sp_chann_num'] <= 128:
-                # delay < 1 us
-                cur.execute(query_update, ('y', run_id, polar, 5.7,
-                                           1e-6, 1e-11))
-            else:
-                cur.execute(query_update, ('y', run_id, polar, 7.0,
-                                           30e-6, 4e-10))
+            cur.executemany(query_insert, rec_list)
 
         self.connw.commit()
 

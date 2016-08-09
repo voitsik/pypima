@@ -23,6 +23,7 @@ from pypima.fri import Fri
 from pypima.pima import Pima
 
 
+
 class Error(Exception):
     """Raised when RaExperiment error occurs"""
     def __init__(self, exper, band, msg):
@@ -80,6 +81,7 @@ class RaExperiment:
         self.pima = None
         self.uv_fits = uv_fits
         self.orbit = orbit
+        self.fri = None  # Result of last fringe fitting
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -496,7 +498,8 @@ first line'.format(antab))
 
         Parameters
         ----------
-        fri : pypima.fri.Fri
+        fri : ``Fri`` object
+            ``PIMA`` fringe fitting results as ``Fri`` object.
 
         """
         snr_detecton = float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
@@ -531,13 +534,12 @@ bandpass: %s', obs['SNR'])
                     self.sta_ref = obs['sta1']
 
         if self.sta_ref:
-            snr = min(10.0, obs['SNR']-0.1)
+            snr = round(min(10.0, obs['SNR']-0.1), 1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
                                   'BPS.SNR_MIN_FINE:': str(snr)})
-            self._print_info('new reference station is {}'.
-                             format(self.sta_ref))
-            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
+            self.logger.info('New reference station is %s', self.sta_ref)
+            self.logger.info('Set SNR_MIN for bandpass to %s', snr)
             return True
         else:
             return False
@@ -556,8 +558,8 @@ bandpass: %s', obs['SNR'])
 
         Returns
         -------
-        fri_file : str
-            Name of the PIMA fri-file.
+        fri : ``Fri`` object
+            Fringe fitting results as ``Fri`` object.
 
         """
         if accel:
@@ -582,8 +584,9 @@ bandpass: %s', obs['SNR'])
             fri_file = self.pima.coarse()
             fri = Fri(fri_file)
             if not fri:
-                self._error('fri-file is empty after coarse.')
+                self._error('PIMA fri-file is empty after coarse.')
 
+            # Detection limit for bandpass calibration
             self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
 
             # Now auto select reference station
@@ -601,11 +604,21 @@ bandpass: %s', obs['SNR'])
                 self.logger.info('skip bandpass due to absence of the useful \
 scans')
 
-        return self.pima.fine()
+        fri_file = self.pima.fine()
+        self.fri = Fri(fri_file)
+
+        if self.pima.exper_info['sp_chann_num'] <= 128:
+            ch_num = 64
+        else:
+            ch_num = 2048
+
+        self.fri.update_status(ch_num)
+
+        return self.fri
 
     def split(self, source=None, average=0):
         """
-        Do SPLIT.
+        Split a multi-source uv data set into single-source data files.
 
         Parameters
         ----------
@@ -618,18 +631,24 @@ scans')
 
         """
         if not self.calibration_loaded:
-            self._print_warn('could not do split due to absence of \
+            self.logger.warning('Could not do splitting due to absence of \
 calibartion information')
             return
 
         # TODO: Set reasonable SNR detection limit
-        if self.band == 'k':
-            det_limit = 5.9
-        else:
-            det_limit = 5.7
-        self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
+        snr_list = []
+        for rec in self.fri.records:
+            if rec['status'] == 'y':
+                snr_list.append(rec['SNR'])
 
-        split_params = []
+        if not snr_list:
+            self.logger.warning('No useful scans for splitting')
+            return
+
+        snr_detection = min(7.0, min(snr_list)-0.05)
+        self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
+        split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
+
         time_segments = 1
 
         if source:
@@ -716,11 +735,10 @@ calibartion information')
         if self.run_id <= 0:
             return
 
-        fri_file = self.pima.cnt_params['FRINGE_FILE:']
-        if not os.path.isfile(fri_file):
+        if not self.fri:
             return
 
-        self.db.fri2db(Fri(fri_file), self.pima.exper_info, self.run_id)
+        self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
 
     def delete_uvfits(self):
         """
