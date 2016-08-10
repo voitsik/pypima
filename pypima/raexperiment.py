@@ -6,7 +6,6 @@ Created on Sun Dec 29 04:02:35 2013
 """
 
 from datetime import datetime, timedelta
-import glob
 from io import BytesIO
 import logging
 import os.path
@@ -629,16 +628,24 @@ scans')
             disables time averaging.
 
         """
+        # Delete old uv-fits remained from previous run
+        exper_dir = self.pima.cnt_params['EXPER_DIR:']
+        sess_code = self.pima.cnt_params['SESS_CODE:']
+        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
+
+        if os.path.isdir(pima_fits_dir):
+            shutil.rmtree(pima_fits_dir)
+
         if not self.calibration_loaded:
             self.logger.warning('Could not do splitting due to absence of \
 calibartion information')
             return
 
-        # TODO: Set reasonable SNR detection limit
         if not self.fri.any_detections():
             self.logger.warning('No useful scans for splitting')
             return
 
+        # TODO: Set reasonable SNR detection limit
         snr_detection = min(7.0, self.fri.min_detected_snr()-0.05)
         self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
         split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
@@ -655,17 +662,6 @@ calibartion information')
             time_segments = round(average / ap)
 
         self.split_time_aver = time_segments * ap
-
-        exper_dir = self.pima.cnt_params['EXPER_DIR:']
-        sess_code = self.pima.cnt_params['SESS_CODE:']
-        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
-
-        # Delete old uv-fits remained from previous run
-        if os.path.isdir(pima_fits_dir):
-            old_uvfits = glob.glob(pima_fits_dir + '/*')
-            for fil in old_uvfits:
-                os.remove(fil)
-
         self.pima.split(tim_mseg=time_segments, params=split_params)
 
     def copy_uvfits(self, out_dir):
