@@ -140,62 +140,83 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
     ra_exp.load_antab()
 
+    scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
         ra_exp.generate_autospectra(spec_out_dir)
         fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
-        max_scan_len = fri.max_scan_length()
+        scan_len_list.append(fri.max_scan_length())
         ra_exp.fringes2db()
 
         if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
                 polar in ('RR', 'LL'):
-            for aver in (0, round(max_scan_len)):
+            for aver in (0, round(scan_len_list[-1])):
                 ra_exp.split(average=aver)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
     # Second run on a scan half
-    scan_len = round(max_scan_len/2)
+    max_scan_len = max(scan_len_list)
+    scan_len = round(max_scan_len / 2)
     ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2,
                 force_small=force_small)
     ra_exp.load_antab()
 
-    max_snr = []
+    detections = False
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
         fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
-        max_snr.append(fri.max_snr()['SNR'])
+        # max_snr.append(fri.max_snr()['SNR'])
+        if fri.any_detections():
+            detections = True
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded and \
+        if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
                 polar in ('RR', 'LL'):
             ra_exp.split(average=scan_len)
             ra_exp.copy_uvfits(uv_fits_out_dir)
 
     # For good experiments more runs
-    if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+    if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded:
         scan_part = 3
         scan_len = round(max_scan_len / scan_part)
-        snr_detecton = float(ra_exp.pima.cnt_params['FRIB.SNR_DETECTION:'])
 
-        while scan_len > 100 and max(max_snr) > snr_detecton:
+        while scan_len > 100 and detections:
             ra_exp.load(update_db=True, scan_length=scan_len,
                         scan_part=scan_part, force_small=force_small)
             ra_exp.load_antab()
-            max_snr.clear()
+            detections = False
 
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
                 fri = ra_exp.fringe_fitting(True, accel)
                 print(fri)
-                max_snr.append(fri.max_snr()['SNR'])
+                if fri.any_detections():
+                    detections = True
                 ra_exp.fringes2db()
                 ra_exp.split(average=scan_len)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
             scan_part += 1
             scan_len = round(max_scan_len / scan_part)
+
+    # Special run for ground-ground baselines with 60 s scan length
+    if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
+            detections:
+        scan_part = 100
+        scan_len = 60
+        ra_exp.load(update_db=True, scan_length=scan_len,
+                    scan_part=scan_part, force_small=force_small)
+        ra_exp.load_antab()
+
+        for polar in ('RR', 'LL'):
+            ra_exp.pima.set_polar(polar)
+            fri = ra_exp.fringe_fitting(True, accel)
+            print(fri)
+            ra_exp.fringes2db()
+            ra_exp.split(average=scan_len)
+            ra_exp.copy_uvfits(uv_fits_out_dir)
 
     ra_exp.delete_uvfits()
 

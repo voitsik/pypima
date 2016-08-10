@@ -636,16 +636,11 @@ calibartion information')
             return
 
         # TODO: Set reasonable SNR detection limit
-        snr_list = []
-        for rec in self.fri.records:
-            if rec['status'] == 'y':
-                snr_list.append(rec['SNR'])
-
-        if not snr_list:
+        if not self.fri.any_detections():
             self.logger.warning('No useful scans for splitting')
             return
 
-        snr_detection = min(7.0, min(snr_list)-0.05)
+        snr_detection = min(7.0, self.fri.min_detected_snr()-0.05)
         self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
         split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
 

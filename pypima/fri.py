@@ -313,6 +313,26 @@ class Fri():
 
         return max_len
 
+    def min_detected_snr(self):
+        """
+        Return minimum SNR of obsevations with detection status = 'y'.
+
+        """
+        if self.records:
+            result = min([rec['SNR'] for rec in self.records
+                          if rec['status'] == 'y'])
+        else:
+            result = 0
+
+        return result
+
+    def any_detections(self):
+        """
+        Return ``True`` if there is at least one observation with status 'y'.
+
+        """
+        return 'y' in [rec['status'] for rec in self.records]
+
     def append(self, rec):
         """
         Append fri-file record to the end of the list.
