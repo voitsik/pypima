@@ -1,4 +1,4 @@
-# PIMA_CONTROL file.  Format Version of 2015.09.01
+# PIMA_CONTROL file.  Format Version of 2016.02.29
 #
 # Created     on  @CDATE@
 # Last update on
@@ -153,6 +153,8 @@ SPLT.POLAR:                   @polar@
 SPLT.AUTOCORR_NRML_METHOD:    AVERAGED
 SPLT.BPASS_NRML_METHOD:       WEIGHTED
 SPLT.BPASS_NRML_RANGE:        0.25:0.75
+SPLT.SUBARRY_CONSOLIDATION:   NO
+SPLT.GAIN_CORR_FILE:          NO
 SPLT.STA_BASED:               NO
 #
 MKDB.OUTPUT_TYPE:      GVF
@@ -166,4 +168,4 @@ MKDB.VCAT_CONFIG:      /home/pima/share/pima/vcat.conf
 MKDB.OUTPUT_NAME:      p
 MKDB.DESC_FILE:        NO
 #
-# PIMA_CONTROL file.  Format Version of 2015.09.01
+# PIMA_CONTROL file.  Format Version of 2016.02.29
