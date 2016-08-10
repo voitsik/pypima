@@ -167,7 +167,6 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         ra_exp.pima.set_polar(polar)
         fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
-        # max_snr.append(fri.max_snr()['SNR'])
         if fri.any_detections():
             detections = True
         ra_exp.fringes2db()

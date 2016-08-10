@@ -110,3 +110,27 @@ CREATE INDEX fits_files_exper_name_band_idx ON fits_files (exper_name, band);
 
 GRANT SELECT ON fits_files TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON fits_files TO editor;
+
+CREATE TABLE ra_uvfits (
+    id SERIAL primary key,
+    source varchar(20),
+    exper_name varchar(20) references vex_files(exper_name),
+    band char(1),
+    polar char(2),
+    sta1 char(2),
+    sta2 char(2),
+    u real,
+    v real,
+    ampl real,
+    weight real,
+    inttime real,
+    file_name varchar(256),
+    if_id int,
+    ind int,
+    time timestamp,
+    run_id int references pima_runs(id) ON DELETE CASCADE
+);
+
+GRANT SELECT ON ra_uvfits TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON ra_uvfits TO editor;
+GRANT USAGE, SELECT ON SEQUENCE ra_uvfits_id_seq TO editor;

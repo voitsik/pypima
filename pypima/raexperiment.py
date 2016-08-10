@@ -17,11 +17,10 @@ import pycurl
 import shutil
 import threading
 
-
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
-
+from pypima.uvfits import UVFits
 
 
 class Error(Exception):
@@ -721,6 +720,9 @@ calibartion information')
             # Run `fits_to_radplot` only for averaged uv-fits
             if self.split_time_aver > 1:
                 pypima.pima.fits_to_txt(out_fits_path)
+
+                with UVFits(out_fits_path) as uvfits_file:
+                    self.db.uvfits2db(uvfits_file, b1950_name, self.run_id)
 
     def fringes2db(self):
         """

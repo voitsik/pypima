@@ -5,6 +5,7 @@ Created on Thu Oct 30 14:23:23 2014
 """
 
 from datetime import datetime, timedelta
+import os.path
 import psycopg2
 
 
@@ -229,7 +230,7 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
 
         Returns
         -------
-        rec_id : int
+        run_id : int
             Id of inserted record.
 
         Notes
@@ -248,13 +249,13 @@ exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;'
 proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
             cursor.execute(query, (exper, band, datetime.now(), uv_fits,
                                    scan_part))
-            rec_id = cursor.fetchone()[0]
+            run_id = cursor.fetchone()[0]
 
         self.connw.commit()
 
-        return rec_id
+        return run_id
 
-    def update_exper_info(self, exper_info, rec_id):
+    def update_exper_info(self, exper_info, run_id):
         """
         Add extended experiment information to the DB.
 
@@ -293,7 +294,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
                                    exper_info['nominal_end'],
                                    exper_info['hostname'],
                                    exper_info['pima_version'],
-                                   rec_id))
+                                   run_id))
 
         self.connw.commit()
 
@@ -331,3 +332,51 @@ VALUES (%s, %s, %s, %s, %s, %s, %s);'
                 cursor.execute(query, parameters)
 
         self.connw.commit()
+
+    def uvfits2db(self, fits_file, b1950_name, run_id):
+        """
+        Parameters
+        ----------
+        fits_file : UVFits object
+            UV-FITS file object
+        b1950_name : str
+            B1950 source name
+
+        """
+        data = []
+        file_name = os.path.basename(fits_file.file_name)
+
+        for ind in range(fits_file.gcount):
+            time = fits_file.dates[ind]  # As datetime.datetime object
+            ant1_name, ant2_name = fits_file.get_ant_by_ind(ind)
+            inttime = float(fits_file.inttime[ind])
+
+            for if_ind in range(fits_file.no_if):
+                flux = float(fits_file.amplitudes[ind, if_ind])
+                weight = float(fits_file.weights[ind, if_ind])
+
+                if weight <= 0:
+                    continue
+
+                uu = float(fits_file.u_raw[ind] *
+                           (fits_file.freq +
+                            fits_file.freq_table[if_ind]['if_freq']))
+                vv = float(fits_file.v_raw[ind] *
+                           (fits_file.freq +
+                            fits_file.freq_table[if_ind]['if_freq']))
+
+                row = (ind+1, time, if_ind+1, b1950_name, fits_file.exper_name,
+                       fits_file.band, fits_file.stokes, ant1_name, ant2_name,
+                       uu, vv, flux, weight, inttime, file_name, run_id)
+                data.append(row)
+
+        query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
+band, polar, sta1, sta2, u, v, ampl, weight, inttime, file_name, run_id)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+
+        if data:
+            with self.connw.cursor() as cur:
+                cur.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
+                            (file_name, ))
+                cur.executemany(query, data)
+            self.connw.commit()
