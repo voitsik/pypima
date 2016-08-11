@@ -345,10 +345,6 @@ Check your PIMA installation!')
         fri_file : str
             Name of the fri-file.
 
-        Notes
-        -----
-        Pima.fine() uses fri-file name from the cnt-file. Set up it before run.
-
         """
         log_name = '{}_{}_fine.log'.format(self.exper, self.band)
         log_name = os.path.join(self.work_dir, log_name)
