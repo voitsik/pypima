@@ -310,8 +310,6 @@ Check your PIMA installation!')
                 'POLARCAL_FILE:', 'NO',
                 'FRIB.OVERSAMPLE_MD:', '4',
                 'FRIB.OVERSAMPLE_RT:', '4',
-                'FRIB.SECONDARY_SNR_MIN:', '0.0',
-                'FRIB.SECONDARY_MAX_TRIES:', '0',
                 'FRIB.FINE_SEARCH:', 'PAR',
                 'MKDB.FRINGE_ALGORITHM:', 'DRF',
                 'PHASE_ACCEL_MIN:', '0',
