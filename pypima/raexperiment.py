@@ -605,12 +605,15 @@ scans')
         fri_file = self.pima.fine()
         self.fri = Fri(fri_file)
 
-        if self.pima.exper_info['sp_chann_num'] <= 128:
-            ch_num = 64
+        if not self.fri:
+            self.logger.warning('PIMA fri-file is empty after fine')
         else:
-            ch_num = 2048
+            if self.pima.exper_info['sp_chann_num'] <= 128:
+                ch_num = 64
+            else:
+                ch_num = 2048
 
-        self.fri.update_status(ch_num)
+            self.fri.update_status(ch_num)
 
         return self.fri
 

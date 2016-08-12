@@ -201,7 +201,15 @@ class Fri():
             This function is useful only for RadioAstron AGN survey.
 
         """
+        if not self.records:
+            return
+
         accum_length = self.records[0]['ap_len']
+
+        # Check if Session code in RA AGN survey format
+        if '_' not in self.records[0]['session_code']:
+            return
+
         band = self.records[0]['session_code'].split('_')[1]
 
         max_scan_len = self.max_scan_length()
