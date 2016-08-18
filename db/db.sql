@@ -102,7 +102,9 @@ GRANT SELECT ON clock_models TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON clock_models TO editor;
 GRANT USAGE, SELECT ON SEQUENCE clock_models_id_seq TO editor;
 
-
+--
+-- FITS-IDI files in ASC correlator archive
+--
 CREATE TABLE fits_files (
     path varchar(512) PRIMARY KEY,
     basename varchar(256) NOT NULL,
@@ -123,6 +125,9 @@ CREATE INDEX fits_files_exper_name_band_idx ON fits_files (exper_name, band);
 GRANT SELECT ON fits_files TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON fits_files TO editor;
 
+--
+-- Calibrated UV-FITS files after PIMA processing
+--
 CREATE TABLE ra_uvfits (
     id SERIAL primary key,
     source varchar(20),
@@ -133,6 +138,7 @@ CREATE TABLE ra_uvfits (
     sta2 char(2),
     u real,
     v real,
+    freq real,
     ampl real,
     weight real,
     inttime real,
@@ -147,6 +153,9 @@ GRANT SELECT ON ra_uvfits TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON ra_uvfits TO editor;
 GRANT USAGE, SELECT ON SEQUENCE ra_uvfits_id_seq TO editor;
 
+--
+-- PIMA station names catalog
+--
 CREATE TABLE station_names (
     corr_name varchar(2) primary key,
     ivs_name varchar(8) NOT NULL,
