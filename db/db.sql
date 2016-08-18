@@ -1,5 +1,16 @@
 -- psql ra_results
 
+CREATE TABLE vex_files (
+    file_name varchar(32),
+    exper_name varchar(32) primary key,
+    exper_description varchar(128),
+    PI_name varchar(64),
+    PI_email varchar(64),
+    exper_nominal_start timestamp,
+    exper_nominal_stop timestamp
+);
+GRANT SELECT ON vex_files TO guest;
+
 CREATE TABLE sources (
   IVS_name varchar(20) primary key,
   J2000_name varchar(20),
@@ -9,6 +20,7 @@ CREATE TABLE sources (
   comments text,
   z real DEFAULT 0.0
 );
+GRANT SELECT ON sources TO guest;
 
 CREATE TABLE pima_runs (
   id SERIAL PRIMARY KEY,
@@ -134,3 +146,13 @@ CREATE TABLE ra_uvfits (
 GRANT SELECT ON ra_uvfits TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON ra_uvfits TO editor;
 GRANT USAGE, SELECT ON SEQUENCE ra_uvfits_id_seq TO editor;
+
+CREATE TABLE station_names (
+    corr_name varchar(2) primary key,
+    ivs_name varchar(8) NOT NULL,
+    x real,
+    y real,
+    z real
+);
+GRANT SELECT ON station_names TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON station_names TO editor;
