@@ -327,6 +327,10 @@ first line'.format(antab))
             for line in inp:
                 line = line.strip()
 
+                # Skip empty lines
+                if not line:
+                    continue
+
                 if line.startswith('POLY') and line.endswith('/'):
                     line = line.replace('/', ' /')
                 elif line.startswith('GAIN WB'):
@@ -343,11 +347,10 @@ first line'.format(antab))
                     line = line.replace('Y27', 'YY')
                 elif 'KZ' in sta_list and 'KL' in line:
                     line = line.replace('KL', 'KZ')
+                elif 'EF' in sta_list and 'EB' in line:
+                    line = line.replace('EB', 'EF')
 
                 toks = line.split()
-
-                if len(toks) == 0:
-                    continue
 
                 # Fix EF C-band channels table
                 if len(toks) == 10 and toks[0] == '!' and toks[1].isdigit():
