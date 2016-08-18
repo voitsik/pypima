@@ -358,21 +358,19 @@ VALUES (%s, %s, %s, %s, %s, %s, %s);'
                 if weight <= 0:
                     continue
 
-                uu = float(fits_file.u_raw[ind] *
-                           (fits_file.freq +
-                            fits_file.freq_table[if_ind]['if_freq']))
-                vv = float(fits_file.v_raw[ind] *
-                           (fits_file.freq +
-                            fits_file.freq_table[if_ind]['if_freq']))
+                freq = float(fits_file.freq +
+                             fits_file.freq_table[if_ind]['if_freq'])
+                uu = float(fits_file.u_raw[ind])
+                vv = float(fits_file.v_raw[ind])
 
                 row = (ind+1, time, if_ind+1, b1950_name, fits_file.exper_name,
                        fits_file.band, fits_file.stokes, ant1_name, ant2_name,
-                       uu, vv, flux, weight, inttime, file_name, run_id)
+                       uu, vv, freq, flux, weight, inttime, file_name, run_id)
                 data.append(row)
 
         query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
-band, polar, sta1, sta2, u, v, ampl, weight, inttime, file_name, run_id)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+band, polar, sta1, sta2, u, v, freq, ampl, weight, inttime, file_name, run_id)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
 
         if data:
             with self.connw.cursor() as cur:
