@@ -176,11 +176,11 @@ class DB:
         band = exper_info.band
         polar = fri.records[0]['polar']
 
-        query_insert = 'INSERT INTO pima_obs (obs, start_time, \
-stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status) \
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
-%s, %s, %s, %s, %s, %s);'
+        query = """INSERT INTO pima_obs (obs, start_time, stop_time,
+exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
+solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+%s, %s, %s, %s, %s, %s, %s);"""
 
         rec_list = []
         for rec in fri.records:
@@ -217,10 +217,11 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
                              rec['time_code'],
                              run_id,
                              if_id,
-                             rec['status']))
+                             rec['status'],
+                             rec['elevation']))
 
         with self.connw.cursor() as cur:
-            cur.executemany(query_insert, rec_list)
+            cur.executemany(query, rec_list)
 
         self.connw.commit()
 

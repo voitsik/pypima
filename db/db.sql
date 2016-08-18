@@ -53,6 +53,9 @@ GRANT SELECT ON pima_runs TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON pima_runs TO editor;
 GRANT USAGE, SELECT ON SEQUENCE pima_runs_id_seq TO editor;
 
+--
+-- PIMA observations and fringe fitting results
+--
 CREATE TABLE pima_obs (
   id SERIAL primary key,
   obs smallint,
@@ -77,7 +80,8 @@ CREATE TABLE pima_obs (
   band char(1) NOT NULL,
   status char(1) DEFAULT 'u',
   run_id int references pima_runs(id) ON DELETE CASCADE,
-  if_id smallint DEFAULT 0
+  if_id smallint DEFAULT 0,
+  elevation real[] DEFAULT ARRAY[0.0, 0.0]
 );
 
 CREATE INDEX pima_obs_exper_name_band_idx ON pima_obs (exper_name, band);

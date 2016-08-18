@@ -77,6 +77,8 @@ SNR_LIMITS = {
 # 82 -> AP_len
 # 84 -> U
 # 85 -> V
+# 89 -> Elevation of sta1
+# 90 -> Elevation of sta2
 # 94 -> Reference frequency
 class Fri():
     """
@@ -175,6 +177,8 @@ class Fri():
                         float(toks[85].replace('D', 'e'))
                     self.records[-1]['ref_freq'] = \
                         float(toks[94].replace('D', 'e'))
+                    self.records[-1]['elevation'] = \
+                        [float(toks[89]), float(toks[90])]
                     # Calculated parameters
                     # UV-radius in lambda
                     self.records[-1]['uv_rad'] = math.hypot(
