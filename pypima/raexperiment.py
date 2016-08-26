@@ -672,7 +672,7 @@ calibartion information')
 
     def copy_uvfits(self, out_dir):
         """
-        Copy splited uv-fits from pima scratch dir to out_dir
+        Copy calibrated uv-fits files from pima scratch dir to out_dir.
 
         """
         exper_dir = self.pima.cnt_params['EXPER_DIR:']
@@ -732,13 +732,8 @@ calibartion information')
         Put fringe fitting information to the database.
 
         """
-        if self.run_id <= 0:
-            return
-
-        if not self.fri:
-            return
-
-        self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
+        if self.run_id > 0 and self.fri:
+            self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
 
     def delete_uvfits(self):
         """
