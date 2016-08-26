@@ -294,6 +294,12 @@ def main(args):
             continue
         except pypima.raexperiment.Error as err:
             continue
+        except psycopg2.Error as err:
+            logging.error('DBError: %s', err)
+            return 1
+        except OSError as err:
+            logging.error('OSError: %s', err)
+            return 1
         except KeyboardInterrupt:
             logging.warning('KeyboardInterrupt')
             return 1
