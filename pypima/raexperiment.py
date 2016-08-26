@@ -723,8 +723,9 @@ calibartion information')
             if self.split_time_aver > 1:
                 pypima.pima.fits_to_txt(out_fits_path)
 
-                with UVFits(out_fits_path) as uvfits_file:
-                    self.db.uvfits2db(uvfits_file, b1950_name, self.run_id)
+                if self.run_id > 0:
+                    with UVFits(out_fits_path) as uvfits_file:
+                        self.db.uvfits2db(uvfits_file, b1950_name, self.run_id)
 
     def fringes2db(self):
         """

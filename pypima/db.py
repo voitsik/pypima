@@ -339,9 +339,11 @@ VALUES (%s, %s, %s, %s, %s, %s, %s);'
         Parameters
         ----------
         fits_file : UVFits object
-            UV-FITS file object
+            UV-FITS file object.
         b1950_name : str
-            B1950 source name
+            B1950 source name.
+        run_id : int
+            Id of the record in ``pima_runs`` table.
 
         """
         data = []
