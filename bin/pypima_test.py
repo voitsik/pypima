@@ -18,7 +18,6 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
-from pypima.fri import Fri
 
 
 def main(args):
@@ -65,20 +64,19 @@ def main(args):
                 for ind in range(if_num):
                     ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
                                             'END_FRQ:': str(ind+1)})
-                    fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
+                    fri = ra_exp.fringe_fitting(True, not args.no_accel)
                     print('IF #{}'.format(ind+1))
-                    print(Fri(fri_file))
+                    print(fri)
 
                 # Restore
                 ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
                                         'END_FRQ:': str(if_num)})
 
-            fri_file = ra_exp.fringe_fitting(True, not args.no_accel)
-            fri = Fri(fri_file)
+            fri = ra_exp.fringe_fitting(True, not args.no_accel)
             print(fri)
     #        p.fringes2db()
             max_scan_len = fri.max_scan_length()
-            print('DEBUG: max_scan_len = ', max_scan_len, file=sys.stderr)
+            logging.debug('DEBUG: max_scan_len = %s', max_scan_len)
             ra_exp.split(average=0)
 
             # Copy final UV-FITS files to the system tmp directory
@@ -88,16 +86,16 @@ def main(args):
     except pypima.raexperiment.Error as err:
         return 1
     except psycopg2.Error as err:
-        print('DBError: ', err)
+        logging.error('DBError: %s', err)
         return 1
     except OSError as err:
-        print('OSError: ', err)
+        logging.error('OSError: %s', err)
         return 1
     except KeyboardInterrupt:
-        print('KeyboardInterrupt', file=sys.stderr)
+        logging.warning('KeyboardInterrupt')
         return 1
     except:
-        print("Unexpected error: ", sys.exc_info()[0])
+        logging.error('Unexpected error: %s', sys.exc_info()[0])
         raise
 
     return 0
