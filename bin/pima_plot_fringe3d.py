@@ -14,7 +14,6 @@ PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.insert(0, PATH)
 import pypima
 from pypima.pima import Pima
-from pypima.fri import Fri
 
 
 def sta2sta(sta):
@@ -162,7 +161,7 @@ def main(args):
     with tempfile.NamedTemporaryFile(suffix='.fri') as tmp_fri:
         params.extend(['FRINGE_FILE:', tmp_fri.name])
         try:
-            fri = Fri(pim.fine(params))
+            fri = pim.fine(params)
         except pypima.pima.Error as err:
             print('PIMA Error: ', err, file=sys.stderr)
             return 1
@@ -176,8 +175,6 @@ def main(args):
         pim.cnt_params['EXPER_DIR:'],
         pim.cnt_params['SESS_CODE:'],
         time_code, band, sta1, sta2)
-
-    # print('DEBUG: path =', path)
 
     try:
         plot(path, fri[0], args.format, title=args.title)
