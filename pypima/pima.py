@@ -188,9 +188,9 @@ Check your PIMA installation!')
                 if key == 'UV_FITS:' and isinstance(val, list):
                     line = ''
                     for items in val:
-                        line += '{:<20}{}\n'.format(key, items)
+                        line += '{:<20} {}\n'.format(key, items)
                 else:
-                    line = '{:<20}{}\n'.format(key, val)
+                    line = '{:<30} {}\n'.format(key, val)
             elif line.startswith('# Last update on'):
                 line = '# Last update on  {}\n'.format(str(datetime.now()))
 
