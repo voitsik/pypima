@@ -474,6 +474,9 @@ first line'.format(antab))
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
+        # Restrict delay rate window to +- 12 cm/s
+        self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
+
     def load_antab(self):
         """
         Download ANTAB file and load calibration information to PIMA.
