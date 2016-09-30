@@ -18,6 +18,7 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
+from pypima.plot_utils import generate_autospectra
 
 
 def main(args):
@@ -55,7 +56,7 @@ def main(args):
             if not os.path.exists(spec_out_dir):
                 os.mkdir(spec_out_dir)
 
-            ra_exp.generate_autospectra(spec_out_dir)
+            generate_autospectra(ra_exp.pima, spec_out_dir)
         else:
             ra_exp.load_antab()
 
