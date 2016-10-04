@@ -568,6 +568,9 @@ bandpass: %s', obs['SNR'])
             if self.band == 'l':
                 self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-1.D-13',
                                       'PHASE_ACCEL_MAX:': '1.D-13'})
+            elif self.band == 'k':
+                self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-5.D-15',
+                                      'PHASE_ACCEL_MAX:': '5.D-15'})
             else:
                 self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-1.D-14',
                                       'PHASE_ACCEL_MAX:': '1.D-14'})
