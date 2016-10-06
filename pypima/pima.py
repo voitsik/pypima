@@ -752,7 +752,7 @@ def fits_to_txt(fits_file):
 
 class ActaFile:
     """
-    This class describes PIMA ``ACTA`` file.
+    This class represents PIMA ``ACTA`` file.
 
     """
     def __init__(self, input_file_name):
@@ -770,7 +770,7 @@ class ActaFile:
         with open(input_file_name) as file:
             magic = file.readline().strip()
             if magic != '# ACTA Output.  Format version of 2014.04.19':
-                # print('Error: Bad ACTA file.', file=sys.stderr)
+                logging.error('File %s has invalid format')
                 return
 
             for line in file:
@@ -814,6 +814,84 @@ class ActaFile:
         Return list of the amplitudes of the autospectrum.
         """
         return self._ampl
+
+
+class Text1D:
+    """
+    This class represents PIMA ``1D text table`` file.
+
+    """
+    def __init__(self, file_name=None):
+        """
+        Parameters
+        ----------
+        file_name : str
+            Input file name.
+
+        """
+        self.header = {}
+        self._ax1 = []
+        self._ax2 = []
+
+        if file_name:
+            self.load_file(file_name)
+
+    def load_file(self, file_name):
+        """
+        Read and parse file in 1D text table format.
+
+        Parameters
+        ----------
+        file_name : str
+            Input file name.
+
+        """
+        self.header.clear()
+        self._ax1.clear()
+        self._ax2.clear()
+
+        with open(file_name, 'r') as file:
+            magic = file.readline().strip()
+
+            if magic != '# 1D text table.  Format version of 2012.12.30':
+                logging.error('File %s has invalid format', file_name)
+                return
+
+            for line in file:
+                if line[0] == '#':
+                    continue
+
+                cols = line.split(':', 1)
+                if len(cols) != 2:
+                    continue
+
+                key = cols[0].strip()
+                val = cols[1].strip()
+
+                # print(key, val)
+
+                if key == 'POINT':
+                    cols = val.split()
+                    self._ax1.append(float(cols[1]))
+                    self._ax2.append(float(cols[2]))
+                else:
+                    self.header[key] = val
+
+    @property
+    def axis1_data(self):
+        """
+        Return axis 1 array.
+
+        """
+        return self._ax1
+
+    @property
+    def axis2_data(self):
+        """
+        Return axis 2 array.
+
+        """
+        return self._ax2
 
 
 def acta_plot(input_file, output_file):
