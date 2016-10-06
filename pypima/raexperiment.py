@@ -474,6 +474,13 @@ first line'.format(antab))
         # Restrict delay rate window to +- 12 cm/s
         self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
 
+        if scan_part:
+            self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'TXT',
+                                  'FRIB.1D_RESTIM_PLOT:': 'TXT'})
+        else:
+            self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'NO',
+                                  'FRIB.1D_RESTIM_PLOT:': 'NO'})
+
     def load_antab(self):
         """
         Download ANTAB file and load calibration information to PIMA.
