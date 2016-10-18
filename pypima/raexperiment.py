@@ -47,7 +47,7 @@ class RaExperiment:
         data_base : pypima.db.DB
             pypima.db.DB instance.
         data_dir : str, optional
-            Directory from FITS-IDI. If ``None`` working directory of the
+            Directory for FITS-IDI. If ``None`` working directory of the
             current experiment is used.
         uv_fits : str, optional
             Path to the data file (FITS-IDI). If ``None`` (default) get a file
@@ -117,6 +117,20 @@ class RaExperiment:
         self._mk_cnt()
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
+
+        # Only one sideband at P-band
+        if self.band == 'p':
+            self.pima.update_cnt({'END_FRQ:': '1'})
+
+        # Restrict delay rate window to +- 12 cm/s
+        self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
+
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        if os.path.isdir(staging_dir):
+            staging_dir = os.path.join(staging_dir, self.exper)
+            if not os.path.exists(staging_dir):
+                os.mkdir(staging_dir)
+            self.pima.update_cnt({'STAGING_DIR:': staging_dir})
 
     def _print_info(self, msg):
         """Print some information"""
@@ -419,17 +433,10 @@ first line'.format(antab))
         if self.orbit is None:
             self._get_orbit()
 
-        # Only one sideband at P-band
-        if self.band == 'p':
-            self.pima.update_cnt({'END_FRQ:': '1'})
-
         # Set maximum scan length
         self._print_info('Set maximum scan length to {} s'.format(scan_length))
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
-
-        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
-        self.pima.update_cnt({'STAGING_DIR:': staging_dir})
 
         if update_db:
             self.run_id = self.db.add_exper_info(self.exper, self.band,
@@ -470,9 +477,6 @@ first line'.format(antab))
 
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
-
-        # Restrict delay rate window to +- 12 cm/s
-        self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
 
         if scan_part:
             self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'TXT',
