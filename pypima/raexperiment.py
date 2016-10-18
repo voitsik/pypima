@@ -757,6 +757,10 @@ calibartion information')
         if os.path.isfile(self.uv_fits):
             os.remove(self.uv_fits)
 
+        staging_dir = self.pima.cnt_params['STAGING_DIR:']
+        if os.path.isdir(staging_dir):
+            shutil.rmtree(staging_dir)
+
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):
     """
