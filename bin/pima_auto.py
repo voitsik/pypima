@@ -292,6 +292,7 @@ def main(args):
                                         not args.no_accel, args.force_small)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
+            ra_exp.delete_uvfits()
             continue
         except pypima.raexperiment.Error as err:
             continue
