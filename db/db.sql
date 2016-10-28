@@ -81,7 +81,8 @@ CREATE TABLE pima_obs (
   status char(1) DEFAULT 'u',
   run_id int references pima_runs(id) ON DELETE CASCADE,
   if_id smallint DEFAULT 0,
-  elevation real[] DEFAULT ARRAY[0.0, 0.0]
+  elevation real[] DEFAULT ARRAY[0.0, 0.0],
+  bandpass boolean
 );
 
 CREATE INDEX pima_obs_exper_name_band_idx ON pima_obs (exper_name, band);

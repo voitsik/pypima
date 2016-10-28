@@ -615,12 +615,15 @@ bandpass: %s', obs['SNR'])
                     except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+                        bandpass = False
             else:
                 self.logger.info('skip bandpass due to absence of the useful \
 scans')
+                bandpass = False
 
         fri_file = self.pima.fine()
         self.fri = Fri(fri_file)
+        self.fri.aux['bandpass'] = bandpass
 
         if not self.fri:
             self.logger.warning('PIMA fri-file is empty after fine')
