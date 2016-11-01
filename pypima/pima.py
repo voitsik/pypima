@@ -11,7 +11,6 @@ import logging
 import os.path
 import shutil
 import subprocess
-import sys
 
 
 class Error(Exception):
@@ -32,20 +31,7 @@ class ExperInfo:
         self.exper = exper_name
         self.band = band
 
-        self.sp_chann_num = None
-        self.time_epochs_num = None
-        self.scans_num = None
-        self.obs_num = None
-        self.uv_points_num = None
-        self.uv_points_used_num = None
-        self.deselected_points_num = None
-        self.no_auto_points_num = None
-        self.accum_length = None
-        self.utc_minus_tai = None
-        self.nominal_start = None
-        self.nominal_end = None
-        self.pima_version = None
-        self.hostname = None
+        self._data = {}
 
         if stt_file:
             self.update(stt_file)
@@ -57,20 +43,23 @@ class ExperInfo:
 
         with open(stt_file, 'r') as fil:
             for line in fil:
-                if line.startswith('Number of spectral channels:'):
-                    self.sp_chann_num = int(line.split()[4])
+                if line.startswith('Number of frequencies:'):
+                    self._data['if_num'] = int(line.split()[3])
+                elif line.startswith('Number of spectral channels:'):
+                    self._data['sp_chann_num'] = int(line.split()[4])
                 elif line.startswith('Number of time epochs:'):
-                    self.time_epochs_num = int(line.split()[4])
+                    self._data['time_epochs_num'] = int(line.split()[4])
                 elif line.startswith('Number of scans:'):
-                    self.scans_num = int(line.split()[3])
+                    self._data['scans_num'] = int(line.split()[3])
                 elif line.startswith('Number of observations:'):
-                    self.obs_num = int(line.split()[3])
+                    self._data['obs_num'] = int(line.split()[3])
                 elif line.startswith('Total number of UV points:'):
-                    self.uv_points_num = int(line.split()[5])
+                    self._data['uv_points_num'] = int(line.split()[5])
                 elif line.startswith('Total number of used UV points:'):
-                    self.uv_points_used_num = int(line.split()[6])
+                    self._data['uv_points_used_num'] = int(line.split()[6])
                 elif line.startswith('Total number of deselected points:'):
-                    self.deselected_points_num = int(line.split(':')[1])
+                    self._data['deselected_points_num'] = \
+                        int(line.split(':')[1])
                 elif line.startswith('Number of cross-correl NO_AUTO_1 \
 deselected points:'):
                     no_auto1 = int(line.split(':')[1])
@@ -82,22 +71,29 @@ deselected points:'):
                 elif line.startswith('Accummulation period length_max:'):
                     acc_max = float(line.split(':')[1])
                 elif line.startswith('UTC_minus_TAI:'):
-                    self.utc_minus_tai = float(line.split(':')[1])
+                    self._data['utc_minus_tai'] = float(line.split(':')[1])
                 elif line.startswith('Experiment nominal start:'):
-                    self.nominal_start = datetime.strptime(
+                    self._data['nominal_start'] = datetime.strptime(
                         line.split(':', 1)[1].strip()[:23],
                         '%Y.%m.%d-%H:%M:%S.%f')
                 elif line.startswith('Experiment nominal end:'):
-                    self.nominal_end = datetime.strptime(
+                    self._data['nominal_end'] = datetime.strptime(
                         line.split(':', 1)[1].strip()[:23],
                         '%Y.%m.%d-%H:%M:%S.%f')
                 elif line.startswith('# Generated    at'):
-                    self.hostname = line.split()[3]
+                    cols = line.split()
+                    if len(cols) == 4:
+                        self._data['hostname'] = cols[3]
+                    else:
+                        self._data['hostname'] = ''
                 elif line.startswith('#                 by PIMA'):
-                    self.pima_version = line.split()[4]
+                    self._data['pima_version'] = line.split()[4]
 
-        self.accum_length = (acc_min + acc_max) / 2.
-        self.no_auto_points_num = no_auto1 + no_auto2
+        self._data['accum_length'] = (acc_min + acc_max) / 2.
+        self._data['no_auto_points_num'] = no_auto1 + no_auto2
+
+    def __getitem__(self, key):
+        return self._data[key]
 
 
 class Pima(object):
@@ -109,12 +105,13 @@ class Pima(object):
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
-        self.work_dir = work_dir
 
         self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
 
         if not work_dir:
             self.work_dir = os.getcwd()
+        else:
+            self.work_dir = work_dir
 
         self.pima_dir = os.getenv('PIMA_DIR')
 
@@ -131,9 +128,6 @@ Check your PIMA installation!')
         # PIMA control file path
         self.cnt_file_name = '{}_{}_pima.cnt'.format(self.exper, self.band)
         self.cnt_file_name = os.path.join(self.work_dir, self.cnt_file_name)
-
-        if not os.path.isfile(self.cnt_file_name):
-            self._error('Could not find control file ', self.cnt_file_name)
 
         # Dictionary with all parameters from cnt-file
         self.cnt_params = {}
@@ -165,12 +159,9 @@ Check your PIMA installation!')
 
     def update_cnt(self, opts):
         """
-        Update pima cnt-file according 'opts' dictionary.
+        Update pima cnt-file according `opts` dictionary.
 
         """
-        if not isinstance(opts, dict):
-            return
-
         uv_fits = False
 
         old_cnt = open(self.cnt_file_name, 'r')
@@ -197,9 +188,9 @@ Check your PIMA installation!')
                 if key == 'UV_FITS:' and isinstance(val, list):
                     line = ''
                     for items in val:
-                        line += '{:<20}{}\n'.format(key, items)
+                        line += '{:<20} {}\n'.format(key, items)
                 else:
-                    line = '{:<20}{}\n'.format(key, val)
+                    line = '{:<30} {}\n'.format(key, val)
             elif line.startswith('# Last update on'):
                 line = '# Last update on  {}\n'.format(str(datetime.now()))
 
@@ -319,8 +310,6 @@ Check your PIMA installation!')
                 'POLARCAL_FILE:', 'NO',
                 'FRIB.OVERSAMPLE_MD:', '4',
                 'FRIB.OVERSAMPLE_RT:', '4',
-                'FRIB.SECONDARY_SNR_MIN:', '0.0',
-                'FRIB.SECONDARY_MAX_TRIES:', '0',
                 'FRIB.FINE_SEARCH:', 'PAR',
                 'MKDB.FRINGE_ALGORITHM:', 'DRF',
                 'PHASE_ACCEL_MIN:', '0',
@@ -355,10 +344,6 @@ Check your PIMA installation!')
         -------
         fri_file : str
             Name of the fri-file.
-
-        Notes
-        -----
-        Pima.fine() uses fri-file name from the cnt-file. Set up it before run.
 
         """
         log_name = '{}_{}_fine.log'.format(self.exper, self.band)
@@ -567,7 +552,7 @@ Check your PIMA installation!')
         Return total number of deselected points
 
         """
-        return self.exper_info.deselected_points_num
+        return self.exper_info['deselected_points_num']
 
     def station_list(self, ivs_name=True):
         """
@@ -651,14 +636,14 @@ Check your PIMA installation!')
         Return number of the observations in the experiment.
 
         """
-        return self.exper_info.obs_num
+        return self.exper_info['obs_num']
 
     def chan_number(self):
         """
         Return number of the spectral channels in uv-data.
 
         """
-        return self.exper_info.sp_chann_num
+        return self.exper_info['sp_chann_num']
 
     def frequencies(self):
         """
@@ -765,8 +750,154 @@ def fits_to_txt(fits_file):
     return out
 
 
+class ActaFile:
+    """
+    This class represents PIMA ``ACTA`` file.
+
+    """
+    def __init__(self, input_file_name):
+        """
+        Parameters
+        ----------
+        input_file_name : str
+            Name of the text file generated by PIMA ``acta`` task.
+
+        """
+        self._freq = []
+        self._ampl = []
+        self._header = {}
+
+        with open(input_file_name) as file:
+            magic = file.readline().strip()
+            if magic != '# ACTA Output.  Format version of 2014.04.19':
+                logging.error('File %s has invalid format')
+                return
+
+            for line in file:
+                cols = line.split()
+
+                if not cols:
+                    continue
+
+                if len(cols) == 3 and cols[0] == '#':
+                    if cols[1] == 'Experiment:':
+                        self._header['experiment'] = cols[2]
+                    elif cols[1] == 'Station:':
+                        self._header['station'] = cols[2]
+                    elif cols[1] == 'Start_date:':
+                        self._header['start_date'] = \
+                            datetime.strptime(cols[2][:23],
+                                              '%Y.%m.%d-%H:%M:%S.%f')
+                elif cols[0] == 'ACRL':
+                    self._freq.append(1e-6 * float(cols[6]))
+                    self._ampl.append(float(cols[9]))
+
+    @property
+    def header(self):
+        """
+        Return dictionary with header information.
+
+        """
+        return self._header
+
+    @property
+    def freq(self):
+        """
+        Return list of the frequencies of the autospectrum.
+
+        """
+        return self._freq
+
+    @property
+    def ampl(self):
+        """
+        Return list of the amplitudes of the autospectrum.
+        """
+        return self._ampl
+
+
+class Text1D:
+    """
+    This class represents PIMA ``1D text table`` file.
+
+    """
+    def __init__(self, file_name=None):
+        """
+        Parameters
+        ----------
+        file_name : str
+            Input file name.
+
+        """
+        self.header = {}
+        self._ax1 = []
+        self._ax2 = []
+
+        if file_name:
+            self.load_file(file_name)
+
+    def load_file(self, file_name):
+        """
+        Read and parse file in 1D text table format.
+
+        Parameters
+        ----------
+        file_name : str
+            Input file name.
+
+        """
+        self.header.clear()
+        self._ax1.clear()
+        self._ax2.clear()
+
+        with open(file_name, 'r') as file:
+            magic = file.readline().strip()
+
+            if magic != '# 1D text table.  Format version of 2012.12.30':
+                logging.error('File %s has invalid format', file_name)
+                return
+
+            for line in file:
+                if line[0] == '#':
+                    continue
+
+                cols = line.split(':', 1)
+                if len(cols) != 2:
+                    continue
+
+                key = cols[0].strip()
+                val = cols[1].strip()
+
+                # print(key, val)
+
+                if key == 'POINT':
+                    cols = val.split()
+                    self._ax1.append(float(cols[1]))
+                    self._ax2.append(float(cols[2]))
+                else:
+                    self.header[key] = val
+
+    @property
+    def axis1_data(self):
+        """
+        Return axis 1 array.
+
+        """
+        return self._ax1
+
+    @property
+    def axis2_data(self):
+        """
+        Return axis 2 array.
+
+        """
+        return self._ax2
+
+
 def acta_plot(input_file, output_file):
     """
+    Run ``acta_plot`` program.
+
     """
     if not os.path.isfile(input_file):
         raise IOError(2, 'No such file: {}'.format(input_file))

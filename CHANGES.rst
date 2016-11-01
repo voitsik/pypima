@@ -1,3 +1,20 @@
+2.3 (2016-11-01)
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+- Add `--autospec-only` command-line option to ``pima_auto.py`` script.
+
+- Add `--individual-ifs` command-line option to ``pima_auto.py`` script.
+
+- Use PFD values to set SNR detection limits.
+
+- Store calibrated UV data to the database from UV-FITS files after splitting.
+
+- Store a source elevation to the database.
+
+
 2.2 (2016-01-27)
 ----------------
 

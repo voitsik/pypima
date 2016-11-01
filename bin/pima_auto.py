@@ -19,7 +19,7 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
-from pypima.fri import Fri
+from pypima.plot_utils import generate_autospectra
 
 
 def download_it(ra_exps, force_small):
@@ -32,6 +32,8 @@ def download_it(ra_exps, force_small):
     logger.info('started')
 
     for exp in ra_exps:
+        # Hack: make data directory for shutil.disk_usage
+        os.makedirs(exp.data_dir, exist_ok=True)
         df = shutil.disk_usage(exp.data_dir)
         if df.free / df.total < 0.1:
             logger.warning('less then 10% of free space left on disk')
@@ -51,6 +53,30 @@ def download_it(ra_exps, force_small):
             raise
 
 
+def generate_autospec(ra_exp, spec_out_dir, force_small=False):
+    """
+    Run ``PIMA`` only for average autocorrelation spectrum computing by
+    ``acta`` task.
+
+    Parameters
+    ----------
+    ra_exp : RaExperiment object
+        Experiment setup.
+    spec_out_dir : str
+        Directory name for autocorrelation plots.
+    force_small : bool
+        Use FITS-IDI with 64 spectarl channels only.
+
+    """
+    ra_exp.load(update_db=False, scan_part=1, force_small=force_small)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        generate_autospectra(ra_exp.pima, spec_out_dir)
+
+    ra_exp.delete_uvfits()
+
+
 def process_gvlbi(ra_exp, accel=False, force_small=False):
     """
     Process ground-only part of the experiment.
@@ -60,9 +86,34 @@ def process_gvlbi(ra_exp, accel=False, force_small=False):
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        print(Fri(fri_file))
+        print(ra_exp.fringe_fitting(True, accel))
         ra_exp.fringes2db()
+
+    ra_exp.delete_uvfits()
+
+
+def process_ind_ifs(ra_exp, accel=False, force_small=False):
+    """
+    Do fringe fitting for each IF separatly.
+
+    """
+    ra_exp.load(update_db=True, scan_part=-1, force_small=force_small)
+
+    for polar in ('RR', 'RL', 'LR', 'LL'):
+        ra_exp.pima.set_polar(polar)
+        if_num = ra_exp.pima.exper_info['if_num']
+
+        for ind in range(if_num):
+            ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
+                                    'END_FRQ:': str(ind+1)})
+            fri = ra_exp.fringe_fitting(True, accel)
+            print('IF #{}'.format(ind+1))
+            print(fri)
+            ra_exp.fringes2db()
+
+        # Restore IFs
+        ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
+                                'END_FRQ:': str(if_num)})
 
     ra_exp.delete_uvfits()
 
@@ -82,55 +133,90 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         Directory name for autocorrelation plots.
     accel : bool
         If True, do the parabolic term fitting.
+    force_small : bool
+        Use FITS-IDI with 64 spectral channels only.
 
     """
     # First run on full scan
     ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+    ra_exp.load_antab()
 
+    scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        ra_exp.generate_autospectra(spec_out_dir)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        fri = Fri(fri_file)
+        generate_autospectra(ra_exp.pima, spec_out_dir)
+        fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
-        max_scan_len = fri.max_scan_length()
+        scan_len_list.append(fri.max_scan_length())
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
-            for aver in (0, round(max_scan_len)):
+        if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
+                polar in ('RR', 'LL'):
+            for aver in (0, round(scan_len_list[-1])):
                 ra_exp.split(average=aver)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
     # Second run on a scan half
-    scan_len = round(max_scan_len/2)
+    max_scan_len = max(scan_len_list)
+    scan_len = round(max_scan_len / 2)
     ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2,
                 force_small=force_small)
+    ra_exp.load_antab()
 
+    detections = False
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri_file = ra_exp.fringe_fitting(True, accel)
-        fri = Fri(fri_file)
+        fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
+        if fri.any_detections():
+            detections = True
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
+        if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
+                polar in ('RR', 'LL'):
             ra_exp.split(average=scan_len)
             ra_exp.copy_uvfits(uv_fits_out_dir)
 
     # For good experiments more runs
-    if ra_exp.pima.chan_number() < 512 and ra_exp.calibration_loaded:
-        for scan_part in (3, 4, 5):
-            scan_len = round(max_scan_len / scan_part)
-            ra_exp.load(update_db=False, scan_length=scan_len,
+    if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded:
+        scan_part = 3
+        scan_len = round(max_scan_len / scan_part)
+
+        while scan_len > 100 and detections:
+            ra_exp.load(update_db=True, scan_length=scan_len,
                         scan_part=scan_part, force_small=force_small)
+            ra_exp.load_antab()
+            detections = False
+
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
-                fri_file = ra_exp.fringe_fitting(True, accel)
-                fri = Fri(fri_file)
+                fri = ra_exp.fringe_fitting(True, accel)
                 print(fri)
+                if fri.any_detections():
+                    detections = True
                 ra_exp.fringes2db()
                 ra_exp.split(average=scan_len)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
+
+            scan_part += 1
+            scan_len = round(max_scan_len / scan_part)
+
+    # Special run for ground-ground baselines with 60 s scan length
+    if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
+            detections:
+        scan_part = 100
+        scan_len = 60
+        ra_exp.load(update_db=True, scan_length=scan_len,
+                    scan_part=scan_part, force_small=force_small)
+        ra_exp.load_antab()
+
+        for polar in ('RR', 'LL'):
+            ra_exp.pima.set_polar(polar)
+            fri = ra_exp.fringe_fitting(True, accel)
+            print(fri)
+            ra_exp.fringes2db()
+            ra_exp.split(average=scan_len)
+            ra_exp.copy_uvfits(uv_fits_out_dir)
 
     ra_exp.delete_uvfits()
 
@@ -180,15 +266,11 @@ def main(args):
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
                         default=os.path.join(os.getenv('HOME'),
                                              'pima_auto_split'))
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
 
     # Define and create directory for auto spectrum plot files
     spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR',
                              default=os.path.join(os.getenv('HOME'),
                                                   'pima_autospec'))
-    if not os.path.exists(spec_out_dir):
-        os.mkdir(spec_out_dir)
 
     load_thread = threading.Thread(target=download_it, args=(exp_list,
                                                              args.force_small))
@@ -197,16 +279,29 @@ def main(args):
 
     for ra_exp in exp_list:
         try:
-            if ra_exp.gvlbi:
-                process_gvlbi(ra_exp, not args.no_accel, args.force_small)
+            ra_exp.init_workdir()
+            if args.autospec_only:
+                generate_autospec(ra_exp, spec_out_dir, args.force_small)
+            elif args.individual_ifs:
+                process_ind_ifs(ra_exp, not args.no_accel, args.force_small)
             else:
-                process_radioastron(ra_exp, out_dir, spec_out_dir,
-                                    not args.no_accel, args.force_small)
+                if ra_exp.gvlbi:
+                    process_gvlbi(ra_exp, not args.no_accel, args.force_small)
+                else:
+                    process_radioastron(ra_exp, out_dir, spec_out_dir,
+                                        not args.no_accel, args.force_small)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
+            ra_exp.delete_uvfits()
             continue
         except pypima.raexperiment.Error as err:
             continue
+        except psycopg2.Error as err:
+            logging.error('DBError: %s', err)
+            return 1
+        except OSError as err:
+            logging.error('OSError: %s', err)
+            return 1
         except KeyboardInterrupt:
             logging.warning('KeyboardInterrupt')
             return 1
@@ -227,13 +322,19 @@ if __name__ == '__main__':
                         help='File with list of experiments and bands')
 
     # Optional arguments
+    parser.add_argument('-l', '--log-file', metavar='LOG',
+                        help='log file')
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process ground-only part of the experiments')
     parser.add_argument('--no-accel', action='store_true',
                         help='disable parabolic term fitting')
-    parser.add_argument('-l', '--log-file', metavar='LOG',
-                        help='log file')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--autospec-only', action='store_true',
+                       help='generate autocorrelation spectra only')
+    group.add_argument('--individual-ifs', action='store_true',
+                       help='do fringe fittig for individual IFs')
 
     sys.exit(main(parser.parse_args()))

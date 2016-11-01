@@ -5,6 +5,7 @@ Created on Thu Oct 30 14:23:23 2014
 """
 
 from datetime import datetime, timedelta
+import os.path
 import psycopg2
 
 
@@ -154,70 +155,75 @@ class DB:
 
         return url
 
-    def fri2db(self, fri_file, exper_info, run_id):
+    def fri2db(self, fri, exper_info, run_id):
         """
         Store information from the PIMA fri-file to the database.
 
+        Parameters
+        ----------
+        fri : fri.Fri object
+            PIMA fringe fitting results.
+        exper_info : pima.ExperInfo object
+            Experiment general information.
+        run_id : int
+            Id of the record in the ``pima_runs`` database table.
+
         """
-        if not fri_file:
+        if not fri:
             return
 
         exper = exper_info.exper
         band = exper_info.band
-        polar = fri_file[0]['polar']
+        polar = fri.records[0]['polar']
 
-        query_insert = 'INSERT INTO pima_obs (obs, start_time, \
-stop_time, exper_name, band, source, polar, st1, st2, delay, rate, accel, \
-snr, ampl, solint, u, v, base_ed, ref_freq, scan_name, run_id) \
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, \
-%s, %s, %s, %s);'
+        query = """INSERT INTO pima_obs (obs, start_time, stop_time,
+exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
+solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation,
+bandpass)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+%s, %s, %s, %s, %s, %s, %s, %s);"""
+
+        rec_list = []
+        for rec in fri.records:
+            if rec['FRIB.FINE_SEARCH'] == 'ACC':
+                accel = rec['ph_acc']
+            else:
+                accel = rec['accel']
+
+            # Set IF id to 0 if fringe fitting done over multiple IFs
+            if rec['beg_ifrq'] != rec['end_ifrq']:
+                if_id = 0
+            else:
+                if_id = rec['beg_ifrq']
+
+            rec_list.append((rec['obs'],
+                             rec['start_time'],
+                             rec['stop_time'],
+                             exper,
+                             band,
+                             rec['source'],
+                             polar,
+                             rec['sta1'],
+                             rec['sta2'],
+                             rec['delay'],
+                             rec['rate'],
+                             accel,
+                             rec['SNR'],
+                             rec['ampl_lsq'],
+                             rec['duration'],
+                             rec['U'],
+                             rec['V'],
+                             rec['uv_rad_ed'],
+                             rec['ref_freq'],
+                             rec['time_code'],
+                             run_id,
+                             if_id,
+                             rec['status'],
+                             rec['elevation'],
+                             fri.aux['bandpass']))
 
         with self.connw.cursor() as cur:
-            for rec in fri_file:
-                if rec['FRIB.FINE_SEARCH'] == 'ACC':
-                    accel = rec['ph_acc']
-                else:
-                    accel = rec['accel']
-
-                cur.execute(query_insert, (rec['obs'],
-                                           rec['start_time'],
-                                           rec['stop_time'],
-                                           exper,
-                                           band,
-                                           rec['source'],
-                                           polar,
-                                           rec['sta1'],
-                                           rec['sta2'],
-                                           rec['delay'],
-                                           rec['rate'],
-                                           accel,
-                                           rec['SNR'],
-                                           rec['ampl_lsq'],
-                                           rec['duration'],
-                                           rec['U'],
-                                           rec['V'],
-                                           rec['uv_rad_ed'],
-                                           rec['ref_freq'],
-                                           rec['time_code'],
-                                           run_id))
-
-            # Update status of the observations
-            query_update = 'UPDATE pima_obs SET status = %s WHERE \
-run_id = %s AND polar = %s AND snr <= %s;'
-            cur.execute(query_update, ('n', run_id, polar, 5.3))
-
-            query_update = """
-            UPDATE pima_obs SET status = %s
-            WHERE run_id = %s AND polar = %s AND snr > %s AND
-            abs(delay) < %s AND abs(rate) < %s;
-            """
-            if exper_info.sp_chann_num <= 128:
-                # delay < 1 us
-                cur.execute(query_update, ('y', run_id, polar, 5.7,
-                                           1e-6, 1e-11))
-            else:
-                cur.execute(query_update, ('y', run_id, polar, 7.0,
-                                           30e-6, 4e-10))
+            cur.executemany(query, rec_list)
 
         self.connw.commit()
 
@@ -227,7 +233,7 @@ run_id = %s AND polar = %s AND snr <= %s;'
 
         Returns
         -------
-        rec_id : int
+        run_id : int
             Id of inserted record.
 
         Notes
@@ -246,13 +252,13 @@ exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;'
 proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
             cursor.execute(query, (exper, band, datetime.now(), uv_fits,
                                    scan_part))
-            rec_id = cursor.fetchone()[0]
+            run_id = cursor.fetchone()[0]
 
         self.connw.commit()
 
-        return rec_id
+        return run_id
 
-    def update_exper_info(self, exper_info, rec_id):
+    def update_exper_info(self, exper_info, run_id):
         """
         Add extended experiment information to the DB.
 
@@ -275,22 +281,23 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         WHERE id = %s
         '''
 
+        utc_tai = timedelta(seconds=exper_info['utc_minus_tai'])
         with self.connw.cursor() as cursor:
-            cursor.execute(query, (exper_info.sp_chann_num,
-                                   exper_info.time_epochs_num,
-                                   exper_info.scans_num,
-                                   exper_info.obs_num,
-                                   exper_info.uv_points_num,
-                                   exper_info.uv_points_used_num,
-                                   exper_info.deselected_points_num,
-                                   exper_info.no_auto_points_num,
-                                   exper_info.accum_length,
-                                   timedelta(seconds=exper_info.utc_minus_tai),
-                                   exper_info.nominal_start,
-                                   exper_info.nominal_end,
-                                   exper_info.hostname,
-                                   exper_info.pima_version,
-                                   rec_id))
+            cursor.execute(query, (exper_info['sp_chann_num'],
+                                   exper_info['time_epochs_num'],
+                                   exper_info['scans_num'],
+                                   exper_info['obs_num'],
+                                   exper_info['uv_points_num'],
+                                   exper_info['uv_points_used_num'],
+                                   exper_info['deselected_points_num'],
+                                   exper_info['no_auto_points_num'],
+                                   exper_info['accum_length'],
+                                   utc_tai,
+                                   exper_info['nominal_start'],
+                                   exper_info['nominal_end'],
+                                   exper_info['hostname'],
+                                   exper_info['pima_version'],
+                                   run_id))
 
         self.connw.commit()
 
@@ -328,3 +335,51 @@ VALUES (%s, %s, %s, %s, %s, %s, %s);'
                 cursor.execute(query, parameters)
 
         self.connw.commit()
+
+    def uvfits2db(self, fits_file, b1950_name, run_id):
+        """
+        Parameters
+        ----------
+        fits_file : UVFits object
+            UV-FITS file object.
+        b1950_name : str
+            B1950 source name.
+        run_id : int
+            Id of the record in ``pima_runs`` table.
+
+        """
+        data = []
+        file_name = os.path.basename(fits_file.file_name)
+
+        for ind in range(fits_file.gcount):
+            time = fits_file.dates[ind]  # As datetime.datetime object
+            ant1_name, ant2_name = fits_file.get_ant_by_ind(ind)
+            inttime = float(fits_file.inttime[ind])
+
+            for if_ind in range(fits_file.no_if):
+                flux = float(fits_file.amplitudes[ind, if_ind])
+                weight = float(fits_file.weights[ind, if_ind])
+
+                if weight <= 0:
+                    continue
+
+                freq = float(fits_file.freq +
+                             fits_file.freq_table[if_ind]['if_freq'])
+                uu = float(fits_file.u_raw[ind])
+                vv = float(fits_file.v_raw[ind])
+
+                row = (ind+1, time, if_ind+1, b1950_name, fits_file.exper_name,
+                       fits_file.band, fits_file.stokes, ant1_name, ant2_name,
+                       uu, vv, freq, flux, weight, inttime, file_name, run_id)
+                data.append(row)
+
+        query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
+band, polar, sta1, sta2, u, v, freq, ampl, weight, inttime, file_name, run_id)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+
+        if data:
+            with self.connw.cursor() as cur:
+                cur.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
+                            (file_name, ))
+                cur.executemany(query, data)
+            self.connw.commit()

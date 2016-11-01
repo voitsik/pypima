@@ -6,21 +6,17 @@ Created on Sun Dec 29 04:02:35 2013
 """
 
 from datetime import datetime
-import glob
 from io import BytesIO
 import logging
 import os.path
 import pycurl
 import shutil
-# import sys
-from tempfile import NamedTemporaryFile
 import threading
-# import time
-
 
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
+from pypima.uvfits import UVFits
 
 
 class Error(Exception):
@@ -29,7 +25,7 @@ class Error(Exception):
         self.exper = exper
         self.band = band
         self.msg = msg
-        self.time = str(datetime.now())
+        # self.time = str(datetime.now())
 
     def __str__(self):
         return '{}({}): {}'.format(self.exper, self.band, self.msg)
@@ -47,20 +43,20 @@ class RaExperiment:
         experiment_code : str
             Experiment code.
         band : srt
-            One letter frequency bad code.
+            One letter frequency band code.
         data_base : pypima.db.DB
             pypima.db.DB instance.
         data_dir : str, optional
-            Directory from FITS-IDI. If `None` working directory of the current
-            experiment is used.
+            Directory for FITS-IDI. If ``None`` working directory of the
+            current experiment is used.
         uv_fits : str, optional
-            Path to the data file (FITS-IDI). If `None` get a file name from
-            data base and download file from the FTP archive.
+            Path to the data file (FITS-IDI). If ``None`` (default) get a file
+            name from data base and download file from the FTP archive.
         orbit : str, optional
-            Path to a file with reconstracted orbit. If `None` download it from
-            the FTP archive.
+            Path to a file with reconstructed orbit. If ``None`` (default),
+            download it from the FTP archive.
         gvlbi : bool, optional
-            If `True`, process ground only of part of the experiment (GVLBI
+            If ``True``, process ground only of part of the experiment (GVLBI
             FITS file).
 
         """
@@ -73,6 +69,14 @@ class RaExperiment:
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
         self.logger = logging.getLogger('{}({})'.format(self.exper, self.band))
+        self.antab = None
+        self.antab_downloaded = False
+        self.calibration_loaded = False
+        self.split_time_aver = 0
+        self.pima = None
+        self.uv_fits = uv_fits
+        self.orbit = orbit
+        self.fri = None  # Result of last fringe fitting
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -84,53 +88,49 @@ class RaExperiment:
 
         self.pima_scr = os.getenv('pima_scr_dir')
 
-        # Create working directory and symlink
+        # Work directory path
         self.work_dir = os.path.join(self.exp_dir, self.exper + '_auto')
         if self.gvlbi:
             self.work_dir += '_gvlbi'
-        if not os.path.exists(self.work_dir):
-            os.mkdir(self.work_dir)
 
-#        work_dir_link = os.path.join(self.exp_dir, self.exper)
-#        if os.path.islink(work_dir_link):
-#            os.remove(work_dir_link)
-#        elif os.path.exists(work_dir_link):
-#            os.rename(work_dir_link, work_dir_link + '_bak')
-#
-#        os.symlink(os.path.basename(work_dir), work_dir_link)
-#
-#        self.work_dir = work_dir_link
-        os.chdir(self.work_dir)
-
-        # Make directory for antabs
-        antab_dir = os.path.join(self.work_dir, 'antab')
-        if not os.path.exists(antab_dir):
-            os.mkdir(antab_dir)
-        self.antab = None
-        self.antab_downloaded = False
-        self.calibration_loaded = False
+        #  Select directory for raw data from a correlator
+        if data_dir:
+            self.data_dir = os.path.join(data_dir, self.exper)
+        else:
+            self.data_dir = self.work_dir
 
         # PIMA control file path
         self.cnt_file_name = os.path.join(self.work_dir, '{}_{}_pima.cnt'.
                                           format(self.exper, self.band))
 
-        # Prepare data paths
-        self.uv_fits = uv_fits
-        self.orbit = orbit
+    def init_workdir(self):
+        """
+        Create working directory and PIMA control file.
 
-        #  Select directory for raw data from a correlator
-        if data_dir:
-            self.data_dir = data_dir
-        else:
-            self.data_dir = self.work_dir
+        """
+        # Create work directory
+        os.makedirs(self.work_dir, exist_ok=True)
+
+        os.chdir(self.work_dir)
 
         # Create PIMA control file
         self._mk_cnt()
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
 
-        #
-        self.split_time_aver = 0
+        # Only one sideband at P-band
+        if self.band == 'p':
+            self.pima.update_cnt({'END_FRQ:': '1'})
+
+        # Restrict delay rate window to +- 12 cm/s
+        self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
+
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        if os.path.isdir(staging_dir):
+            staging_dir = os.path.join(staging_dir, self.exper)
+            if not os.path.exists(staging_dir):
+                os.mkdir(staging_dir)
+            self.pima.update_cnt({'STAGING_DIR:': staging_dir})
 
     def _print_info(self, msg):
         """Print some information"""
@@ -138,7 +138,7 @@ class RaExperiment:
 
     def _print_warn(self, msg):
         """Print warning"""
-        self.logger.warn(msg)
+        self.logger.warning(msg)
 
     def _error(self, msg):
         """Raise pima.Error exception"""
@@ -196,7 +196,7 @@ class RaExperiment:
         Download FITS-file from the FTP archive.
 
         """
-        data_dir = os.path.join(self.data_dir, self.exper)
+        # data_dir = os.path.join(self.data_dir, self.exper)
         fits_url, size, ftp_user = self.db.get_uvfits_url(self.exper,
                                                           self.band,
                                                           self.gvlbi,
@@ -206,15 +206,14 @@ class RaExperiment:
             self._error('Could not find FITS file name in DB')
 
         # Delete spaces in filename
-        uv_fits = os.path.join(data_dir, os.path.basename(fits_url).
-                               replace(' ', ''))
+        uv_fits = os.path.join(self.data_dir,
+                               os.path.basename(fits_url).replace(' ', ''))
 
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
-            self._print_info('File {} already exists'.format(uv_fits))
+            self.logger.info('File %s already exists', uv_fits)
         else:
-            if not os.path.isdir(data_dir):
-                os.makedirs(data_dir)
-            self._print_info('Start downloading file {}...'.format(fits_url))
+            os.makedirs(self.data_dir, exist_ok=True)
+            self.logger.info('Start downloading file %s...', fits_url)
             try:
                 with open(uv_fits, 'wb') as fil:
                     _download_it(fits_url, fil, max_retries=2,
@@ -223,9 +222,7 @@ class RaExperiment:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))
 
-            self._print_info('FITS-file downloading is complete')
-
-        self.pima.update_cnt({'UV_FITS:': uv_fits})
+            self.logger.info('FITS-file downloading is complete')
 
         # We use self.uv_fits as a flag of FITS file existence, so set it at
         # the end of this function
@@ -286,7 +283,10 @@ class RaExperiment:
         if not antab_url:
             self._print_warn('Could not get ANTAB-file url from DB.')
         else:
-            antab_file = os.path.join(self.work_dir, 'antab',
+            antab_dir = os.path.join(self.work_dir, 'antab')
+            os.makedirs(antab_dir, exist_ok=True)
+
+            antab_file = os.path.join(antab_dir,
                                       os.path.basename(antab_url) + '.orig')
             self._print_info('Start downloading file {}'.format(antab_url))
             try:
@@ -316,6 +316,7 @@ class RaExperiment:
             return new_antab
 
         freq_setup = self.pima.frequencies()
+        freq_list = [1e-6 * freq['freq'] for freq in freq_setup]
 
         # Should we fix frequency setup?
         fix_freq = False
@@ -337,6 +338,10 @@ first line'.format(antab))
             for line in inp:
                 line = line.strip()
 
+                # Skip empty lines
+                if not line:
+                    continue
+
                 if line.startswith('POLY') and line.endswith('/'):
                     line = line.replace('/', ' /')
                 elif line.startswith('GAIN WB'):
@@ -351,11 +356,12 @@ first line'.format(antab))
                 # VLA (raes11a and friends)
                 if 'YY' in sta_list and 'Y27' in line:
                     line = line.replace('Y27', 'YY')
+                elif 'KZ' in sta_list and 'KL' in line:
+                    line = line.replace('KL', 'KZ')
+                elif 'EF' in sta_list and 'EB' in line:
+                    line = line.replace('EB', 'EF')
 
                 toks = line.split()
-
-                if len(toks) == 0:
-                    continue
 
                 # Fix EF C-band channels table
                 if len(toks) == 10 and toks[0] == '!' and toks[1].isdigit():
@@ -364,8 +370,7 @@ first line'.format(antab))
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == 'L':
                         toks[6] = 'U'
-                        toks[9] = '{:.2f}MHz'.format(
-                            freq_setup[0]['freq'] * 1e-6)
+                        toks[9] = '{:.2f}MHz'.format(freq_list[0])
 
                 # Deselect stations
                 if toks[0] == 'TSYS' and len(toks) > 4:
@@ -386,9 +391,7 @@ first line'.format(antab))
                             fr1, fr2 = tok.replace('FREQ=', '').split(',')
                             fr1 = float(fr1)  # Lower limit
                             fr2 = float(fr2)  # Upper limit
-                            # Central frequency
-                            freq = freq_setup[1]['freq'] * 1e-6
-                            if freq < fr1 or freq > fr2:
+                            if min(freq_list) < fr1 or max(freq_list) > fr2:
                                 toks.insert(0, '!')
                                 break
 
@@ -407,9 +410,9 @@ first line'.format(antab))
         Parameters
         ----------
         download_only : bool, optional
-            If True, download FITS-file and return.
+            If ``True``, download FITS-file and return.
         update_db : bool, optional
-            If True, update database with experiment information.
+            If ``True``, update database with experiment information.
         scan_length : float, optional
             Set maximum length of scan. Default is 20 min.
         scan_part : int, optional
@@ -417,8 +420,6 @@ first line'.format(antab))
             used as run index.
 
         """
-        os.chdir(self.work_dir)
-
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
             if self.uv_fits is None:
@@ -427,20 +428,15 @@ first line'.format(antab))
         if download_only:
             return
 
+        self.pima.update_cnt({'UV_FITS:': self.uv_fits})
+
         if self.orbit is None:
             self._get_orbit()
-
-        # Only one sideband at P-band
-        if self.band == 'p':
-            self.pima.update_cnt({'END_FRQ:': '1'})
 
         # Set maximum scan length
         self._print_info('Set maximum scan length to {} s'.format(scan_length))
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
-
-        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
-        self.pima.update_cnt({'STAGING_DIR:': staging_dir})
 
         if update_db:
             self.run_id = self.db.add_exper_info(self.exper, self.band,
@@ -482,13 +478,18 @@ first line'.format(antab))
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
-        # TODO: Set reasonable SNR detection limit
-        if self.band == 'k':
-            det_limit = 5.9
+        if scan_part:
+            self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'TXT',
+                                  'FRIB.1D_RESTIM_PLOT:': 'TXT'})
         else:
-            det_limit = 5.7
-        self.pima.update_cnt({'FRIB.SNR_DETECTION:': det_limit})
+            self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'NO',
+                                  'FRIB.1D_RESTIM_PLOT:': 'NO'})
 
+    def load_antab(self):
+        """
+        Download ANTAB file and load calibration information to PIMA.
+
+        """
         # Always download antab-file.
         if not self.antab_downloaded:
             self._get_antab()
@@ -509,7 +510,8 @@ first line'.format(antab))
 
         Parameters
         ----------
-        fri : pypima.fri.Fri
+        fri : ``Fri`` object
+            ``PIMA`` fringe fitting results as ``Fri`` object.
 
         """
         snr_detecton = float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
@@ -519,21 +521,21 @@ first line'.format(antab))
 
         if obs:
             if obs['SNR'] < snr_detecton:
-                self._print_warn('SNR is too low on space baseline for \
-bandpass: ' + str(obs['SNR']))
+                self.logger.debug('SNR is too low on space baseline for \
+bandpass: %s', obs['SNR'])
             else:
                 if obs['sta1'] == 'RADIO-AS':
                     self.sta_ref = obs['sta2']
                 elif obs['sta2'] == 'RADIO-AS':
                     self.sta_ref = obs['sta1']
         else:
-            self._print_info('There is no scans with RADIO-AS')
+            self._print_info('No scans with RADIO-AS')
 
         if not self.sta_ref:
             obs = fri.max_snr()
             if obs['SNR'] < snr_detecton:
-                self._print_warn('SNR is too low for bandpass: ' +
-                                 str(obs['SNR']))
+                self.logger.debug('SNR is too low for bandpass: %s',
+                                  obs['SNR'])
             else:
                 good_stations = ['ARECIBO', 'GBT-VLBA', 'EFLSBERG']
                 for sta in good_stations:
@@ -544,13 +546,12 @@ bandpass: ' + str(obs['SNR']))
                     self.sta_ref = obs['sta1']
 
         if self.sta_ref:
-            snr = min(10.0, obs['SNR']-0.1)
+            snr = round(min(10.0, obs['SNR']-0.1), 1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': str(snr),
                                   'BPS.SNR_MIN_FINE:': str(snr)})
-            self._print_info('new reference station is {}'.
-                             format(self.sta_ref))
-            self._print_info('set SNR_MIN to {:.1f}'.format(snr))
+            self.logger.info('New reference station is %s', self.sta_ref)
+            self.logger.info('Set SNR_MIN for bandpass to %s', snr)
             return True
         else:
             return False
@@ -562,21 +563,28 @@ bandpass: ' + str(obs['SNR']))
         Parameters
         ----------
         bandpass : bool, optional
-            If True try to do bandpass calibration. Default is False.
+            If ``True`` try to do bandpass calibration. Default is ``False``.
 
         accel : boot, optional
-            If True turn on phase acceleration fitting.
+            If ``True`` turn on phase acceleration fitting.
 
         Returns
         -------
-        fri_file : str
-            Name of the PIMA fri-file.
+        fri : ``Fri`` object
+            Fringe fitting results as ``Fri`` object.
 
         """
         if accel:
-            self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC',
-                                  'PHASE_ACCEL_MIN:': '-1.D-14',
-                                  'PHASE_ACCEL_MAX:': '1.D-14'})
+            self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'ACC'})
+            if self.band == 'l':
+                self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-1.D-13',
+                                      'PHASE_ACCEL_MAX:': '1.D-13'})
+            elif self.band == 'k':
+                self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-5.D-15',
+                                      'PHASE_ACCEL_MAX:': '5.D-15'})
+            else:
+                self.pima.update_cnt({'PHASE_ACCEL_MIN:': '-1.D-14',
+                                      'PHASE_ACCEL_MAX:': '1.D-14'})
         else:
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'LSQ',
                                   'PHASE_ACCEL_MIN:': '0',
@@ -591,7 +599,10 @@ bandpass: ' + str(obs['SNR']))
             fri_file = self.pima.coarse()
             fri = Fri(fri_file)
             if not fri:
-                self._error('fri-file is empty after coarse.')
+                self._error('PIMA fri-file is empty after coarse.')
+
+            # Detection limit for bandpass calibration
+            self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
 
             # Now auto select reference station
             if self._select_ref_sta(fri):
@@ -604,12 +615,31 @@ bandpass: ' + str(obs['SNR']))
                     except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+                        bandpass = False
+            else:
+                self.logger.info('skip bandpass due to absence of the useful \
+scans')
+                bandpass = False
 
-        return self.pima.fine()
+        fri_file = self.pima.fine()
+        self.fri = Fri(fri_file)
+        self.fri.aux['bandpass'] = bandpass
+
+        if not self.fri:
+            self.logger.warning('PIMA fri-file is empty after fine')
+        else:
+            if self.pima.exper_info['sp_chann_num'] <= 128:
+                ch_num = 64
+            else:
+                ch_num = 2048
+
+            self.fri.update_status(ch_num)
+
+        return self.fri
 
     def split(self, source=None, average=0):
         """
-        Do SPLIT.
+        Split a multi-source uv data set into single-source data files.
 
         Parameters
         ----------
@@ -621,12 +651,28 @@ bandpass: ' + str(obs['SNR']))
             disables time averaging.
 
         """
+        # Delete old uv-fits remained from previous run
+        exper_dir = self.pima.cnt_params['EXPER_DIR:']
+        sess_code = self.pima.cnt_params['SESS_CODE:']
+        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
+
+        if os.path.isdir(pima_fits_dir):
+            shutil.rmtree(pima_fits_dir)
+
         if not self.calibration_loaded:
-            self._print_warn('Could not do split due to absence of \
+            self.logger.warning('Could not do splitting due to absence of \
 calibartion information')
             return
 
-        split_params = []
+        if not self.fri.any_detections():
+            self.logger.warning('No useful scans for splitting')
+            return
+
+        # TODO: Set reasonable SNR detection limit
+        snr_detection = min(7.0, self.fri.min_detected_snr()-0.05)
+        self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
+        split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
+
         time_segments = 1
 
         if source:
@@ -639,22 +685,11 @@ calibartion information')
             time_segments = round(average / ap)
 
         self.split_time_aver = time_segments * ap
-
-        exper_dir = self.pima.cnt_params['EXPER_DIR:']
-        sess_code = self.pima.cnt_params['SESS_CODE:']
-        pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
-
-        # Delete old uv-fits remained from previous run
-        if os.path.isdir(pima_fits_dir):
-            old_uvfits = glob.glob(pima_fits_dir + '/*')
-            for fil in old_uvfits:
-                os.remove(fil)
-
         self.pima.split(tim_mseg=time_segments, params=split_params)
 
     def copy_uvfits(self, out_dir):
         """
-        Copy splited uv-fits from pima scratch dir to out_dir
+        Copy calibrated uv-fits files from pima scratch dir to out_dir.
 
         """
         exper_dir = self.pima.cnt_params['EXPER_DIR:']
@@ -687,8 +722,7 @@ calibartion information')
                 b1950_name = '0851+202'
 
             out_fits_dir = os.path.join(out_dir, b1950_name)
-            if not os.path.isdir(out_fits_dir):
-                os.mkdir(out_fits_dir)
+            os.makedirs(out_fits_dir, exist_ok=True)
 
             out_fits_name = \
                 '{}_{}_{}_{}_{:04d}s_uva.fits'.format(b1950_name,
@@ -702,22 +736,21 @@ calibartion information')
                                                     out_fits_path))
             shutil.copy(pima_fits_path, out_fits_path)
 
-            # Run `fits_to_radplot`
-            pypima.pima.fits_to_txt(out_fits_path)
+            # Run `fits_to_radplot` only for averaged uv-fits
+            if self.split_time_aver > 1:
+                pypima.pima.fits_to_txt(out_fits_path)
+
+                if self.run_id > 0:
+                    with UVFits(out_fits_path) as uvfits_file:
+                        self.db.uvfits2db(uvfits_file, b1950_name, self.run_id)
 
     def fringes2db(self):
         """
         Put fringe fitting information to the database.
 
         """
-        if self.run_id <= 0:
-            return
-
-        fri_file = self.pima.cnt_params['FRINGE_FILE:']
-        if not os.path.isfile(fri_file):
-            return
-
-        self.db.fri2db(Fri(fri_file), self.pima.exper_info, self.run_id)
+        if self.run_id > 0 and self.fri:
+            self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
 
     def delete_uvfits(self):
         """
@@ -727,44 +760,9 @@ calibartion information')
         if os.path.isfile(self.uv_fits):
             os.remove(self.uv_fits)
 
-    def generate_autospectra(self, out_dir):
-        """
-        Plot autospectra for each station for each scan.
-
-        """
-        # Sometimes PIMA crashes on `acta` task
-        try:
-            file_list = self.pima.acta()
-        except pypima.pima.Error as err:
-            print('PIMA Error: ', err)
-
-            # Remove core dump file.
-            if os.path.isfile('core'):
-                os.remove('core')
-
-            return
-
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-
-        polar = self.pima.cnt_params['POLAR:']
-        plot_dir = '{}_{}_{}'.format(self.exper, self.band, polar)
-
-        # Check destination
-        final_dir = os.path.join(out_dir, plot_dir)
-        if os.path.exists(final_dir):
-            shutil.rmtree(final_dir)
-        os.mkdir(final_dir)
-
-        for txt_path in file_list:
-            with NamedTemporaryFile(suffix='.gif', delete=False) as tmp:
-                tmp_plot_name = tmp.name
-            pypima.pima.acta_plot(txt_path, tmp_plot_name)
-
-            plot_name = os.path.basename(txt_path).replace('.txt', '.gif')
-            plot_path = os.path.join(final_dir, plot_name)
-            shutil.move(tmp_plot_name, plot_path)
-            os.chmod(plot_path, 0o644)  # Read access from all
+        staging_dir = self.pima.cnt_params['STAGING_DIR:']
+        if os.path.isdir(staging_dir):
+            shutil.rmtree(staging_dir)
 
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):

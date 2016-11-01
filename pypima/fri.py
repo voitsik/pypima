@@ -11,6 +11,53 @@ import math
 ED = 2. * 6371e5  # Earth diameter
 C = 2.99792458e10  # Speed of light
 
+SNR_LIMITS = {
+    # PFD =                 1e-2  1e-3  1e-4  1e-5
+    # L-band
+    ('l', 64, 1.0, 285):    [5.4, 5.9, 6.3, 6.8],  # 10493 points
+    ('l', 64, 1.0, 570):    [5.5, 5.9, 6.2, 6.6],  # 11847 points
+    ('l', 64, 1.0, 870):    [5.6, 6.0, 6.3, 6.7],  # 10107 points
+    ('l', 64, 1.0, 1170):   [5.7, 6.1, 6.4, 6.7],  # 1935 points
+
+    ('l', 2048, 0.25, 285):   [5.7, 6.0, 6.4, 6.7],
+    ('l', 2048, 0.25, 570):   [5.9, 6.2, 6.6, 6.9],
+    ('l', 2048, 0.25, 870):   [6.1, 6.5, 6.9, 7.2],
+    ('l', 2048, 0.25, 1170):  [6.1, 6.5, 6.8, 7.1],
+
+    # C-band
+    ('c', 64, 0.5, 285):    [5.2, 5.6, 6.0, 6.3],
+    ('c', 64, 0.5, 570):    [5.4, 5.8, 6.1, 6.5],
+    ('c', 64, 0.5, 870):    [5.6, 5.9, 6.2, 6.6],
+    ('c', 64, 0.5, 1170):   [5.7, 6.0, 6.3, 6.6],
+
+    ('c', 2048, 0.125, 285):  [5.8, 6.1, 6.5, 6.8],
+    ('c', 2048, 0.125, 570):  [6.1, 6.4, 6.7, 7.0],
+    ('c', 2048, 0.125, 870):  [6.2, 6.5, 6.8, 7.1],
+    ('c', 2048, 0.125, 1170): [6.3, 6.6, 6.9, 7.2],
+
+    # K-band
+    ('k', 64, 0.125, 285):  [5.5, 5.9, 6.2, 6.5],
+    ('k', 64, 0.125, 570):  [5.8, 6.1, 6.4, 6.7],
+    ('k', 64, 0.125, 870):  [5.9, 6.3, 6.6, 6.9],
+    ('k', 64, 0.125, 1170): [6.0, 6.3, 6.7, 7.0],
+
+    ('k', 2048, 0.125, 285):    [6.0, 6.3, 6.6, 6.9],  # 17893 points
+    ('k', 2048, 0.125, 570):    [6.2, 6.5, 6.8, 7.1],  # 10867 points
+    ('k', 2048, 0.125, 870):    [6.3, 6.6, 6.9, 7.2],  # 5131 points
+    ('k', 2048, 0.125, 1170):   [6.4, 6.7, 7.0, 7.3],  # 595 points
+    ('k', 2048, 0.015625, 570): [6.5, 6.8, 7.1, 7.5],  # 731 points
+
+    #
+    ('p', 64): [5.5, 5.9, 6.2, 6.6],
+    ('p', 2048): [6.0, 6.3, 6.8, 7.0],
+    ('l', 64): [5.5, 5.9, 6.2, 6.6],
+    ('l', 2048): [6.0, 6.3, 6.8, 7.0],
+    ('c', 64): [5.5, 5.8, 6.1, 6.5],
+    ('c', 2048): [6.1, 6.4, 6.7, 7.0],
+    ('k', 64): [5.7, 6.1, 6.4, 6.7],
+    ('k', 2048): [6.3, 6.6, 6.9, 7.2]
+}
+
 
 # PIMA fri-file obs fields
 #  0 -> Obs #
@@ -27,10 +74,13 @@ C = 2.99792458e10  # Speed of light
 # 31 -> Ph_rat_lsq value
 # 37 -> Ph_acc value
 # 79 -> Duration of scan
+# 82 -> AP_len
 # 84 -> U
 # 85 -> V
+# 89 -> Elevation of sta1
+# 90 -> Elevation of sta2
 # 94 -> Reference frequency
-class Fri(object):
+class Fri():
     """
     This class represents PIMA fringe file.
 
@@ -41,7 +91,7 @@ class Fri(object):
 
     def __init__(self, file_name=None):
         self.records = []
-        self.index = 0
+        self.aux = {}  # Auxiliary user defined parameters
 
         if file_name:
             self.parse_file(file_name)
@@ -89,8 +139,12 @@ class Fri(object):
                         header['FRIB.FINE_SEARCH'] = toks[-1]
                     elif toks[1] == 'PHASE_ACCELERATION:':
                         header['accel'] = float(toks[2].replace('D', 'e'))
+                    elif toks[1] == 'FRIB.BEG_IFRQ:':
+                        header['beg_ifrq'] = int(toks[2])
+                    elif toks[1] == 'FRIB.END_IFRQ:':
+                        header['end_ifrq'] = int(toks[2])
                 elif toks[6] != 'FAILURE':
-                    self.records.append({})
+                    self.records.append({'status': 'u'})
                     self.records[-1].update(header)
                     self.records[-1]['obs'] = int(toks[0])
                     self.records[-1]['scan'] = int(toks[1])
@@ -116,12 +170,16 @@ class Fri(object):
                         float(toks[37].replace('D', 'e'))
                     self.records[-1]['duration'] = \
                         float(toks[79].replace('D', 'e'))
+                    self.records[-1]['ap_len'] = \
+                        float(toks[82].replace('D', 'e'))
                     self.records[-1]['U'] = \
                         float(toks[84].replace('D', 'e'))
                     self.records[-1]['V'] = \
                         float(toks[85].replace('D', 'e'))
                     self.records[-1]['ref_freq'] = \
                         float(toks[94].replace('D', 'e'))
+                    self.records[-1]['elevation'] = \
+                        [float(toks[89]), float(toks[90])]
                     # Calculated parameters
                     # UV-radius in lambda
                     self.records[-1]['uv_rad'] = math.hypot(
@@ -133,6 +191,62 @@ class Fri(object):
                     # UV-radius in Earth diameters
                     self.records[-1]['uv_rad_ed'] = \
                         self.records[-1]['uv_rad'] * wave_len / ED
+
+    def update_status(self, ch_num):
+        """
+        Update observations statuses acording to PFD.
+
+        Parameters
+        ----------
+        ch_num : int
+            Number of spectral channels.
+
+        Notes
+        -----
+            This function is useful only for RadioAstron AGN survey.
+
+        """
+        if not self.records:
+            return
+
+        accum_length = self.records[0]['ap_len']
+
+        # Check if Session code in RA AGN survey format
+        if '_' not in self.records[0]['session_code']:
+            return
+
+        band = self.records[0]['session_code'].split('_')[1]
+
+        max_scan_len = self.max_scan_length()
+        if max_scan_len <= 300:
+            scan_length = 285
+        elif max_scan_len <= 600:
+            scan_length = 570
+        elif max_scan_len <= 900:
+            scan_length = 870
+        else:
+            scan_length = 1170
+
+        try:
+            snr_det_limits = SNR_LIMITS[band, ch_num, accum_length,
+                                        scan_length]
+        except KeyError:
+            snr_det_limits = SNR_LIMITS[band, ch_num]
+
+        for rec in self.records:
+            if ch_num == 64 and abs(rec['delay']) < 5e-7 and \
+                    abs(rec['rate']) < 1e-12:
+                if rec['SNR'] >= snr_det_limits[1]:  # PFD = 1e-3
+                    rec['status'] = 'y'
+            else:
+                if rec['SNR'] < snr_det_limits[0]:  # PFD = 1e-2
+                    rec['status'] = 'n'
+                elif rec['SNR'] >= snr_det_limits[2]:  # PFD = 1e-4
+                    rec['status'] = 'y'
+
+                # Additional check for fringe rate
+                if abs(rec['rate']) > 5e-10 and rec['status'] == 'y':
+                    rec['status'] = 'u'
 
     def rec_by_obs(self, obs):
         """
@@ -212,6 +326,26 @@ class Fri(object):
 
         return max_len
 
+    def min_detected_snr(self):
+        """
+        Return minimum SNR of obsevations with detection status = 'y'.
+
+        """
+        if self.records:
+            result = min([rec['SNR'] for rec in self.records
+                          if rec['status'] == 'y'])
+        else:
+            result = 0
+
+        return result
+
+    def any_detections(self):
+        """
+        Return ``True`` if there is at least one observation with status 'y'.
+
+        """
+        return 'y' in [rec['status'] for rec in self.records]
+
     def append(self, rec):
         """
         Append fri-file record to the end of the list.
@@ -228,33 +362,25 @@ Rate      Accel      Base   Base  Length\n"
                 accel = rec['ph_acc']
 
             line = '{:>3}{:>10} {:>8} {:>8}/{:>8} {:8.2f} {:8.3f} \
-{:10.3e} {:9.2e} {:8.2f} {:5.1f} {:6.1f}\n'.format(rec['obs'],
-                                                   rec['time_code'],
-                                                   rec['source'],
-                                                   rec['sta1'],
-                                                   rec['sta2'],
-                                                   rec['SNR'],
-                                                   1e6 * rec['delay'],
-                                                   rec['rate'],
-                                                   accel,
-                                                   1e-6 * rec['uv_rad'],
-                                                   rec['uv_rad_ed'],
-                                                   rec['duration'])
+{:10.3e} {:9.2e} {:8.2f} {:5.1f} {:6.1f} {:>1}\n'.format(rec['obs'],
+                                                         rec['time_code'],
+                                                         rec['source'],
+                                                         rec['sta1'],
+                                                         rec['sta2'],
+                                                         rec['SNR'],
+                                                         1e6 * rec['delay'],
+                                                         rec['rate'],
+                                                         accel,
+                                                         1e-6 * rec['uv_rad'],
+                                                         rec['uv_rad_ed'],
+                                                         rec['duration'],
+                                                         rec['status'])
             out = out + line
 
         return out
 
-    def __iter__(self):
-        return self
-
     def __getitem__(self, ind):
         return self.records[ind]
-
-    def __next__(self):
-        if self.index == len(self.records):
-            raise StopIteration
-        self.index = self.index + 1
-        return self.records[self.index - 1]
 
     def __len__(self):
         return len(self.records)

@@ -1,3 +1,27 @@
+-- psql ra_results
+
+CREATE TABLE vex_files (
+    file_name varchar(32),
+    exper_name varchar(32) primary key,
+    exper_description varchar(128),
+    PI_name varchar(64),
+    PI_email varchar(64),
+    exper_nominal_start timestamp,
+    exper_nominal_stop timestamp
+);
+GRANT SELECT ON vex_files TO guest;
+
+CREATE TABLE sources (
+  IVS_name varchar(20) primary key,
+  J2000_name varchar(20),
+  B1950_name varchar(20),
+  aips_name varchar(20),
+  coordinates point not null,
+  comments text,
+  z real DEFAULT 0.0
+);
+GRANT SELECT ON sources TO guest;
+
 CREATE TABLE pima_runs (
   id SERIAL PRIMARY KEY,
   exper_name varchar(20) references vex_files(exper_name),
@@ -29,6 +53,9 @@ GRANT SELECT ON pima_runs TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON pima_runs TO editor;
 GRANT USAGE, SELECT ON SEQUENCE pima_runs_id_seq TO editor;
 
+--
+-- PIMA observations and fringe fitting results
+--
 CREATE TABLE pima_obs (
   id SERIAL primary key,
   obs smallint,
@@ -52,7 +79,10 @@ CREATE TABLE pima_obs (
   exper_name varchar(20) NOT NULL,
   band char(1) NOT NULL,
   status char(1) DEFAULT 'u',
-  run_id int references pima_runs(id) ON DELETE CASCADE
+  run_id int references pima_runs(id) ON DELETE CASCADE,
+  if_id smallint DEFAULT 0,
+  elevation real[] DEFAULT ARRAY[0.0, 0.0],
+  bandpass boolean
 );
 
 CREATE INDEX pima_obs_exper_name_band_idx ON pima_obs (exper_name, band);
@@ -77,7 +107,9 @@ GRANT SELECT ON clock_models TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON clock_models TO editor;
 GRANT USAGE, SELECT ON SEQUENCE clock_models_id_seq TO editor;
 
-
+--
+-- FITS-IDI files in ASC correlator archive
+--
 CREATE TABLE fits_files (
     path varchar(512) PRIMARY KEY,
     basename varchar(256) NOT NULL,
@@ -90,9 +122,51 @@ CREATE TABLE fits_files (
     ch_num int
     mdate date DEFAULT '2000-01-01',
     size bigint DEFAULT 0,
-    comment varchar(64)
+    comment varchar(64),
+    ftp_user varchar(16)
 );
 CREATE INDEX fits_files_exper_name_band_idx ON fits_files (exper_name, band);
 
 GRANT SELECT ON fits_files TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON fits_files TO editor;
+
+--
+-- Calibrated UV-FITS files after PIMA processing
+--
+CREATE TABLE ra_uvfits (
+    id SERIAL primary key,
+    source varchar(20),
+    exper_name varchar(20) references vex_files(exper_name),
+    band char(1),
+    polar char(2),
+    sta1 char(2),
+    sta2 char(2),
+    u real,
+    v real,
+    freq real,
+    ampl real,
+    weight real,
+    inttime real,
+    file_name varchar(256),
+    if_id int,
+    ind int,
+    time timestamp,
+    run_id int references pima_runs(id) ON DELETE CASCADE
+);
+
+GRANT SELECT ON ra_uvfits TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON ra_uvfits TO editor;
+GRANT USAGE, SELECT ON SEQUENCE ra_uvfits_id_seq TO editor;
+
+--
+-- PIMA station names catalog
+--
+CREATE TABLE station_names (
+    corr_name varchar(2) primary key,
+    ivs_name varchar(8) NOT NULL,
+    x real,
+    y real,
+    z real
+);
+GRANT SELECT ON station_names TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON station_names TO editor;

@@ -1,4 +1,4 @@
-# PIMA_CONTROL file.  Format Version of 2014.11.14
+# PIMA_CONTROL file.  Format Version of 2016.02.29
 #
 # Created     on  @CDATE@
 # Last update on
@@ -10,7 +10,7 @@ UV_FITS:            @uv_fits@
 #
 STAGING_DIR:        NO
 SOU_NAMES:          /home/pima/share/vtd_data/source.names
-STA_NAMES:          /home/pima/share/pima/socorro_station.names
+STA_NAMES:          /home/pima/share/pima/ra_station.names
 PCAL:               NO
 TSYS:               INTRP
 GAIN:               USE
@@ -25,9 +25,9 @@ FFT_CONFIG_FILE:    /home/pima/share/pima/pima_big_measure_6thr.wis
 NUM_THREADS:        6
 #
 AP_TOLERANCE:       2.D-6
-MIN_SCAN_LEN:       10.0
+MIN_SCAN_LEN:       20.0
 MAX_SCAN_LEN:       1200.0
-MAX_SCAN_GAP:       30.0
+MAX_SCAN_GAP:       10.0
 SCAN_LEN_USED:      1200.0
 SCAN_LEN_SKIP:        0.0
 FRT_OFFSET:         AUTO
@@ -40,11 +40,13 @@ EXCLUDE_OBS_FILE:   NO
 BANDPASS_USE:       AMP_PHS
 BANDPASS_FILE:      NO # @bandpass_file@
 BANDPASS_MASK_FILE: NO # @bandpass_mask_file@
+PCAL_MASK_FILE:     NO
 POLARCAL_FILE:      NO
 INTMOD_TYPE:        NO
 INTMOD_FILE:        NO
 CORR_FLAG_MIN:      1
 TIME_FLAG_FILE:     NO
+TEC_FILE:           NO
 FRINGE_FILE:        @fringe_file@
 FRIRES_FILE:        @frires_file@
 BEG_FRQ:            1
@@ -56,6 +58,10 @@ EPHEMERIDES_USE:    RA_PUSCH
 PHASE_ACCELERATION: 0
 PHASE_ACCEL_MIN:    -1.D-14
 PHASE_ACCEL_MAX:    1.D-14
+WVR_FILE:               NO
+WVR_USE:                NO
+WVR_SMOOTHING_INTERVAL: 0.0
+WVR_SMOOTHING_SIGMA:    0.0
 #
 BPS.MODE:           FINE
 BPS.NOBS_ACCUM:     4
@@ -91,8 +97,8 @@ FRIB.SECONDARY_MAX_TRIES:     0
 FRIB.FINE_SEARCH:             ACC
 #
 FRIB.AUTOCORR_THRESHOLD:      0.2
-FRIB.WEIGHTS_THRESHOLD:       0.1
-FRIB.NOISE_NSIGMA:            3.5
+FRIB.WEIGHTS_THRESHOLD:       0.2
+FRIB.NOISE_NSIGMA:            4.0
 FRIB.SNR_DETECTION:           5.7
 #
 FRIB.2D_FRINGE_PLOT:          NO
@@ -147,6 +153,8 @@ SPLT.POLAR:                   @polar@
 SPLT.AUTOCORR_NRML_METHOD:    AVERAGED
 SPLT.BPASS_NRML_METHOD:       WEIGHTED
 SPLT.BPASS_NRML_RANGE:        0.25:0.75
+SPLT.SUBARRY_CONSOLIDATION:   NO
+SPLT.GAIN_CORR_FILE:          NO
 SPLT.STA_BASED:               NO
 #
 MKDB.OUTPUT_TYPE:      GVF
@@ -160,4 +168,4 @@ MKDB.VCAT_CONFIG:      /home/pima/share/pima/vcat.conf
 MKDB.OUTPUT_NAME:      p
 MKDB.DESC_FILE:        NO
 #
-# PIMA_CONTROL file.  Format Version of 2014.11.14
+# PIMA_CONTROL file.  Format Version of 2016.02.29
