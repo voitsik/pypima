@@ -55,6 +55,9 @@ def generate_autospectra(pima, out_dir):
 
         date_str = date.strftime('%Y-%m-%d %H:%M:%S')
         ax.cla()
+        ax.set_ymargin(0.05)
+        ax.xaxis.set_ticks(np.arange(-16, 16+1, 4))
+
         ax.set_title('{} - {}({}) - {}'.format(acta_file.header['station'],
                                                pima.exper,
                                                pima.band.upper(),
@@ -64,6 +67,7 @@ def generate_autospectra(pima, out_dir):
         ax.grid(True)
         ax.plot(np.asarray(acta_file.freq) - central_freq,
                 acta_file.ampl, marker='o', ms=2)
+        ax.set_xlim(-16, 16)
 
         date_str = date.strftime('%Y%m%dT%H%M')
         out_file = \
