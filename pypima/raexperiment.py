@@ -197,10 +197,8 @@ class RaExperiment:
 
         """
         # data_dir = os.path.join(self.data_dir, self.exper)
-        fits_url, size, ftp_user = self.db.get_uvfits_url(self.exper,
-                                                          self.band,
-                                                          self.gvlbi,
-                                                          force_small)
+        fits_url, size = self.db.get_uvfits_url(self.exper, self.band,
+                                                self.gvlbi, force_small)
 
         if not fits_url:
             self._error('Could not find FITS file name in DB')
@@ -216,8 +214,7 @@ class RaExperiment:
             self.logger.info('Start downloading file %s...', fits_url)
             try:
                 with open(uv_fits, 'wb') as fil:
-                    _download_it(fits_url, fil, max_retries=2,
-                                 ftp_user=ftp_user)
+                    _download_it(fits_url, fil, max_retries=2)
             except pycurl.error as err:
                 self._error('Could not download file {}: {}'.
                             format(fits_url, err))

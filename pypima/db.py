@@ -27,8 +27,8 @@ class DB:
 
     def get_uvfits_url(self, exper, band, gvlbi=False, small=False):
         """
-        Get FITS-file URL and size from the database for the given experiment
-        and band.
+        Retrieve FITS-file URL and size from the database for the given
+        experiment and band.
 
         Parameters
         ----------
@@ -37,13 +37,15 @@ class DB:
         band : str
             Frequency band.
         gvlbi : bool
-            If True select ground only (GVLBI) FITS-file.
+            If ``True`` select ground only (GVLBI) FITS-file.
+        small : bool
+            If ``True`` select FITS files with 64 channenls only.
 
         Returns
         -------
-        url, size, ftp_user : (str, int, str)
-            Tuple of the file URL, size and FTP user. Returns (None, 0, None)
-            if the database reply is empty.
+        url, size : (str, int)
+            Tuple of the file URL and size. Returns (None, 0) if the database
+            reply is empty.
 
         Notes
         -----
@@ -53,35 +55,36 @@ class DB:
         """
         url = None
         size = 0
-        ftp_user = None
-        url_base = 'ftp://archive.asc.rssi.ru'
 
-        query = """
-        SELECT path, size, ftp_user FROM fits_files WHERE
-        LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
-        path LIKE %s #EXT#
-        ORDER BY corr_date DESC, path DESC;
-        """
+        query = """SELECT path, size, ftp_user FROM fits_files
+        WHERE LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
+        basename LIKE %s #EXT#
+        ORDER BY corr_date DESC, path DESC;"""
+
+        params = [exper, band]
+
+        if gvlbi:
+            params.append('GVLBI%')
+        else:
+            params.append('RADIOASTRON%')
 
         if small:
-            query = query.replace('#EXT#', 'AND ch_num = 64')
+            query = query.replace('#EXT#', 'AND ch_num = %s')
+            params.append(64)
         else:
             query = query.replace('#EXT#', '')
 
         with self.conn.cursor() as cursor:
-            if gvlbi:
-                cursor.execute(query, (exper, band, '%GVLBI%'))
-            else:
-                cursor.execute(query, (exper, band, '%RADIOASTRON%'))
+            cursor.execute(query, params)
             reply = cursor.fetchone()
 
         if reply:
             path = reply[0]
             size = reply[1]
             ftp_user = reply[2]
-            url = url_base + path
+            url = 'ftp://{}{}'.format(ftp_user, path)
 
-        return url, size, ftp_user
+        return url, size
 
     def get_orbit_url(self, exper):
         """
