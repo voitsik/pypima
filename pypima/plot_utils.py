@@ -5,75 +5,62 @@ Created on Fri Sep 30 14:01:07 2016
 @author: Petr Voytsik
 """
 
-from datetime import timedelta
+import logging
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 import os
-import pypima.pima
+# import pypima.pima
 
 
-def generate_autospectra(pima, out_dir):
+def plot_autospectra(acta_file_list, out_dir_base):
     """
-    Plot autospectrum for each station for each scan.
+    Plot each autocorrelation spectrum in `acta_file_list`.
 
     Parameters
     ----------
-    pima : ``Pima`` object
-        Instance of ``Pima`` object
-    out_dir : str
-        Output directory
+    acta_file_list : list of ``ActaFile`` objects
+        List of autospectra in ``ActaFile`` format.
+    out_dir_base : str
+        Base output directory.
 
     """
-    # Sometimes PIMA crashes on `acta` task
-    try:
-        file_list = pima.acta()
-    except pypima.pima.Error:
-        # Remove core dump file.
-        if os.path.isfile('core'):
-            os.remove('core')
-
-        return
-
-    out_dir = os.path.join(out_dir, '{}_{}'.format(pima.exper, pima.band))
-    os.makedirs(out_dir, exist_ok=True)
-
-    polar = pima.cnt_params['POLAR:']
-
-    central_freq = 1e-6 * pima.frequencies()[-1]['freq']
-    utc_tai = timedelta(seconds=pima.exper_info['utc_minus_tai'])
     out_format = 'pdf'
     fig = Figure()
     FigureCanvas(fig)
     ax = fig.add_subplot(111)
 
-    for txt_path in file_list:
-        acta_file = pypima.pima.ActaFile(txt_path)
+    for acta_file in acta_file_list:
+        exper, band = acta_file.header['experiment'].split('_')
+        out_dir = os.path.join(out_dir_base, '{}_{}'.format(exper, band))
+        os.makedirs(out_dir, exist_ok=True)
 
-        # Convert TAI to UTC
-        date = acta_file.header['start_date'] + utc_tai
-
+        date = acta_file.header['start_date']
         date_str = date.strftime('%Y-%m-%d %H:%M:%S')
+
         ax.cla()
         ax.set_ymargin(0.05)
         ax.xaxis.set_ticks(np.arange(-16, 16+1, 4))
 
         ax.set_title('{} - {}({}) - {}'.format(acta_file.header['station'],
-                                               pima.exper,
-                                               pima.band.upper(),
+                                               exper,
+                                               band.upper(),
                                                date_str))
         ax.set_xlabel('Frequency (MHz)')
         ax.set_ylabel('Amplitude')
         ax.grid(True)
-        ax.plot(np.asarray(acta_file.freq) - central_freq,
-                acta_file.ampl, marker='o', ms=2)
+        central_freq = np.mean(acta_file.freq)
+        logging.debug('plot_autospectra: central_freq = %s', central_freq)
+        freq = np.asarray(acta_file.freq) - central_freq
+        ax.plot(freq, acta_file.ampl, marker='o', ms=2)
         ax.set_xlim(-16, 16)
 
         date_str = date.strftime('%Y%m%dT%H%M')
+        polar = acta_file.header['polar']
         out_file = \
             'AUTOSPEC_{}_{}_{}_{}_{}.{}'.format(date_str,
-                                                pima.exper,
-                                                pima.band.upper(),
+                                                exper,
+                                                band.upper(),
                                                 polar,
                                                 acta_file.header['station'],
                                                 out_format)

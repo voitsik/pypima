@@ -386,3 +386,8 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
                             (file_name, ))
                 cur.executemany(query, data)
             self.connw.commit()
+
+    def autospec2db(self, acta_file, run_id):
+        """
+        """
+        pass

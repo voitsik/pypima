@@ -5,7 +5,7 @@ Created on Sun Dec 29 04:02:35 2013
 @author: Petr Voytsik
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 import logging
 import os.path
@@ -16,7 +16,9 @@ import threading
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
+from pypima.pima import ActaFile
 from pypima.uvfits import UVFits
+from pypima.plot_utils import plot_autospectra
 
 
 class Error(Exception):
@@ -760,6 +762,40 @@ calibartion information')
         staging_dir = self.pima.cnt_params['STAGING_DIR:']
         if os.path.isdir(staging_dir):
             shutil.rmtree(staging_dir)
+
+    def generate_autospectra(self, plot=False, out_dir=None, db=False):
+        """
+        Generate autospectrum for each station for each scan using ``acta``
+        PIMA task.
+
+        Parameters
+        ----------
+        plot : bool
+            If ``True`` plot autospectra.
+        out_dir : str
+            Plot output directory.
+
+        """
+        if not plot and not db:  # Nothing to do
+            return
+
+        # Sometimes PIMA crashes on `acta` task
+        try:
+            file_list = self.pima.acta()
+        except pypima.pima.Error:
+            # Remove core dump file.
+            if os.path.isfile('core'):
+                os.remove('core')
+
+            return
+
+        utc_tai = timedelta(seconds=self.pima.exper_info['utc_minus_tai'])
+        polar = self.pima.cnt_params['POLAR:']
+        acta_file_list = [ActaFile(file_name, polar, utc_tai)
+                          for file_name in file_list]
+
+        if plot:
+            plot_autospectra(acta_file_list, out_dir)
 
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):

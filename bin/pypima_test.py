@@ -18,13 +18,15 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
-from pypima.plot_utils import generate_autospectra
 
 
 def main(args):
     """Main"""
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
-                        level=logging.INFO)
+    log_format = '%(asctime)s %(levelname)s: %(name)s: %(message)s'
+    logging.basicConfig(format=log_format, level=logging.INFO)
+
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     exper = args.exper.lower()
     band = args.band.lower()
@@ -56,7 +58,7 @@ def main(args):
             if not os.path.exists(spec_out_dir):
                 os.mkdir(spec_out_dir)
 
-            generate_autospectra(ra_exp.pima, spec_out_dir)
+            ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir)
         else:
             ra_exp.load_antab()
 
@@ -119,5 +121,7 @@ if __name__ == "__main__":
                         help='generate autocorrelation spectra only')
     parser.add_argument('--individual-ifs', action='store_true',
                         help='do fringe fittig for individual IFs')
+    parser.add_argument('--debug', '-d', action='store_true',
+                        help='enable debug output')
 
     sys.exit(main(parser.parse_args()))
