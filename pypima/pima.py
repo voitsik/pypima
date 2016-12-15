@@ -764,6 +764,8 @@ class ActaFile:
 
         """
         self._freq = []
+        self._if = []
+        self._channel = []
         self._ampl = []
         self._header = {}
 
@@ -788,7 +790,11 @@ class ActaFile:
                         self._header['start_date'] = \
                             datetime.strptime(cols[2][:23],
                                               '%Y.%m.%d-%H:%M:%S.%f')
+                    elif cols[1] == 'Observation_index:':
+                        self.header['obs'] = int(cols[2])
                 elif cols[0] == 'ACRL':
+                    self._if.append(int(cols[2]))
+                    self._channel.append(int(cols[4]))
                     self._freq.append(1e-6 * float(cols[6]))
                     self._ampl.append(float(cols[9]))
 
