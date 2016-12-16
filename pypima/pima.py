@@ -806,6 +806,8 @@ class ActaFile:
                         self.header['obs'] = int(cols[2])
                     elif cols[1] == 'Scan_name:':
                         self.header['scan_name'] = cols[2]
+                    elif cols[1] == 'Number_of_points:':
+                        self.header['num_of_points'] = int(cols[2])
                 elif cols[0] == 'ACRL':
                     self._if.append(int(cols[2]))
                     self._channel.append(int(cols[4]))
@@ -819,6 +821,22 @@ class ActaFile:
 
         """
         return self._header
+
+    @property
+    def if_num(self):
+        """
+        Return list of the IF numbers.
+
+        """
+        return self._if
+
+    @property
+    def channel(self):
+        """
+        Return list of the channel numbers,
+
+        """
+        return self._channel
 
     @property
     def freq(self):

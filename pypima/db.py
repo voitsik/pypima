@@ -403,12 +403,23 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
         delete_query = """DELETE FROM autospec_info
 WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
 scan_name = %s;"""
-        query = """INSERT INTO autospec_info
+        query_info = """INSERT INTO autospec_info
 (exper_name, band, polar, sta, start_date, stop_date, obs, scan_name)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"""
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;"""
+        query_data = """INSERT INTO autospec
+(if_num, chann_num, freq, ampl, info_id) VALUES (%s, %s, %s, %s, %s);"""
+        data = []
 
         with self.connw.cursor() as cur:
             cur.execute(delete_query, (exper, band, polar, sta, scan_name))
-            cur.execute(query, (exper, band, polar, sta, start_date, stop_date,
-                                obs, scan_name))
+            cur.execute(query_info, (exper, band, polar, sta, start_date,
+                                     stop_date, obs, scan_name))
+            info_id = cur.fetchone()[0]
+
+            for ind in range(acta_file.header['num_of_points']):
+                row = (acta_file.if_num[ind], acta_file.channel[ind],
+                       acta_file.freq[ind], acta_file.ampl[ind], info_id)
+                data.append(row)
+            cur.executemany(query_data, data)
+
         self.connw.commit()
