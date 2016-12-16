@@ -804,6 +804,8 @@ class ActaFile:
                             self._header['stop_date'] += utc_tai
                     elif cols[1] == 'Observation_index:':
                         self.header['obs'] = int(cols[2])
+                    elif cols[1] == 'Scan_name:':
+                        self.header['scan_name'] = cols[2]
                 elif cols[0] == 'ACRL':
                     self._if.append(int(cols[2]))
                     self._channel.append(int(cols[4]))

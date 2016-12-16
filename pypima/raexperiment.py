@@ -797,6 +797,10 @@ calibartion information')
         if plot:
             plot_autospectra(acta_file_list, out_dir)
 
+        if db:
+            for acta_file in acta_file_list:
+                self.db.autospec2db(acta_file)
+
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):
     """

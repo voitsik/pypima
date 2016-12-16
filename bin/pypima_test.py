@@ -58,7 +58,8 @@ def main(args):
             if not os.path.exists(spec_out_dir):
                 os.mkdir(spec_out_dir)
 
-            ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir)
+            ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
+                                        db=True)
         else:
             ra_exp.load_antab()
 
