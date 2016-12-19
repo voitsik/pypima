@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Created on Thu Oct 30 14:23:23 2014
 
@@ -386,3 +387,40 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
                             (file_name, ))
                 cur.executemany(query, data)
             self.connw.commit()
+
+    def autospec2db(self, acta_file):
+        """
+        Store autocorrelation spectrum to the database.
+
+        """
+        exper, band = acta_file.header['experiment'].split('_')
+        polar = acta_file.header['polar']
+        sta = acta_file.header['station']
+        start_date = acta_file.header['start_date']
+        stop_date = acta_file.header['stop_date']
+        obs = acta_file.header['obs']
+        scan_name = acta_file.header['scan_name']
+
+        delete_query = """DELETE FROM autospec_info
+WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
+scan_name = %s;"""
+        query_info = """INSERT INTO autospec_info
+(exper_name, band, polar, sta, start_date, stop_date, obs, scan_name)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;"""
+        query_data = """INSERT INTO autospec
+(if_num, chann_num, freq, ampl, info_id) VALUES (%s, %s, %s, %s, %s);"""
+        data = []
+
+        with self.connw.cursor() as cur:
+            cur.execute(delete_query, (exper, band, polar, sta, scan_name))
+            cur.execute(query_info, (exper, band, polar, sta, start_date,
+                                     stop_date, obs, scan_name))
+            info_id = cur.fetchone()[0]
+
+            for ind in range(acta_file.header['num_of_points']):
+                row = (acta_file.if_num[ind], acta_file.channel[ind],
+                       acta_file.freq[ind], acta_file.ampl[ind], info_id)
+                data.append(row)
+            cur.executemany(query_data, data)
+
+        self.connw.commit()

@@ -170,3 +170,34 @@ CREATE TABLE station_names (
 );
 GRANT SELECT ON station_names TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON station_names TO editor;
+
+
+--
+-- Autocorrelation spectra
+--
+CREATE TABLE autospec_info (
+    id serial primary key,
+    exper_name varchar(20) references vex_files(exper_name),
+    band char(1) NOT NULL,
+    polar char(2) NOT NULL,
+    sta varchar(8) NOT NULL,
+    start_date timestamp NOT NULL,
+    stop_date timestamp NOT NULL,
+    obs integer CHECK (obs > 0),
+    scan_name varchar(10) NOT NULL
+);
+GRANT SELECT ON autospec_info TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON autospec_info TO editor;
+GRANT USAGE, SELECT ON SEQUENCE autospec_info_id_seq TO editor;
+
+CREATE TABLE autospec (
+    id bigserial primary key,
+    if_num smallint CHECK (if_num > 0),
+    chann_num smallint CHECK (chann_num > 0),
+    freq real NOT NULL,
+    ampl real NOT NULL,
+    info_id integer references autospec_info(id) ON DELETE CASCADE
+);
+GRANT SELECT ON autospec TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON autospec TO editor;
+GRANT USAGE, SELECT ON SEQUENCE autospec_id_seq TO editor;
