@@ -19,7 +19,6 @@ sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
-from pypima.plot_utils import generate_autospectra
 
 
 def download_it(ra_exps, force_small):
@@ -72,7 +71,7 @@ def generate_autospec(ra_exp, spec_out_dir, force_small=False):
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        generate_autospectra(ra_exp.pima, spec_out_dir)
+        ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
 
     ra_exp.delete_uvfits()
 
@@ -144,7 +143,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        generate_autospectra(ra_exp.pima, spec_out_dir)
+        ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
         fri = ra_exp.fringe_fitting(True, accel)
         print(fri)
         scan_len_list.append(fri.max_scan_length())
@@ -232,7 +231,8 @@ def main(args):
         this file must have two words: experiment code and band code.
 
     """
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(name)s: %(message)s',
+    log_format = '%(asctime)s %(levelname)s: %(name)s: %(message)s'
+    logging.basicConfig(format=log_format,
                         level=logging.INFO, filename=args.log_file)
 
     exp_list = []

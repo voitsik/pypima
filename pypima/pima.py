@@ -806,6 +806,7 @@ class ActaFile:
                         self.header['obs'] = int(cols[2])
                     elif cols[1] == 'Scan_name:':
                         self.header['scan_name'] = cols[2]
+                        logging.debug('scan_name = %s', cols[2])
                     elif cols[1] == 'Number_of_points:':
                         self.header['num_of_points'] = int(cols[2])
                 elif cols[0] == 'ACRL':

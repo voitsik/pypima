@@ -184,7 +184,7 @@ CREATE TABLE autospec_info (
     start_date timestamp NOT NULL,
     stop_date timestamp NOT NULL,
     obs integer CHECK (obs > 0),
-    scan_name varchar(8) NOT NULL
+    scan_name varchar(10) NOT NULL
 );
 GRANT SELECT ON autospec_info TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON autospec_info TO editor;
