@@ -715,6 +715,29 @@ Check your PIMA installation!')
 
         return clock_model
 
+    def set_exclude_obs(self, obs_list):
+        """
+        Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
+
+        Parameters
+        ----------
+        obs_list : list
+            List of observation indices. If empty or ``None`` set
+            ``EXCLUDE_OBS_FILE:`` to ``NO``.
+
+        """
+        if obs_list:
+            exc_obs_file = '{}_{}_obs.exc'.format(self.exper, self.band)
+            exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
+
+            with open(exc_obs_file, 'w') as file:
+                for obs in obs_list:
+                    print(obs, file=file)
+
+            self.update_cnt({'EXCLUDE_OBS_FILE:': exc_obs_file})
+        else:
+            self.update_cnt({'EXCLUDE_OBS_FILE:': 'NO'})
+
 
 def fits_to_txt(fits_file):
     """
