@@ -112,19 +112,23 @@ def proc_obs(exper, band, obs, max_dur):
     snrs = []
 
     for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
-        dur = full_duration / (delim)
-        logging.info('Set scan length to %s', dur)
+        dur = round(full_duration / (delim))
+        logging.debug('Set SCAN_LEN_USED %s', dur)
 
         for j in range(math.ceil(delim)):
             skip = j * dur
+            logging.debug('Set SCAN_LEN_SKIP to %s', skip)
             fri_file = pim.fine(['FRIB.OBS:', str(obs),
                                  'SCAN_LEN_SKIP:', str(skip),
                                  'SCAN_LEN_USED:', str(dur),
                                  'FRINGE_FILE:', tmp_fri,
                                  'FRIRES_FILE:', tmp_frr])
             fri = Fri(fri_file)
-            if len(fri) == 0:
+            if not fri:
+                logging.warning('Skip empty fri-file')
                 continue
+
+            logging.debug('SNR = %s', fri[0]['SNR'])
 
             if fri[0]['SNR'] < 5.7:
                 continue
@@ -155,6 +159,9 @@ def main(args):
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
                         level=logging.INFO)
 
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     for obs_id in args.obs_list.split(','):
         proc_obs(args.exper, args.band, int(obs_id), args.scan_length)
 
@@ -168,5 +175,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--scan-length', type=float, default=1200.,
                         help='full scan length')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='be more verbose')
 
     main(parser.parse_args())
