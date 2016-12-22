@@ -116,7 +116,11 @@ def proc_obs(exper, band, obs, max_dur):
         logging.debug('Set SCAN_LEN_USED %s', dur)
 
         for j in range(math.ceil(delim)):
-            skip = j * dur
+            if delim < 2 and j == 1:
+                skip = full_duration - dur
+            else:
+                skip = j * dur
+
             logging.debug('Set SCAN_LEN_SKIP to %s', skip)
             fri_file = pim.fine(['FRIB.OBS:', str(obs),
                                  'SCAN_LEN_SKIP:', str(skip),
