@@ -39,6 +39,7 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
     # Plotting
     fig, (ax1, ax2) = plt.subplots(2, sharex=True)
     ax1.set_ymargin(0.2)
+    ax2.set_ymargin(0.1)
     ax1.plot(durs, amps, 'o')
     ax2.plot(durs, snrs, 'o')
 
@@ -112,6 +113,8 @@ def proc_obs(exper, band, obs, max_dur):
 
     for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
         dur = full_duration / (delim)
+        logging.info('Set scan length to %s', dur)
+
         for j in range(math.ceil(delim)):
             skip = j * dur
             fri_file = pim.fine(['FRIB.OBS:', str(obs),
