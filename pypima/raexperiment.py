@@ -667,12 +667,12 @@ calibartion information')
             self.logger.warning('No useful scans for splitting')
             return
 
-        # TODO: Set reasonable SNR detection limit
-        snr_detection = min(7.0, self.fri.min_detected_snr()-0.05)
+        snr_detection = round(min(7.0, self.fri.min_detected_snr()-0.05), 2)
         self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
         split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
 
-        time_segments = 1
+        self.pima.set_exclude_obs([rec['obs'] for rec in self.fri
+                                   if rec['status'] != 'y'])
 
         if source:
             split_params.extend(('SPLT.SOU_NAME:', source))
@@ -682,6 +682,8 @@ calibartion information')
         ap = self.pima.ap_minmax()[0]
         if average > 0:
             time_segments = round(average / ap)
+        else:
+            time_segments = 1
 
         self.split_time_aver = time_segments * ap
         self.pima.split(tim_mseg=time_segments, params=split_params)
