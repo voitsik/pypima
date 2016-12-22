@@ -69,7 +69,7 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
     plt.savefig(pic_file_name, format='pdf')
 
 
-def proc_obs(exper, band, obs):
+def proc_obs(exper, band, obs, max_dur):
     """Main"""
     try:
         pim = Pima(exper, band)
@@ -93,7 +93,7 @@ def proc_obs(exper, band, obs):
 
     fri_file = pim.fine(['FRIB.OBS:', str(obs),
                          'SCAN_LEN_SKIP:', '0.0',
-                         'SCAN_LEN_USED:', '1200.0',
+                         'SCAN_LEN_USED:', str(max_dur),
                          'FRINGE_FILE:', tmp_fri,
                          'FRIRES_FILE:', tmp_frr])
 
@@ -153,7 +153,7 @@ def main(args):
                         level=logging.INFO)
 
     for obs_id in args.obs_list.split(','):
-        proc_obs(args.exper, args.band, int(obs_id))
+        proc_obs(args.exper, args.band, int(obs_id), args.scan_length)
 
 
 if __name__ == '__main__':
@@ -162,5 +162,8 @@ if __name__ == '__main__':
     parser.add_argument('band', help='frequency band')
     parser.add_argument('obs_list',
                         help='coma separated list of observation numbers')
+
+    parser.add_argument('--scan-length', type=float, default=1200.,
+                        help='full scan length')
 
     main(parser.parse_args())
