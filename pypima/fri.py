@@ -346,6 +346,13 @@ class Fri():
         """
         return 'y' in [rec['status'] for rec in self.records]
 
+    def non_detections(self):
+        """
+        Return list of observation indices with status != 'y'.
+
+        """
+        return [rec['obs'] for rec in self.records if rec['status'] != 'y']
+
     def append(self, rec):
         """
         Append fri-file record to the end of the list.

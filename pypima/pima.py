@@ -715,15 +715,19 @@ Check your PIMA installation!')
 
         return clock_model
 
-    def set_exclude_obs(self, obs_list):
+    def mk_exclude_obs_file(self, obs_list):
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
 
         Parameters
         ----------
         obs_list : list
-            List of observation indices. If empty or ``None`` set
-            ``EXCLUDE_OBS_FILE:`` to ``NO``.
+            List of observation indices.
+
+        Returns
+        -------
+        exc_obs_file : srt
+            Return name of the generated file or ``NO`` if `obs_list` is empty.
 
         """
         if obs_list:
@@ -733,10 +737,10 @@ Check your PIMA installation!')
             with open(exc_obs_file, 'w') as file:
                 for obs in obs_list:
                     print(obs, file=file)
-
-            self.update_cnt({'EXCLUDE_OBS_FILE:': exc_obs_file})
         else:
-            self.update_cnt({'EXCLUDE_OBS_FILE:': 'NO'})
+            exc_obs_file = 'NO'
+
+        return exc_obs_file
 
 
 def fits_to_txt(fits_file):
@@ -754,7 +758,7 @@ def fits_to_txt(fits_file):
     Returns
     -------
     out : str
-        Returns the stdout of the fits_to_radplot utility.
+        Returns the stdout of the ``fits_to_radplot`` utility.
 
     """
 

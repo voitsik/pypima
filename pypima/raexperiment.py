@@ -671,8 +671,8 @@ calibartion information')
         self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
         split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
 
-        self.pima.set_exclude_obs([rec['obs'] for rec in self.fri
-                                   if rec['status'] != 'y'])
+        exc_file = self.pima.mk_exclude_obs_file(self.fri.non_detections())
+        split_params.extend(('EXCLUDE_OBS_FILE:', exc_file))
 
         if source:
             split_params.extend(('SPLT.SOU_NAME:', source))
