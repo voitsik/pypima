@@ -149,15 +149,25 @@ def main(args):
 
     params = ['FRIB.OBS:', str(obs), 'FRIB.2D_FRINGE_PLOT:', 'TXT']
 
-    if band == 'k':
-        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
-                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '2.D-12'])
+    if args.delay_window:
+        delay_window = args.delay_window * 1e-6
+    else:
+        delay_window = 500e-9
+
+    if args.rate_window:
+        rate_window = args.rate_window
+    elif band == 'k':
+        rate_window = 2e-12
     elif band == 'c':
-        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
-                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '4.D-12'])
-    elif band == 'l':
-        params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', '500.D-9',
-                       'FRIB.PLOT_RATE_WINDOW_WIDTH:', '8.D-12'])
+        rate_window = 4e-12
+    else:
+        rate_window = 8e-12
+
+    delay_str = '{:E}'.format(delay_window)
+    rate_str = '{:E}'.format(rate_window)
+
+    params.extend(['FRIB.PLOT_DELAY_WINDOW_WIDTH:', delay_str,
+                   'FRIB.PLOT_RATE_WINDOW_WIDTH:', rate_str])
 
     with tempfile.NamedTemporaryFile(suffix='.fri') as tmp_fri:
         params.extend(['FRINGE_FILE:', tmp_fri.name])
@@ -198,5 +208,10 @@ if __name__ == '__main__':
                         help='add title to plot')
     parser.add_argument('--format', default='pdf',
                         help='plot file format (pdf, ps, png, ...)')
+
+    parser.add_argument('-d', '--delay-window', type=float,
+                        help='delay window width in microseconds')
+    parser.add_argument('-r', '--rate-window', type=float,
+                        help='rate window width')
 
     sys.exit(main(parser.parse_args()))
