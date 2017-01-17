@@ -190,6 +190,9 @@ GRANT SELECT ON autospec_info TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON autospec_info TO editor;
 GRANT USAGE, SELECT ON SEQUENCE autospec_info_id_seq TO editor;
 
+CREATE INDEX autospec_info_exper_name_band_idx ON autospec_info (exper_name,
+band);
+
 CREATE TABLE autospec (
     id bigserial primary key,
     if_num smallint CHECK (if_num > 0),
@@ -201,3 +204,6 @@ CREATE TABLE autospec (
 GRANT SELECT ON autospec TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON autospec TO editor;
 GRANT USAGE, SELECT ON SEQUENCE autospec_id_seq TO editor;
+
+CREATE INDEX autospec_ampl_idx ON autospec (ampl);
+CREATE INDEX autospec_info_id_idx ON autospec (info_id);
