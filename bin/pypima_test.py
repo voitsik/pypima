@@ -84,8 +84,8 @@ def main(args):
             if args.split:
                 ra_exp.split(average=0)
 
-            # Copy final UV-FITS files to the system tmp directory
-            ra_exp.copy_uvfits(tempfile.gettempdir())
+                # Copy final UV-FITS files to the system tmp directory
+                ra_exp.copy_uvfits(tempfile.gettempdir())
     except pypima.pima.Error as err:
         return 1
     except pypima.raexperiment.Error as err:
