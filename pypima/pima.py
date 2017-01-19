@@ -218,6 +218,7 @@ Check your PIMA installation!')
         log.flush()
 
         # Run `pima` with minimum priority
+        self.logger.debug('execute: %s', ' '.join(cmd_line))
         with subprocess.Popen(cmd_line, stdout=log,
                               universal_newlines=True) as proc:
             os.setpriority(os.PRIO_PROCESS, proc.pid, 19)
@@ -400,7 +401,10 @@ Check your PIMA installation!')
             self.update_cnt({'BANDPASS_FILE:': bps_file})
 
         opts = ['FRINGE_FILE:', fri_file,
-                'DEBUG_LEVEL:', '3']
+                'DEBUG_LEVEL:', '3',
+                'PHASE_ACCEL_MIN:', '0',
+                'PHASE_ACCEL_MAX:', '0',
+                'FRIB.FINE_SEARCH:', 'LSQ']
 
         if os.path.isfile(exc_obs_file):
             opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
