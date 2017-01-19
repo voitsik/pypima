@@ -81,7 +81,8 @@ def main(args):
     #        p.fringes2db()
             max_scan_len = fri.max_scan_length()
             logging.debug('DEBUG: max_scan_len = %s', max_scan_len)
-            ra_exp.split(average=0)
+            if args.split:
+                ra_exp.split(average=0)
 
             # Copy final UV-FITS files to the system tmp directory
             ra_exp.copy_uvfits(tempfile.gettempdir())
@@ -122,6 +123,8 @@ if __name__ == "__main__":
                         help='generate autocorrelation spectra only')
     parser.add_argument('--individual-ifs', action='store_true',
                         help='do fringe fittig for individual IFs')
+    parser.add_argument('--split', action='store_true',
+                        help='do SPLIT')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='enable debug output')
 
