@@ -343,10 +343,6 @@ first line'.format(antab))
 
                 if line.startswith('POLY') and line.endswith('/'):
                     line = line.replace('/', ' /')
-                elif line.startswith('GAIN WB'):
-                    line = 'GAIN WB EQUAT DPFU=1.0,1.0 FREQ=1000,5000'
-                elif line.startswith('DPFU=1.0'):
-                    line = ''
                 elif line.startswith('/') and len(line) > 1:
                     line = line.replace('/', '/ ', 1)
                 elif not line.startswith('!') and '!' in line:
@@ -359,6 +355,8 @@ first line'.format(antab))
                     line = line.replace('KL', 'KZ')
                 elif 'EF' in sta_list and 'EB' in line:
                     line = line.replace('EB', 'EF')
+                elif 'WB' in sta_list and 'WB1' in line:
+                    line = line.replace('WB1', 'WB')
 
                 toks = line.split()
 
