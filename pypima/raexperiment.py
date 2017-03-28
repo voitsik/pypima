@@ -658,7 +658,7 @@ scans')
 
         if not self.calibration_loaded:
             self.logger.warning('Could not do splitting due to absence of \
-calibartion information')
+calibration information')
             return
 
         if not self.fri.any_detections():
