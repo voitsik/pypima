@@ -588,8 +588,8 @@ bandpass: %s', obs['SNR'])
                                   'PHASE_ACCEL_MAX:': '0'})
 
         if bandpass and self.pima.chan_number() > 512:
-            self._print_warn('Too many spectral channels for bandpass: {}'.
-                             format(self.pima.chan_number()))
+            self.logger.warning('Too many spectral channels for bandpass: {}'.
+                                format(self.pima.chan_number()))
             bandpass = False
 
         if bandpass:
@@ -597,6 +597,15 @@ bandpass: %s', obs['SNR'])
             fri = Fri(fri_file)
             if not fri:
                 self._error('PIMA fri-file is empty after coarse.')
+
+            # Exclude suspicious observations
+            obs_list = []
+            for rec in fri:
+                if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6:
+                    obs_list.append(rec['obs'])
+
+            self.pima.mk_exclude_obs_file(obs_list, 'bpas')
+            fri.remove_obs(obs_list)
 
             # Detection limit for bandpass calibration
             self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
@@ -669,8 +678,14 @@ calibration information')
         self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
         split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
 
-        exc_file = self.pima.mk_exclude_obs_file(self.fri.non_detections())
-        split_params.extend(('EXCLUDE_OBS_FILE:', exc_file))
+        # Exclude suspicious observations
+        obs_list = self.fri.non_detections()
+        for rec in self.fri:
+            if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6:
+                obs_list.append(rec['obs'])
+
+        self.pima.mk_exclude_obs_file(obs_list, 'splt')
+        # split_params.extend(('EXCLUDE_OBS_FILE:', exc_file))
 
         if source:
             split_params.extend(('SPLT.SOU_NAME:', source))

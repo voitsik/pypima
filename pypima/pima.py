@@ -437,7 +437,14 @@ Check your PIMA installation!')
             elements.
 
         """
+        exc_obs_file = '{}_{}_splt_obs.exc'.format(self.exper, self.band)
+        exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
+
         opts = ['SPLT.TIM_MSEG:', str(tim_mseg)]
+
+        if os.path.isfile(exc_obs_file):
+            opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
+
         if params:
             opts.extend(params)
         ret = self._exec('splt', opts)
@@ -719,7 +726,7 @@ Check your PIMA installation!')
 
         return clock_model
 
-    def mk_exclude_obs_file(self, obs_list):
+    def mk_exclude_obs_file(self, obs_list, suffix):
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
 
@@ -727,6 +734,8 @@ Check your PIMA installation!')
         ----------
         obs_list : list
             List of observation indices.
+        suffix : str
+            ``bpas`` or ``splt``.
 
         Returns
         -------
@@ -734,15 +743,19 @@ Check your PIMA installation!')
             Return name of the generated file or ``NO`` if `obs_list` is empty.
 
         """
+        exc_obs_file = '{}_{}_{}_obs.exc'.format(self.exper, self.band, suffix)
+
         if obs_list:
-            exc_obs_file = '{}_{}_obs.exc'.format(self.exper, self.band)
             exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
             with open(exc_obs_file, 'w') as file:
-                for obs in obs_list:
+                for obs in sorted(set(obs_list)):
                     print(obs, file=file)
         else:
             exc_obs_file = 'NO'
+
+            if os.path.exists(exc_obs_file):
+                os.remove(exc_obs_file)
 
         return exc_obs_file
 
