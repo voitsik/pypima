@@ -360,6 +360,20 @@ class Fri():
         """
         self.records.append(rec)
 
+    def remove_obs(self, obs_list):
+        """
+        Remove observations with indices in `obs_list`.
+
+        Parameters
+        ----------
+        obs_list : list
+            List of observation indices to remove.
+
+        """
+        if obs_list:
+            self.records = [rec for rec in self.records
+                            if rec['obs'] not in obs_list]
+
     def __str__(self):
         out = "#Obs Timecode   Source      Sta1/Sta2         SNR    Delay    \
 Rate      Accel      Base   Base  Length\n"
