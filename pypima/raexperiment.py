@@ -475,7 +475,7 @@ first line'.format(antab))
         # Average all spectral channels in each IF when splitting.
         self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
 
-        if scan_part:
+        if scan_part == 1:
             self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'TXT',
                                   'FRIB.1D_RESTIM_PLOT:': 'TXT'})
         else:
