@@ -284,8 +284,6 @@ class Fri():
             observation.
 
         """
-        result = {}
-
         # Select observations with 'station'
         if station:
             records = [rec for rec in self.records if station in (rec['sta1'],
@@ -297,6 +295,8 @@ class Fri():
         records = sorted(records, key=lambda rec: rec['SNR'], reverse=True)
         if records:
             result = records[0]
+        else:
+            result = None
 
         return result
 

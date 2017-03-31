@@ -530,6 +530,10 @@ bandpass: %s', obs['SNR'])
 
         if not self.sta_ref:
             obs = fri.max_snr()
+
+            if not obs:
+                return False
+
             if obs['SNR'] < snr_detecton:
                 self.logger.debug('SNR is too low for bandpass: %s',
                                   obs['SNR'])
@@ -611,7 +615,7 @@ bandpass: %s', obs['SNR'])
             self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
 
             # Now auto select reference station
-            if self._select_ref_sta(fri):
+            if fri and self._select_ref_sta(fri):
                 try:
                     self.pima.bpas()
                 except pypima.pima.Error:
