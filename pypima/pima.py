@@ -744,18 +744,17 @@ Check your PIMA installation!')
 
         """
         exc_obs_file = '{}_{}_{}_obs.exc'.format(self.exper, self.band, suffix)
+        exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if obs_list:
-            exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
-
             with open(exc_obs_file, 'w') as file:
                 for obs in sorted(set(obs_list)):
                     print(obs, file=file)
         else:
-            exc_obs_file = 'NO'
-
             if os.path.exists(exc_obs_file):
                 os.remove(exc_obs_file)
+
+            exc_obs_file = 'NO'
 
         return exc_obs_file
 
