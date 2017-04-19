@@ -47,8 +47,6 @@ CREATE TABLE pima_runs (
   UNIQUE (exper_name, band, fits_idi, scan_part)
 );
 
-CREATE INDEX pima_runs_exper_name_band_idx ON pima_runs (exper_name, band);
-
 GRANT SELECT ON pima_runs TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON pima_runs TO editor;
 GRANT USAGE, SELECT ON SEQUENCE pima_runs_id_seq TO editor;
