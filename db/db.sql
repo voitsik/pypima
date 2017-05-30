@@ -44,6 +44,7 @@ CREATE TABLE pima_runs (
   last_error varchar(256),
   hostname varchar(64),
   pima_version varchar(8),
+  correlator_name varchar(8) DEFAULT 'ASCFX'
   UNIQUE (exper_name, band, fits_idi, scan_part)
 );
 

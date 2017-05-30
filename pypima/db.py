@@ -282,6 +282,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         nominal_end = %s,
         hostname = %s,
         pima_version = %s
+        correlator_name = %s
         WHERE id = %s
         '''
 
@@ -301,6 +302,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
                                    exper_info['nominal_end'],
                                    exper_info['hostname'],
                                    exper_info['pima_version'],
+                                   exper_info['correlator_name'],
                                    run_id))
 
         self.connw.commit()

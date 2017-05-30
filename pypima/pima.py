@@ -43,7 +43,9 @@ class ExperInfo:
 
         with open(stt_file, 'r') as fil:
             for line in fil:
-                if line.startswith('Number of frequencies:'):
+                if line.startswith('Correlator_name:'):
+                    self._data['correlator_name'] = line.split()[1]
+                elif line.startswith('Number of frequencies:'):
                     self._data['if_num'] = int(line.split()[3])
                 elif line.startswith('Number of spectral channels:'):
                     self._data['sp_chann_num'] = int(line.split()[4])

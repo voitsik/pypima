@@ -38,7 +38,7 @@ def main(args):
 
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
-                              data_dir=data_dir)
+                              data_dir=data_dir, uv_fits=args.fits)
         ra_exp.init_workdir()
         ra_exp.load(update_db=False, force_small=args.force_small)
 
@@ -127,5 +127,7 @@ if __name__ == "__main__":
                         help='do SPLIT')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='enable debug output')
+    parser.add_argument('--fits',
+                        help='external FITS-IDI file')
 
     sys.exit(main(parser.parse_args()))
