@@ -281,7 +281,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         nominal_start = %s,
         nominal_end = %s,
         hostname = %s,
-        pima_version = %s
+        pima_version = %s,
         correlator_name = %s
         WHERE id = %s
         '''
