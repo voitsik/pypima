@@ -775,7 +775,9 @@ calibration information')
         Delete UV-FITS file.
 
         """
-        if os.path.isfile(self.uv_fits):
+        # Delete FITS file in `data_dir` only
+        if os.path.isfile(self.uv_fits) and \
+                self.uv_fits.startswith(self.data_dir):
             os.remove(self.uv_fits)
 
         staging_dir = self.pima.cnt_params['STAGING_DIR:']

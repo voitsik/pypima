@@ -250,7 +250,7 @@ def main(args):
                                               'data', 'pima_data'))
 
     # Parse input file.
-    # Input file is a table with three columns: exper_name, band, and
+    # The input file is a table with three columns: exper_name, band, and
     # FITS-IDI file name (optional)
     try:
         with open(args.file_name, 'r') as in_file:
@@ -337,8 +337,6 @@ if __name__ == '__main__':
     # Optional arguments
     parser.add_argument('-l', '--log-file', metavar='LOG',
                         help='log file')
-#    parser.add_argument('--fits-idi', metavar='FITS-IDI',
-#                        help='local FITS-IDI file')
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process ground-only part of the experiments')
     parser.add_argument('--no-accel', action='store_true',
