@@ -247,9 +247,15 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
         """
         with self.connw.cursor() as cursor:
             # Delete old before add new
-            query = 'DELETE FROM pima_runs WHERE \
-exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;'
-            fits_name_base = uv_fits.split('_')[0] + '%'
+            query = """DELETE FROM pima_runs WHERE \
+exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;"""
+            uv_fits_toks = uv_fits.split('_')
+            fits_name_base = uv_fits_toks[0] + '%'
+
+            if len(uv_fits_toks) >= 5:
+                correlator = uv_fits_toks[4]
+                fits_name_base += correlator + '%'
+
             cursor.execute(query, (exper, band, fits_name_base, scan_part))
 
             query = 'INSERT INTO pima_runs (exper_name, band, \

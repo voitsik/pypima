@@ -742,12 +742,14 @@ calibration information')
             out_fits_dir = os.path.join(out_dir, b1950_name)
             os.makedirs(out_fits_dir, exist_ok=True)
 
+            # Correlator name
+            corr_name = self.pima.exper_info['correlator_name']
+
             out_fits_name = \
-                '{}_{}_{}_{}_{:04d}s_uva.fits'.format(b1950_name,
-                                                      self.exper,
-                                                      self.band.upper(),
-                                                      polar,
-                                                      round(self.split_time_aver))
+                '{}_{}_{}_{}_{:04d}s_{}_uva.fits'.\
+                format(b1950_name, self.exper, self.band.upper(), polar,
+                       round(self.split_time_aver), corr_name)
+
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
             self._print_info('Copy {} to {}'.format(pima_fits_path,
