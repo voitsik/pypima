@@ -136,8 +136,11 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         Use FITS-IDI with 64 spectral channels only.
 
     """
+    scan_part_base = 0
+
     # First run on full scan
-    ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+    scan_part = scan_part_base + 1
+    ra_exp.load(update_db=True, scan_part=scan_part, force_small=force_small)
     ra_exp.load_antab()
 
     scan_len_list = []
@@ -158,7 +161,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     # Second run on a scan half
     max_scan_len = max(scan_len_list)
     scan_len = round(max_scan_len / 2)
-    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=2,
+    scan_part = scan_part_base + 2
+    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=scan_part,
                 force_small=force_small)
     ra_exp.load_antab()
 
@@ -178,7 +182,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
 
     # For good experiments more runs
     if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded:
-        scan_part = 3
+        scan_part = scan_part_base + 3
         scan_len = round(max_scan_len / scan_part)
 
         while scan_len > 100 and detections:
@@ -203,7 +207,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     # Special run for ground-ground baselines with 60 s scan length
     if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
             detections:
-        scan_part = 100
+        scan_part = scan_part_base + 100
         scan_len = 60
         ra_exp.load(update_db=True, scan_length=scan_len,
                     scan_part=scan_part, force_small=force_small)
