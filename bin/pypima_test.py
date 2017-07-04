@@ -78,7 +78,7 @@ def main(args):
 
             fri = ra_exp.fringe_fitting(True, not args.no_accel)
             print(fri)
-    #        p.fringes2db()
+
             max_scan_len = fri.max_scan_length()
             logging.debug('DEBUG: max_scan_len = %s', max_scan_len)
             if args.split:
@@ -110,9 +110,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band')
-    parser.add_argument('polar', help='polarization', nargs='?')
 
     # Optional arguments
+    parser.add_argument('--polar', help='polarization')
     parser.add_argument('--gvlbi', '-g', action='store_true',
                         help='process GVLBI FITS-file')
     parser.add_argument('--no-accel', action='store_true',
