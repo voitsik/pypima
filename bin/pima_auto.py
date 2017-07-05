@@ -118,7 +118,7 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
 
 
 def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
-                        force_small=False):
+                        force_small=False, alt=False):
     """
     Process space-ground part of the experiment.
 
@@ -136,7 +136,10 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         Use FITS-IDI with 64 spectral channels only.
 
     """
-    scan_part_base = 0
+    if alt:
+        scan_part_base = 1000
+    else:
+        scan_part_base = 0
 
     # First run on full scan
     scan_part = scan_part_base + 1
@@ -183,7 +186,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     # For good experiments more runs
     if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded:
         scan_part = scan_part_base + 3
-        scan_len = round(max_scan_len / scan_part)
+        scan_len = round(max_scan_len / (scan_part-scan_part_base))
 
         while scan_len > 100 and detections:
             ra_exp.load(update_db=True, scan_length=scan_len,
@@ -202,7 +205,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
             scan_part += 1
-            scan_len = round(max_scan_len / scan_part)
+            scan_len = round(max_scan_len / (scan_part-scan_part_base))
 
     # Special run for ground-ground baselines with 60 s scan length
     if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
@@ -306,7 +309,9 @@ def main(args):
                     process_gvlbi(ra_exp, not args.no_accel, args.force_small)
                 else:
                     process_radioastron(ra_exp, out_dir, spec_out_dir,
-                                        not args.no_accel, args.force_small)
+                                        accel=not args.no_accel,
+                                        force_small=args.force_small,
+                                        alt=args.alt)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -347,6 +352,8 @@ if __name__ == '__main__':
                         help='disable parabolic term fitting')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
+    parser.add_argument('--alt', action='store_true',
+                        help='use alternative scan_part_base')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',

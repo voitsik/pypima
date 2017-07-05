@@ -79,6 +79,7 @@ class RaExperiment:
         self.uv_fits = uv_fits
         self.orbit = orbit
         self.fri = None  # Result of last fringe fitting
+        self.scan_part = 0
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -417,6 +418,8 @@ first line'.format(antab))
             used as run index.
 
         """
+        self.scan_part = scan_part
+
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
             if self.uv_fits is None:
@@ -749,6 +752,9 @@ calibration information')
                 '{}_{}_{}_{}_{:04d}s_{}_uva.fits'.\
                 format(b1950_name, self.exper, self.band.upper(), polar,
                        round(self.split_time_aver), corr_name)
+
+            if self.scan_part >= 1000:
+                out_fits_name = out_fits_name.replace('_uva', '_ALT_uva')
 
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
