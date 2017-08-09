@@ -327,7 +327,7 @@ def main(args):
         except KeyboardInterrupt:
             logging.warning('KeyboardInterrupt')
             return 1
-        except:
+        except Exception:
             logging.error("Unexpected error: %s", sys.exc_info()[0])
             raise
 
