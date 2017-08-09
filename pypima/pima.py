@@ -215,20 +215,22 @@ Check your PIMA installation!')
                                                           self.band,
                                                           operation))
 
-        log = open(log_name, 'w')
-        log.write(str(datetime.now()) + '\n\n')
-        log.flush()
+        with open(log_name, 'w') as log:
+            print(datetime.now(), end='\n\n', file=log)
+            print('cmd: ', ' '.join(cmd_line), end='\n\n', file=log,
+                  flush=True)
+            self.logger.debug('execute: %s', ' '.join(cmd_line))
 
-        # Run `pima` with minimum priority
-        self.logger.debug('execute: %s', ' '.join(cmd_line))
-        with subprocess.Popen(cmd_line, stdout=log,
-                              universal_newlines=True) as proc:
-            os.setpriority(os.PRIO_PROCESS, proc.pid, 19)
-            os.sched_setscheduler(proc.pid, os.SCHED_BATCH, os.sched_param(0))
-            ret = proc.wait()
+            # Run `pima` with minimum priority
+            with subprocess.Popen(cmd_line, stdout=log,
+                                  universal_newlines=True) as proc:
+                os.setpriority(os.PRIO_PROCESS, proc.pid, 19)
+                os.sched_setscheduler(proc.pid, os.SCHED_BATCH,
+                                      os.sched_param(0))
+                ret = proc.wait()
 
-        log.write('\n' + str(datetime.now()) + '\n\n')
-        log.close()
+            print('', file=log)
+            print(datetime.now(), file=log)
 
         return ret
 
