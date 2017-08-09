@@ -560,7 +560,7 @@ bandpass: %s', obs['SNR'])
         else:
             return False
 
-    def fringe_fitting(self, bandpass=False, accel=False):
+    def fringe_fitting(self, bandpass=False, accel=False, ampl_bandpass=True):
         """
         Do fringe fitting.
 
@@ -569,8 +569,12 @@ bandpass: %s', obs['SNR'])
         bandpass : bool, optional
             If ``True`` try to do bandpass calibration. Default is ``False``.
 
-        accel : boot, optional
+        accel : bool, optional
             If ``True`` turn on phase acceleration fitting.
+
+        ampl_bandpass : bool, optional
+            If ``True``, do the amplitude bandpass calibration. Set polynomial
+            degree to zero otherwise.
 
         Returns
         -------
@@ -619,12 +623,17 @@ bandpass: %s', obs['SNR'])
 
             # Now auto select reference station
             if fri and self._select_ref_sta(fri):
+                bpas_params = []
+                if not ampl_bandpass:
+                    bpas_params.extend(['BPS.DEG_AMP:', '0'])
+
                 try:
-                    self.pima.bpas()
+                    self.pima.bpas(bpas_params)
                 except pypima.pima.Error:
                     self._print_info('Try INIT bandpass')
                     try:
-                        self.pima.bpas(['BPS.MODE:', 'INIT'])
+                        bpas_params.extend(['BPS.MODE:', 'INIT'])
+                        self.pima.bpas(bpas_params)
                     except pypima.pima.Error:
                         self._print_info('Continue without bandpass')
                         self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
