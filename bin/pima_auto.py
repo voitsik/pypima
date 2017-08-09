@@ -118,7 +118,7 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
 
 
 def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
-                        force_small=False, alt=False):
+                        force_small=False, scan_part_base=0):
     """
     Process space-ground part of the experiment.
 
@@ -136,11 +136,6 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         Use FITS-IDI with 64 spectral channels only.
 
     """
-    if alt:
-        scan_part_base = 1000
-    else:
-        scan_part_base = 0
-
     # First run on full scan
     scan_part = scan_part_base + 1
     ra_exp.load(update_db=True, scan_part=scan_part, force_small=force_small)
@@ -311,7 +306,7 @@ def main(args):
                     process_radioastron(ra_exp, out_dir, spec_out_dir,
                                         accel=not args.no_accel,
                                         force_small=args.force_small,
-                                        alt=args.alt)
+                                        scan_part_base=args.scan_part_base)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -352,7 +347,7 @@ if __name__ == '__main__':
                         help='disable parabolic term fitting')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
-    parser.add_argument('--alt', action='store_true',
+    parser.add_argument('--scan-part-base', type=int, default=0,
                         help='use alternative scan_part_base')
 
     group = parser.add_mutually_exclusive_group()
