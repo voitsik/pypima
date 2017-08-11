@@ -560,7 +560,8 @@ bandpass: %s', obs['SNR'])
         else:
             return False
 
-    def fringe_fitting(self, bandpass=False, accel=False, ampl_bandpass=True):
+    def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
+                       ampl_bandpass=True):
         """
         Do fringe fitting.
 
@@ -571,6 +572,9 @@ bandpass: %s', obs['SNR'])
 
         accel : bool, optional
             If ``True`` turn on phase acceleration fitting.
+
+        bandpass_mode : str, optional
+            Set the ``BPS.MODE`` ``PIMA`` parameter.
 
         ampl_bandpass : bool, optional
             If ``True``, do the amplitude bandpass calibration. Set polynomial
@@ -624,6 +628,8 @@ bandpass: %s', obs['SNR'])
             # Now auto select reference station
             if fri and self._select_ref_sta(fri):
                 bpas_params = []
+                if bandpass_mode:
+                    bpas_params.extend(['BPS.MODE:', bandpass_mode])
                 if not ampl_bandpass:
                     bpas_params.extend(['BPS.DEG_AMP:', '0'])
 
