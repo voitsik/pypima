@@ -563,19 +563,16 @@ bandpass: %s', obs['SNR'])
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True):
         """
-        Do fringe fitting.
+        Perform a fringe fitting.
 
         Parameters
         ----------
         bandpass : bool, optional
-            If ``True`` try to do bandpass calibration. Default is ``False``.
-
+            If ``True`` try to do a bandpass calibration. Default is ``False``.
         accel : bool, optional
-            If ``True`` turn on phase acceleration fitting.
-
+            If ``True`` turn on a phase acceleration fitting.
         bandpass_mode : str, optional
-            Set the ``BPS.MODE`` ``PIMA`` parameter.
-
+            Set the ``BPS.MODE`` **PIMA** parameter.
         ampl_bandpass : bool, optional
             If ``True``, do the amplitude bandpass calibration. Set polynomial
             degree to zero otherwise.
