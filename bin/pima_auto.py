@@ -150,7 +150,9 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
+        if scan_part == 1:
+            ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
+                                        db=True)
         fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
                                     bandpass_mode=bandpass_mode)
         print(fri)
