@@ -68,7 +68,10 @@ def main(args):
                 for ind in range(if_num):
                     ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
                                             'END_FRQ:': str(ind+1)})
-                    fri = ra_exp.fringe_fitting(True, not args.no_accel)
+                    fri = ra_exp.fringe_fitting(bandpass=True,
+                                                accel=not args.no_accel,
+                                                bandpass_mode=args.bpas_mode,
+                                                ampl_bandpass=not args.no_ampl_bpas)
                     print('IF #{}'.format(ind+1))
                     print(fri)
 
@@ -76,7 +79,9 @@ def main(args):
                 ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
                                         'END_FRQ:': str(if_num)})
 
-            fri = ra_exp.fringe_fitting(True, not args.no_accel)
+            fri = ra_exp.fringe_fitting(bandpass=True, accel=not args.no_accel,
+                                        bandpass_mode=args.bpas_mode,
+                                        ampl_bandpass=not args.no_ampl_bpas)
             print(fri)
 
             max_scan_len = fri.max_scan_length()
@@ -99,7 +104,7 @@ def main(args):
     except KeyboardInterrupt:
         logging.warning('KeyboardInterrupt')
         return 1
-    except:
+    except Exception:
         logging.error('Unexpected error: %s', sys.exc_info()[0])
         raise
 
@@ -125,9 +130,14 @@ if __name__ == "__main__":
                         help='do fringe fittig for individual IFs')
     parser.add_argument('--split', action='store_true',
                         help='do SPLIT')
-    parser.add_argument('--debug', '-d', action='store_true',
-                        help='enable debug output')
     parser.add_argument('--fits',
                         help='external FITS-IDI file')
+    parser.add_argument('--bpas-mode', metavar='MODE',
+                        choices=['INIT', 'ACCUM', 'FINE'],
+                        help='set bandpass calibration mode')
+    parser.add_argument('--no-ampl-bpas', action='store_true',
+                        help='disable amplitude bandpass calibration')
+    parser.add_argument('--debug', '-d', action='store_true',
+                        help='enable debug output')
 
     sys.exit(main(parser.parse_args()))
