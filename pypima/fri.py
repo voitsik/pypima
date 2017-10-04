@@ -73,6 +73,7 @@ SNR_LIMITS = {
 # 23 -> Gr_del_lsq value
 # 31 -> Ph_rat_lsq value
 # 37 -> Ph_acc value
+# 43 -> Phs_lsq value
 # 79 -> Duration of scan
 # 82 -> AP_len
 # 84 -> U
@@ -168,6 +169,8 @@ class Fri():
                         float(toks[31].replace('D', 'e'))
                     self.records[-1]['ph_acc'] = \
                         float(toks[37].replace('D', 'e'))
+                    self.records[-1]['phs_lsq'] = \
+                        float(toks[43].replace('D', 'e'))
                     self.records[-1]['duration'] = \
                         float(toks[79].replace('D', 'e'))
                     self.records[-1]['ap_len'] = \
