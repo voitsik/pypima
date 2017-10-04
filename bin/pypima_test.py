@@ -68,7 +68,7 @@ def main(args):
                 for ind in range(if_num):
                     ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
                                             'END_FRQ:': str(ind+1)})
-                    fri = ra_exp.fringe_fitting(bandpass=True,
+                    fri = ra_exp.fringe_fitting(bandpass=not args.no_bandpass,
                                                 accel=not args.no_accel,
                                                 bandpass_mode=args.bpas_mode,
                                                 ampl_bandpass=not args.no_ampl_bpas)
@@ -79,7 +79,8 @@ def main(args):
                 ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
                                         'END_FRQ:': str(if_num)})
 
-            fri = ra_exp.fringe_fitting(bandpass=True, accel=not args.no_accel,
+            fri = ra_exp.fringe_fitting(bandpass=not args.no_bandpass,
+                                        accel=not args.no_accel,
                                         bandpass_mode=args.bpas_mode,
                                         ampl_bandpass=not args.no_ampl_bpas)
             print(fri)
@@ -132,6 +133,8 @@ if __name__ == "__main__":
                         help='do SPLIT')
     parser.add_argument('--fits',
                         help='external FITS-IDI file')
+    parser.add_argument('--no-bandpass', action='store_true',
+                        help='disable bandpass calibration')
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
                         help='set bandpass calibration mode')
