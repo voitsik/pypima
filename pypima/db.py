@@ -7,7 +7,9 @@ Created on Thu Oct 30 14:23:23 2014
 
 from datetime import datetime, timedelta
 import os.path
+
 import psycopg2
+from psycopg2.extras import execute_values
 
 
 class DB:
@@ -183,9 +185,7 @@ class DB:
         query = """INSERT INTO pima_obs (obs, start_time, stop_time,
 exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
 solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation,
-bandpass)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-%s, %s, %s, %s, %s, %s, %s, %s);"""
+bandpass) VALUES %s;"""
 
         rec_list = []
         for rec in fri.records:
@@ -226,8 +226,8 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                              rec['elevation'],
                              fri.aux['bandpass']))
 
-        with self.connw.cursor() as cur:
-            cur.executemany(query, rec_list)
+        with self.connw.cursor() as cursor:
+            execute_values(cursor, query, rec_list)
 
         self.connw.commit()
 
@@ -336,15 +336,20 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
             List of clock model components.
 
         """
-        query = 'INSERT INTO clock_models \
-(sta, time, clock_offset, clock_rate, group_delay, delay_rate, run_id) \
-VALUES (%s, %s, %s, %s, %s, %s, %s);'
+        query = """INSERT INTO clock_models
+(sta, time, clock_offset, clock_rate, group_delay, delay_rate, run_id)
+VALUES %s;"""
+
+        data = []
+
+        for rec in clock_model:
+            row = list(rec)
+            row.append(run_id)
+            data.append(row)
 
         with self.connw.cursor() as cursor:
-            for rec in clock_model:
-                parameters = list(rec)
-                parameters.append(run_id)
-                cursor.execute(query, parameters)
+                # cursor.execute(query, parameters)
+                execute_values(cursor, query, data)
 
         self.connw.commit()
 
@@ -387,13 +392,14 @@ VALUES (%s, %s, %s, %s, %s, %s, %s);'
 
         query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
 band, polar, sta1, sta2, u, v, freq, ampl, weight, inttime, file_name, run_id)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"""
+VALUES %s;"""
 
         if data:
-            with self.connw.cursor() as cur:
-                cur.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
-                            (file_name, ))
-                cur.executemany(query, data)
+            with self.connw.cursor() as cursor:
+                cursor.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
+                               (file_name, ))
+                # cur.executemany(query, data)
+                execute_values(cursor, query, data)
             self.connw.commit()
 
     def autospec2db(self, acta_file):
@@ -414,21 +420,21 @@ WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
 scan_name = %s;"""
         query_info = """INSERT INTO autospec_info
 (exper_name, band, polar, sta, start_date, stop_date, obs, scan_name)
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;"""
+VALUES %s RETURNING id;"""
         query_data = """INSERT INTO autospec
-(if_num, chann_num, freq, ampl, info_id) VALUES (%s, %s, %s, %s, %s);"""
+(if_num, chann_num, freq, ampl, info_id) VALUES %s;"""
         data = []
 
-        with self.connw.cursor() as cur:
-            cur.execute(delete_query, (exper, band, polar, sta, scan_name))
-            cur.execute(query_info, (exper, band, polar, sta, start_date,
-                                     stop_date, obs, scan_name))
-            info_id = cur.fetchone()[0]
+        with self.connw.cursor() as cursor:
+            cursor.execute(delete_query, (exper, band, polar, sta, scan_name))
+            cursor.execute(query_info, [(exper, band, polar, sta, start_date,
+                                        stop_date, obs, scan_name)])
+            info_id = cursor.fetchone()[0]
 
             for ind in range(acta_file.header['num_of_points']):
                 row = (acta_file.if_num[ind], acta_file.channel[ind],
                        acta_file.freq[ind], acta_file.ampl[ind], info_id)
                 data.append(row)
-            cur.executemany(query_data, data)
+            execute_values(cursor, query_data, data, page_size=2048)
 
         self.connw.commit()
