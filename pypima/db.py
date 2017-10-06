@@ -435,6 +435,6 @@ VALUES %s RETURNING id;"""
                 row = (acta_file.if_num[ind], acta_file.channel[ind],
                        acta_file.freq[ind], acta_file.ampl[ind], info_id)
                 data.append(row)
-            execute_values(cursor, query_data, data)
+            execute_values(cursor, query_data, data, page_size=2048)
 
         self.connw.commit()
