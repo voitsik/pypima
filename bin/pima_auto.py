@@ -119,7 +119,7 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
 
 def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                         bandpass_mode=None, force_small=False,
-                        scan_part_base=0):
+                        scan_part_base=0, ampl_bandpass=True):
     """
     Process space-ground part of the experiment.
 
@@ -154,7 +154,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
             ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
                                         db=True)
         fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                    bandpass_mode=bandpass_mode)
+                                    bandpass_mode=bandpass_mode,
+                                    ampl_bandpass=ampl_bandpass)
         print(fri)
         scan_len_list.append(fri.max_scan_length())
         ra_exp.fringes2db()
@@ -319,7 +320,8 @@ def main(args):
                                         accel=not args.no_accel,
                                         bandpass_mode=args.bpas_mode,
                                         force_small=args.force_small,
-                                        scan_part_base=args.scan_part_base)
+                                        scan_part_base=args.scan_part_base,
+                                        ampl_bandpass=not args.no_ampl_bpas)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -365,6 +367,8 @@ if __name__ == '__main__':
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
                         help='set bandpass calibration mode')
+    parser.add_argument('--no-ampl-bpas', action='store_true',
+                        help='disable amplitude bandpass calibration')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',
