@@ -166,7 +166,9 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
                 ra_exp.split(average=aver)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
+    #
     # Second run on a scan half
+    #
     max_scan_len = max(scan_len_list)
     scan_len = round(max_scan_len / 2)
     scan_part = scan_part_base + 2
@@ -178,7 +180,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
         fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                    bandpass_mode=bandpass_mode)
+                                    bandpass_mode=bandpass_mode,
+                                    ampl_bandpass=ampl_bandpass)
         print(fri)
         if fri.any_detections():
             detections = True
@@ -189,7 +192,9 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
             ra_exp.split(average=scan_len)
             ra_exp.copy_uvfits(uv_fits_out_dir)
 
+    #
     # For good experiments more runs
+    #
     if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded:
         scan_part = scan_part_base + 3
         scan_len = round(max_scan_len / (scan_part-scan_part_base))
@@ -203,7 +208,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
                 fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                            bandpass_mode=bandpass_mode)
+                                            bandpass_mode=bandpass_mode,
+                                            ampl_bandpass=ampl_bandpass)
                 print(fri)
                 if fri.any_detections():
                     detections = True
@@ -226,7 +232,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         for polar in ('RR', 'LL'):
             ra_exp.pima.set_polar(polar)
             fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                        bandpass_mode=bandpass_mode)
+                                        bandpass_mode=bandpass_mode,
+                                        ampl_bandpass=ampl_bandpass)
             print(fri)
             ra_exp.fringes2db()
             ra_exp.split(average=scan_len)
