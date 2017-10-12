@@ -630,17 +630,19 @@ bandpass: %s', obs['SNR'])
                 if not ampl_bandpass:
                     bpas_params.extend(['BPS.DEG_AMP:', '0'])
 
-                try:
-                    self.pima.bpas(bpas_params)
-                except pypima.pima.Error:
-                    self._print_info('Try INIT bandpass')
-                    try:
-                        bpas_params.extend(['BPS.MODE:', 'INIT'])
-                        self.pima.bpas(bpas_params)
-                    except pypima.pima.Error:
-                        self._print_info('Continue without bandpass')
-                        self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
-                        bandpass = False
+                self.pima.bpas(bpas_params)
+
+#                try:
+#                    self.pima.bpas(bpas_params)
+#                except pypima.pima.Error:
+#                    self._print_info('Try INIT bandpass')
+#                    try:
+#                        bpas_params.extend(['BPS.MODE:', 'INIT'])
+#                        self.pima.bpas(bpas_params)
+#                    except pypima.pima.Error:
+#                        self._print_info('Continue without bandpass')
+#                        self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+#                        bandpass = False
             else:
                 self.logger.info('skip bandpass due to absence of the useful \
 scans')
