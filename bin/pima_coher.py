@@ -9,15 +9,13 @@ Created on Fri Apr  4 18:22:19 2014
 import argparse
 import logging
 import math
-import matplotlib.pyplot as plt
-import numpy as np
 import os.path
-from scipy.optimize import curve_fit
-import sys
 from tempfile import NamedTemporaryFile
 
-PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, PATH)
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.optimize import curve_fit
+
 from pypima.pima import Pima
 from pypima.pima import Error as PIMAError
 from pypima.fri import Fri
@@ -47,10 +45,10 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
 
     if len(durs_400) > 1:
         snrs_400 = snrs[durs < 400]
-        params, pcov = curve_fit(sqrt_func, durs_400, snrs_400)
+        params, _ = curve_fit(sqrt_func, durs_400, snrs_400)
         # err = np.sqrt(np.diag(pcov))
 
-        durs0 = np.linspace(0, durs.max())
+        durs0 = np.linspace(0, durs.max(), num=200)
         sqrt_snr = sqrt_func(durs0, *params)
         const_amp = np.ones(durs0.shape) * amps[durs < 400].mean()
 
@@ -61,13 +59,15 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
     title = '{}({}) obs #{}: {} / {}'.format(exper.lower(), band.upper(),
                                              obs, sta1, sta2)
     ax1.set_title(title)
-#    ax1.set_ylim(ymin=0)
+    ax1.set_ylim(ymin=0)
+    ax1.grid(True)
 
     ax2.set_xlabel('Integration time (s)')
     ax2.set_ylabel('SNR')
+    ax2.grid(True)
 
-    pic_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs)
-    plt.savefig(pic_file_name, format='pdf')
+    plot_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs)
+    plt.savefig(plot_file_name, format='pdf')
 
 
 def proc_obs(exper, band, obs, max_dur):
