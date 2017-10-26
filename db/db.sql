@@ -1,5 +1,9 @@
 -- psql ra_results
 
+CREATE TYPE band_type AS ENUM ('p', 'l', 'c', 'k');
+CREATE TYPE polar_type AS ENUM ('RR', 'RL', 'LR', 'LL');
+CREATE TYPE status_type AS ENUM ('n', 'u', 'y');
+
 CREATE TABLE vex_files (
     file_name varchar(32),
     exper_name varchar(32) primary key,
@@ -25,7 +29,7 @@ GRANT SELECT ON sources TO guest;
 CREATE TABLE pima_runs (
   id SERIAL PRIMARY KEY,
   exper_name varchar(20) references vex_files(exper_name),
-  band char(1) NOT NULL,
+  band band_type NOT NULL,
   fits_idi varchar(256) NOT NULL,
   scan_part int NOT NULL,
   sp_chann_num int,
@@ -62,7 +66,7 @@ CREATE TABLE pima_obs (
   start_time timestamp NOT NULL,
   stop_time timestamp NOT NULL,
   source varchar(20) references sources(IVS_name),
-  polar char(2) NOT NULL,
+  polar polar_type NOT NULL,
   st1 varchar(8) NOT NULL,
   st2 varchar(8) NOT NULL,
   delay real,
@@ -76,8 +80,8 @@ CREATE TABLE pima_obs (
   base_ed real,
   ref_freq real,
   exper_name varchar(20) NOT NULL,
-  band char(1) NOT NULL,
-  status char(1) DEFAULT 'u',
+  band band_type NOT NULL,
+  status status_type DEFAULT 'u'::status_type,
   run_id int references pima_runs(id) ON DELETE CASCADE,
   if_id smallint DEFAULT 0,
   elevation real[] DEFAULT ARRAY[0.0, 0.0],
@@ -117,7 +121,7 @@ CREATE TABLE fits_files (
     corr_date date,
     correlator varchar(8),
     oper varchar(32),
-    band char(1),
+    band band_type,
     ch_num int
     mdate date DEFAULT '2000-01-01',
     size bigint DEFAULT 0,
@@ -136,8 +140,8 @@ CREATE TABLE ra_uvfits (
     id SERIAL primary key,
     source varchar(20),
     exper_name varchar(20) references vex_files(exper_name),
-    band char(1),
-    polar char(2),
+    band band_type,
+    polar polar_type,
     sta1 char(2),
     sta2 char(2),
     u real,
@@ -177,8 +181,8 @@ GRANT SELECT, UPDATE, INSERT, DELETE ON station_names TO editor;
 CREATE TABLE autospec_info (
     id serial primary key,
     exper_name varchar(20) references vex_files(exper_name),
-    band char(1) NOT NULL,
-    polar char(2) NOT NULL,
+    band band_type NOT NULL,
+    polar polar_type NOT NULL,
     sta varchar(8) NOT NULL,
     start_date timestamp NOT NULL,
     stop_date timestamp NOT NULL,

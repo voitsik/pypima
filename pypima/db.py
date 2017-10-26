@@ -60,16 +60,16 @@ class DB:
         size = 0
 
         query = """SELECT path, size, ftp_user FROM fits_files
-        WHERE LOWER(exper_name) = LOWER(%s) AND LOWER(band) = LOWER(%s) AND
-        basename LIKE %s #EXT#
+        WHERE exper_name = %s AND band = %s AND
+        split_part(basename, '_', 1) = %s #EXT#
         ORDER BY corr_date DESC, path DESC;"""
 
         params = [exper, band]
 
         if gvlbi:
-            params.append('GVLBI%')
+            params.append('GVLBI')
         else:
-            params.append('RADIOASTRON%')
+            params.append('RADIOASTRON')
 
         if small:
             query = query.replace('#EXT#', 'AND ch_num = %s')
