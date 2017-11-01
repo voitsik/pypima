@@ -22,39 +22,60 @@ from pypima.pima import Error as PIMAError
 from pypima.fri import Fri
 
 
-def plot(obs_id, durs, amps, snrs, exper, band, sta1, sta2):
+def plot_theo_curves(ax_ampl, ax_snr, dur_arr, ampl_arr, snr_arr,
+                     max_coher_dur=400):
+    """
+    Plot theoretical curves for amplitude and SNR.
+
+    """
+    # Mask to select values with int time less then coher time
+    coher_mask = dur_arr < max_coher_dur
+
+    # At least 2 points to fit
+    if np.count_nonzero(coher_mask) <= 1:
+        return
+
+    def sqrt_func(time, ampl):
+        """
+        Return A * sqrt(T)
+        """
+        return ampl * np.sqrt(time)
+
+    fit_params, _ = curve_fit(sqrt_func,
+                              dur_arr[coher_mask],
+                              snr_arr[coher_mask])
+
+    dur_theo_arr = np.linspace(0, dur_arr.max(), num=200)
+    snr_theo_arr = sqrt_func(dur_theo_arr, *fit_params)
+    ampl_theo_arr = np.full_like(dur_theo_arr, ampl_arr[coher_mask].mean())
+
+    ax_ampl.plot(dur_theo_arr, ampl_theo_arr, 'r-')
+    ax_snr.plot(dur_theo_arr, snr_theo_arr, 'r-')
+
+
+def plot(obs_id, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
+         start_time):
     """
     Plot
     """
-    if np.mean(amps) < 1e-3:
+    dur_arr = np.asarray(dur_arr)
+    ampl_arr = np.asarray(ampl_arr)
+    snr_arr = np.asarray(snr_arr)
+
+    if np.mean(ampl_arr) < 1e-3:
         ylabel = 'Amplitude (micro values)'
-        amps *= 1e6
+        ampl_arr *= 1e6
     else:
         ylabel = 'Amplitude'
-
-    def sqrt_func(dur, amp):
-        return amp * np.sqrt(dur)
 
     # Plotting
     fig, (ax1, ax2) = plt.subplots(2, sharex=True)
     ax1.set_ymargin(0.2)
     ax2.set_ymargin(0.1)
-    ax1.plot(durs, amps, 'o')
-    ax2.plot(durs, snrs, 'o')
+    ax1.plot(dur_arr, ampl_arr, 'o')
+    ax2.plot(dur_arr, snr_arr, 'o')
 
-    durs_400 = durs[durs < 400]
-
-    if durs_400.size > 1:
-        snrs_400 = snrs[durs < 400]
-        params, _ = curve_fit(sqrt_func, durs_400, snrs_400)
-        # err = np.sqrt(np.diag(pcov))
-
-        durs0 = np.linspace(0, durs.max(), num=200)
-        sqrt_snr = sqrt_func(durs0, *params)
-        const_amp = np.ones(durs0.shape) * amps[durs < 400].mean()
-
-        ax1.plot(durs0, const_amp, 'r-')
-        ax2.plot(durs0, sqrt_snr, 'r-')
+    plot_theo_curves(ax1, ax2, dur_arr, ampl_arr, snr_arr)
 
     ax1.set_ylabel(ylabel)
     title = '{}({}) obs #{}: {} / {}'.format(exper.lower(), band.upper(),
@@ -89,8 +110,8 @@ def proc_obs(exper, band, obs, max_dur):
 
     if obs <= 0 or obs > pim.obs_number():
         logging.error(
-                'Incorrect observation number %s, must be in range [%s %s]',
-                obs, 1, pim.obs_number())
+            'Incorrect observation number %s, must be in range [%s %s]',
+            obs, 1, pim.obs_number())
         return 1
 
     # Prepare temporary fri and frr files
@@ -122,17 +143,18 @@ def proc_obs(exper, band, obs, max_dur):
     full_duration = fri[0]['duration']
     sta1 = fri[0]['sta1']
     sta2 = fri[0]['sta2']
+    start_time = fri[0]['start_time']
 
-    durs = []
-    amps = []
-    snrs = []
+    dur_arr = []
+    ampl_arr = []
+    snr_arr = []
 
-    for delim in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
-        dur = round(full_duration / (delim))
+    for divisor in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
+        dur = round(full_duration / divisor)
         logging.debug('Set SCAN_LEN_USED %s', dur)
 
-        for j in range(math.ceil(delim)):
-            if delim < 2 and j == 1:
+        for j in range(math.ceil(divisor)):
+            if divisor < 2 and j == 1:
                 skip = full_duration - dur
             else:
                 skip = j * dur
@@ -153,11 +175,11 @@ def proc_obs(exper, band, obs, max_dur):
             if fri[0]['SNR'] < 5.7:
                 continue
 
-            durs.append(fri[0]['duration'])
-            amps.append(fri[0]['ampl_lsq'])
-            snrs.append(fri[0]['SNR'])
+            dur_arr.append(fri[0]['duration'])
+            ampl_arr.append(fri[0]['ampl_lsq'])
+            snr_arr.append(fri[0]['SNR'])
 
-            print('{} {} {}'.format(durs[-1], amps[-1], snrs[-1]))
+            print('{} {} {}'.format(dur_arr[-1], ampl_arr[-1], snr_arr[-1]))
 
     # Delete temporary files
     if os.path.isfile(tmp_fri):
@@ -165,28 +187,17 @@ def proc_obs(exper, band, obs, max_dur):
     if os.path.isfile(tmp_frr):
         os.remove(tmp_frr)
 
-    if durs:
-        plot(obs, np.array(durs), np.array(amps), np.array(snrs),
-             exper, band, sta1, sta2)
+    if dur_arr:
+        plot(obs, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
+             start_time)
     else:
         logging.warning('Nothing to plot...')
 
     return 0
 
 
-def main(args):
+def main():
     """Main"""
-    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
-                        level=logging.INFO)
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    for obs_id in args.obs_list.split(','):
-        proc_obs(args.exper, args.band, int(obs_id), args.scan_length)
-
-
-if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band')
@@ -198,4 +209,17 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='be more verbose')
 
-    main(parser.parse_args())
+    args = parser.parse_args()
+
+    logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                        level=logging.INFO)
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    for obs_id in args.obs_list.split(','):
+        proc_obs(args.exper, args.band, int(obs_id), args.scan_length)
+
+
+if __name__ == '__main__':
+    main()
