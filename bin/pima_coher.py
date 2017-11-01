@@ -7,6 +7,7 @@ Created on Fri Apr  4 18:22:19 2014
 """
 
 import argparse
+from datetime import datetime
 import logging
 import math
 import os.path
@@ -21,7 +22,7 @@ from pypima.pima import Error as PIMAError
 from pypima.fri import Fri
 
 
-def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
+def plot(obs_id, durs, amps, snrs, exper, band, sta1, sta2):
     """
     Plot
     """
@@ -43,7 +44,7 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
 
     durs_400 = durs[durs < 400]
 
-    if len(durs_400) > 1:
+    if durs_400.size > 1:
         snrs_400 = snrs[durs < 400]
         params, _ = curve_fit(sqrt_func, durs_400, snrs_400)
         # err = np.sqrt(np.diag(pcov))
@@ -57,7 +58,7 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
 
     ax1.set_ylabel(ylabel)
     title = '{}({}) obs #{}: {} / {}'.format(exper.lower(), band.upper(),
-                                             obs, sta1, sta2)
+                                             obs_id, sta1, sta2)
     ax1.set_title(title)
     ax1.set_ylim(ymin=0)
     ax1.grid(True)
@@ -66,7 +67,12 @@ def plot(obs, durs, amps, snrs, exper, band, sta1, sta2):
     ax2.set_ylabel('SNR')
     ax2.grid(True)
 
-    plot_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs)
+    ax2.text(0.95, 0.03,
+             'Generated at {:%Y-%m-%d %H:%M}'.format(datetime.now()),
+             color='gray', size='xx-small', ha='right',
+             transform=ax2.transAxes)
+
+    plot_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs_id)
     plt.savefig(plot_file_name, format='pdf')
 
 
@@ -82,8 +88,9 @@ def proc_obs(exper, band, obs, max_dur):
         return 1
 
     if obs <= 0 or obs > pim.obs_number():
-        logging.error('Incorrect observation number %s, must be in range [%s %s]',
-                      obs, 1, pim.obs_number())
+        logging.error(
+                'Incorrect observation number %s, must be in range [%s %s]',
+                obs, 1, pim.obs_number())
         return 1
 
     # Prepare temporary fri and frr files
