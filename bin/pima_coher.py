@@ -99,13 +99,22 @@ def proc_obs(exper, band, obs, max_dur):
     with NamedTemporaryFile(suffix='.frr', delete=False) as tmp:
         tmp_frr = tmp.name
 
-    fri_file = pim.fine(['FRIB.OBS:', str(obs),
-                         'SCAN_LEN_SKIP:', '0.0',
-                         'SCAN_LEN_USED:', str(max_dur),
-                         'FRINGE_FILE:', tmp_fri,
-                         'FRIRES_FILE:', tmp_frr])
+    try:
+        fri_file = pim.fine(['FRIB.OBS:', str(obs),
+                             'SCAN_LEN_SKIP:', '0.0',
+                             'SCAN_LEN_USED:', str(max_dur),
+                             'FRINGE_FILE:', tmp_fri,
+                             'FRIRES_FILE:', tmp_frr])
+    except PIMAError as err:
+        logging.error('PIMA Error: %s', err)
+        return 1
 
     fri = Fri(fri_file)
+
+    if not fri:
+        logging.error('PIMA fri-file is empty')
+        return 1
+
     if fri[0]['SNR'] < 7.0:
         logging.warning('SNR of obs #%s is too low, skip it.', obs)
         return 1
