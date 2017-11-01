@@ -5,7 +5,7 @@ Created on Sun Dec 29 04:02:35 2013
 @author: Petr Voytsik
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 import logging
 import os.path
@@ -832,7 +832,7 @@ calibration information')
 
             return
 
-        utc_tai = timedelta(seconds=self.pima.exper_info['utc_minus_tai'])
+        utc_tai = self.pima.exper_info['utc_minus_tai']
         polar = self.pima.cnt_params['POLAR:']
         acta_file_list = [ActaFile(file_name, polar, utc_tai)
                           for file_name in file_list]

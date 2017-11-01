@@ -292,7 +292,6 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         WHERE id = %s
         '''
 
-        utc_tai = timedelta(seconds=exper_info['utc_minus_tai'])
         with self.connw.cursor() as cursor:
             cursor.execute(query, (exper_info['sp_chann_num'],
                                    exper_info['time_epochs_num'],
@@ -303,7 +302,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
                                    exper_info['deselected_points_num'],
                                    exper_info['no_auto_points_num'],
                                    exper_info['accum_length'],
-                                   utc_tai,
+                                   exper_info['utc_minus_tai'],
                                    exper_info['nominal_start'],
                                    exper_info['nominal_end'],
                                    exper_info['hostname'],

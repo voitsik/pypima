@@ -5,7 +5,7 @@ Created on Tue Dec 10 17:21:29 2013
 @author: Petr Voytsik
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import glob
 import logging
 import os.path
@@ -73,7 +73,8 @@ deselected points:'):
                 elif line.startswith('Accummulation period length_max:'):
                     acc_max = float(line.split(':')[1])
                 elif line.startswith('UTC_minus_TAI:'):
-                    self._data['utc_minus_tai'] = float(line.split(':')[1])
+                    self._data['utc_minus_tai'] = \
+                        timedelta(seconds=float(line.split(':')[1]))
                 elif line.startswith('Experiment nominal start:'):
                     self._data['nominal_start'] = datetime.strptime(
                         line.split(':', 1)[1].strip()[:23],
