@@ -78,8 +78,8 @@ def plot(obs_id, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
     plot_theo_curves(ax1, ax2, dur_arr, ampl_arr, snr_arr)
 
     ax1.set_ylabel(ylabel)
-    title = '{}({}) obs #{}: {} / {}'.format(exper.lower(), band.upper(),
-                                             obs_id, sta1, sta2)
+    title = '{:8}({:1}) {:8} / {:8} [{:%Y-%m-%d %H:%M} UTC]'.format(
+        exper.lower(), band.upper(), sta1, sta2, start_time)
     ax1.set_title(title)
     ax1.set_ylim(ymin=0)
     ax1.grid(True)
@@ -98,7 +98,10 @@ def plot(obs_id, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
 
 
 def proc_obs(exper, band, obs, max_dur):
-    """Main"""
+    """
+    Process observation.
+
+    """
     try:
         pim = Pima(exper, band)
     except PIMAError as err:
@@ -143,7 +146,7 @@ def proc_obs(exper, band, obs, max_dur):
     full_duration = fri[0]['duration']
     sta1 = fri[0]['sta1']
     sta2 = fri[0]['sta2']
-    start_time = fri[0]['start_time']
+    start_time = fri[0]['start_time'] + pim.exper_info['utc_minus_tai']
 
     dur_arr = []
     ampl_arr = []
