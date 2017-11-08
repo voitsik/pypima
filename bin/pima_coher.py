@@ -7,6 +7,7 @@ Created on Fri Apr  4 18:22:19 2014
 """
 
 import argparse
+from collections import namedtuple
 from datetime import datetime
 import logging
 import math
@@ -20,6 +21,9 @@ from scipy.optimize import curve_fit
 from pypima.pima import Pima
 from pypima.pima import Error as PIMAError
 from pypima.fri import Fri
+
+ObsInfo = namedtuple('ObsInfo', ['id', 'exper', 'band', 'sta1', 'sta2',
+                                 'start_time'])
 
 
 def plot_theo_curves(ax_ampl, ax_snr, dur_arr, ampl_arr, snr_arr,
@@ -53,8 +57,7 @@ def plot_theo_curves(ax_ampl, ax_snr, dur_arr, ampl_arr, snr_arr,
     ax_snr.plot(dur_theo_arr, snr_theo_arr, 'r-')
 
 
-def plot(obs_id, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
-         start_time):
+def plot(obs_info, dur_arr, ampl_arr, snr_arr, out_format='pdf'):
     """
     Plot
     """
@@ -62,42 +65,48 @@ def plot(obs_id, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
     ampl_arr = np.asarray(ampl_arr)
     snr_arr = np.asarray(snr_arr)
 
-    if np.mean(ampl_arr) < 1e-3:
-        ylabel = 'Amplitude (micro values)'
-        ampl_arr *= 1e6
-    else:
-        ylabel = 'Amplitude'
-
     # Plotting
     fig, (ax1, ax2) = plt.subplots(2, sharex=True)
-    ax1.set_ymargin(0.2)
-    ax2.set_ymargin(0.1)
+
+    ax1.yaxis.get_major_formatter().set_powerlimits((-4, 6))
+
     ax1.plot(dur_arr, ampl_arr, 'o')
+    ax1.plot(0, 0, alpha=0)  # Dirty hack
     ax2.plot(dur_arr, snr_arr, 'o')
 
     plot_theo_curves(ax1, ax2, dur_arr, ampl_arr, snr_arr)
 
-    ax1.set_ylabel(ylabel)
-    title = '{:8}({:1}) {:8} / {:8} [{:%Y-%m-%d %H:%M} UTC]'.format(
-        exper.lower(), band.upper(), sta1, sta2, start_time)
-    ax1.set_title(title)
-    ax1.set_ylim(ymin=0)
+    ax1.set_ylabel('Amplitude')
     ax1.grid(True)
 
     ax2.set_xlabel('Integration time (s)')
     ax2.set_ylabel('SNR')
     ax2.grid(True)
 
-    ax2.text(0.95, 0.03,
+    ax2.text(0.95, 0.01,
              'Generated at {:%Y-%m-%d %H:%M}'.format(datetime.now()),
              color='gray', size='xx-small', ha='right',
              transform=ax2.transAxes)
 
-    plot_file_name = '{}_{}_{:02d}_coher.pdf'.format(exper, band, obs_id)
-    plt.savefig(plot_file_name, format='pdf')
+    title = '{:8}({:1}) {:8} / {:8} [{:%Y-%m-%d %H:%M} UTC]'.format(
+        obs_info.exper.lower(), obs_info.band.upper(), obs_info.sta1,
+        obs_info.sta2, obs_info.start_time)
+    fig.suptitle(title)
+
+    plot_file_name = '{}_{}_{:02d}_coher.{}'.format(obs_info.exper,
+                                                    obs_info.band,
+                                                    obs_info.id,
+                                                    out_format)
+    if out_format == 'png':
+        dpi = 300
+    else:
+        dpi = None
+
+    plt.savefig(plot_file_name, bbox_inches='tight', pad_inches=0.1,
+                dpi=dpi)
 
 
-def proc_obs(exper, band, obs, max_dur):
+def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
     """
     Process observation.
 
@@ -144,9 +153,10 @@ def proc_obs(exper, band, obs, max_dur):
         return 1
 
     full_duration = fri[0]['duration']
-    sta1 = fri[0]['sta1']
-    sta2 = fri[0]['sta2']
     start_time = fri[0]['start_time'] + pim.exper_info['utc_minus_tai']
+
+    obs_info = ObsInfo(obs, exper, band, fri[0]['sta1'], fri[0]['sta2'],
+                       start_time)
 
     dur_arr = []
     ampl_arr = []
@@ -191,8 +201,7 @@ def proc_obs(exper, band, obs, max_dur):
         os.remove(tmp_frr)
 
     if dur_arr:
-        plot(obs, dur_arr, ampl_arr, snr_arr, exper, band, sta1, sta2,
-             start_time)
+        plot(obs_info, dur_arr, ampl_arr, snr_arr, out_format=plot_format)
     else:
         logging.warning('Nothing to plot...')
 
@@ -209,6 +218,8 @@ def main():
 
     parser.add_argument('--scan-length', type=float, default=1200.,
                         help='full scan length')
+    parser.add_argument('--plot-format', default='pdf',
+                        help='set output plot file format (PDF by default)')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='be more verbose')
 
@@ -220,8 +231,16 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    if args.plot_format not in \
+            plt.gcf().canvas.get_supported_filetypes().keys():
+        logging.error('Format %s does not supported by matplotlib',
+                      args.plot_format)
+
+        return 1
+
     for obs_id in args.obs_list.split(','):
-        proc_obs(args.exper, args.band, int(obs_id), args.scan_length)
+        proc_obs(args.exper, args.band, int(obs_id), args.scan_length,
+                 plot_format=args.plot_format)
 
 
 if __name__ == '__main__':
