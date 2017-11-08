@@ -208,13 +208,26 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
     return 0
 
 
+def valid_obs_list(string):
+    """
+    Convert a string with comma-separated values to list of integers.
+
+    """
+    try:
+        return [int(obs) for obs in string.split(',')]
+    except ValueError:
+        msg = "Not a valid comma-separated list of integers: '{0}'.".\
+            format(string)
+        raise argparse.ArgumentTypeError(msg)
+
+
 def main():
     """Main"""
     parser = argparse.ArgumentParser()
     parser.add_argument('exper', help='experiment code')
     parser.add_argument('band', help='frequency band')
-    parser.add_argument('obs_list',
-                        help='coma separated list of observation numbers')
+    parser.add_argument('obs_list', type=valid_obs_list,
+                        help='comma-separated list of observation numbers')
 
     parser.add_argument('--scan-length', type=float, default=1200.,
                         help='full scan length')
@@ -238,8 +251,8 @@ def main():
 
         return 1
 
-    for obs_id in args.obs_list.split(','):
-        proc_obs(args.exper, args.band, int(obs_id), args.scan_length,
+    for obs_id in args.obs_list:
+        proc_obs(args.exper, args.band, obs_id, args.scan_length,
                  plot_format=args.plot_format)
 
 
