@@ -232,7 +232,7 @@ def main():
     parser.add_argument('--scan-length', type=float, default=1200.,
                         help='full scan length')
     parser.add_argument('--plot-format', default='pdf',
-                        help='set output plot file format (PDF by default)')
+                        help='output plot file format (PDF by default)')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='be more verbose')
 

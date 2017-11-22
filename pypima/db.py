@@ -395,8 +395,8 @@ VALUES %s;"""
 
         if data:
             with self.connw.cursor() as cursor:
-                cursor.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
-                               (file_name, ))
+                # cursor.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
+                #                (file_name, ))
                 # cur.executemany(query, data)
                 execute_values(cursor, query, data)
             self.connw.commit()
