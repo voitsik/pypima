@@ -370,6 +370,7 @@ if __name__ == '__main__':
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
     parser.add_argument('--scan-part-base', type=int, default=0,
+                        choices=[1000 * x for x in range(5)],
                         help='use alternative scan_part_base')
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
