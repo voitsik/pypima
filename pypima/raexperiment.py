@@ -768,7 +768,10 @@ calibration information')
                        round(self.split_time_aver), corr_name)
 
             if self.scan_part >= 1000:
-                out_fits_name = out_fits_name.replace('_uva', '_ALT_uva')
+                scan_part_base = (self.scan_part // 1000) * 1000
+                out_fits_name = out_fits_name.replace('_uva',
+                                                      '_ALT{}_uva'.
+                                                      format(scan_part_base))
 
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
