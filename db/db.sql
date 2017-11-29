@@ -126,7 +126,9 @@ CREATE TABLE fits_files (
     mdate date DEFAULT '2000-01-01',
     size bigint DEFAULT 0,
     comment varchar(64),
-    ftp_user varchar(16)
+    ftp_user varchar(16),
+    sources varchar(8) ARRAY,
+    stations varchar(2) ARRAY
 );
 CREATE INDEX fits_files_exper_name_band_idx ON fits_files (exper_name, band);
 
