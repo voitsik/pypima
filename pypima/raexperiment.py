@@ -814,9 +814,14 @@ calibration information')
         out_dir : str
             Plot output directory.
 
+        Return
+        ------
+        acta_file_list : list
+            List of the ``ActaFile`` instances.
+
         """
-        if not plot and not db:  # Nothing to do
-            return
+#        if not plot and not db:  # Nothing to do
+#            return
 
         # Sometimes PIMA crashes on `acta` task
         try:
@@ -839,6 +844,8 @@ calibration information')
         if db:
             for acta_file in acta_file_list:
                 self.db.autospec2db(acta_file)
+
+        return acta_file_list
 
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):
