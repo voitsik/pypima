@@ -34,11 +34,21 @@ def main(args):
                          default=os.path.join(os.getenv('HOME'),
                                               'data', 'pima_data'))
 
+    if args.scan_length:
+        if args.scan_length <= 0:
+            logging.error('scan_length must be positive')
+            return 1
+
+        scan_length = args.scan_length
+    else:
+        scan_length = 1200
+
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
                               data_dir=data_dir, uv_fits=args.fits)
         ra_exp.init_workdir()
-        ra_exp.load(update_db=False, force_small=args.force_small)
+        ra_exp.load(update_db=False, force_small=args.force_small,
+                    scan_length=scan_length)
 
         if not polar:
             if band == 'l':
@@ -140,6 +150,8 @@ if __name__ == "__main__":
                         help='set bandpass calibration mode')
     parser.add_argument('--no-ampl-bpas', action='store_true',
                         help='disable amplitude bandpass calibration')
+    parser.add_argument('--scan-length', type=float,
+                        help='set scan length in seconds')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='enable debug output')
 
