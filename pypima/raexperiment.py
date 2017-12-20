@@ -575,19 +575,22 @@ bandpass: %s', obs['SNR'])
         bad_obs_set = set()
 
         for acta_file in acta_list:
-            if np.median(acta_file.ampl) < 0.5:
+            if np.median(acta_file.ampl) < 0.6:
                 # exper, band = acta_file.header['experiment'].split('_')
                 sta = acta_file.header['station']
-                obs_num = acta_file.header['obs']
+                scan = acta_file.header['scan']
+                # obs = acta_file.header['obs']
                 scan_name = acta_file.header['scan_name']
 
-                self.logger.warning('Bad autospec for sta: %s obs: %s',
-                                    sta, obs_num)
+#                self.logger.info('sta: %s obs: %s median(ampl) = %s',
+#                                 sta, obs, np.median(acta_file.ampl))
 
                 for obs in obs_list:
-                    if obs.obs == obs_num and obs.time_code == scan_name and \
+                    if obs.scan == scan and obs.time_code == scan_name and \
                             sta in (obs.sta1, obs.sta2):
-                        bad_obs_set.add(obs_num)
+                        self.logger.warning('Bad autospec for sta: %s obs: %s',
+                                            sta, obs.obs)
+                        bad_obs_set.add(obs.obs)
 
         return bad_obs_set
 
@@ -680,6 +683,7 @@ bandpass: %s', obs['SNR'])
 scans')
                 bandpass = False
 
+        self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
         fri_file = self.pima.fine()
         self.fri = Fri(fri_file)
         self.fri.aux['bandpass'] = bandpass
