@@ -13,6 +13,8 @@ import pycurl
 import shutil
 import threading
 
+import numpy as np
+
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
@@ -80,6 +82,7 @@ class RaExperiment:
         self.orbit = orbit
         self.fri = None  # Result of last fringe fitting
         self.scan_part = 0
+        self.bad_obs_set = set()  # Set of bad obs (autospec)
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -419,6 +422,7 @@ first line'.format(antab))
 
         """
         self.scan_part = scan_part
+        self.bad_obs_set.clear()
 
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
@@ -560,6 +564,33 @@ bandpass: %s', obs['SNR'])
         else:
             return False
 
+    def _check_bad_obs(self):
+        """
+        Return set of observation numbers with bad autospectrum.
+
+        """
+        acta_list = self.generate_autospectra()
+        obs_list = self.pima.observations()
+
+        bad_obs_set = set()
+
+        for acta_file in acta_list:
+            if np.median(acta_file.ampl) < 0.5:
+                # exper, band = acta_file.header['experiment'].split('_')
+                sta = acta_file.header['station']
+                obs_num = acta_file.header['obs']
+                scan_name = acta_file.header['scan_name']
+
+                self.logger.warning('Bad autospec for sta: %s obs: %s',
+                                    sta, obs_num)
+
+                for obs in obs_list:
+                    if obs.obs == obs_num and obs.time_code == scan_name and \
+                            sta in (obs.sta1, obs.sta2):
+                        bad_obs_set.add(obs_num)
+
+        return bad_obs_set
+
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True):
         """
@@ -605,8 +636,16 @@ bandpass: %s', obs['SNR'])
             bandpass = False
 
         if bandpass:
+            bad_obs = self._check_bad_obs()
+            if bad_obs:
+                self.bad_obs_set = bad_obs
+            else:
+                self.bad_obs_set.clear()
+
+            self.pima.mk_exclude_obs_file(self.bad_obs_set, 'coarse')
             fri_file = self.pima.coarse()
             fri = Fri(fri_file)
+
             if not fri:
                 self._error('PIMA fri-file is empty after coarse.')
 
