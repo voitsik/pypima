@@ -917,6 +917,13 @@ class ActaFile:
                         self._header['experiment'] = cols[2]
                     elif cols[1] == 'Station:':
                         self._header['station'] = cols[2]
+                    elif cols[1] == 'Scan_name:':
+                        self.header['scan_name'] = cols[2]
+                        logging.debug('scan_name = %s', cols[2])
+                    elif cols[1] == 'Scan_index:':
+                        self.header['scan'] = int(cols[2])
+                    elif cols[1] == 'Observation_index:':
+                        self.header['obs'] = int(cols[2])
                     elif cols[1] == 'Start_date:':
                         self._header['start_date'] = \
                             datetime.strptime(cols[2][:23],
@@ -929,11 +936,6 @@ class ActaFile:
                                               '%Y.%m.%d-%H:%M:%S.%f')
                         if utc_tai:
                             self._header['stop_date'] += utc_tai
-                    elif cols[1] == 'Observation_index:':
-                        self.header['obs'] = int(cols[2])
-                    elif cols[1] == 'Scan_name:':
-                        self.header['scan_name'] = cols[2]
-                        logging.debug('scan_name = %s', cols[2])
                     elif cols[1] == 'Number_of_points:':
                         self.header['num_of_points'] = int(cols[2])
                 elif cols[0] == 'ACRL':
