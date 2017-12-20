@@ -5,6 +5,7 @@ Created on Tue Dec 10 17:21:29 2013
 @author: Petr Voytsik
 """
 
+from collections import namedtuple
 from datetime import datetime, timedelta
 import glob
 import logging
@@ -690,6 +691,36 @@ Check your PIMA installation!')
                         freqs.append(freq)
 
         return freqs
+
+    def observations(self):
+        """
+        Return list of observations with some information.
+
+        """
+        Obs = namedtuple('Obs', 'obs scan time_code source sta1 sta2')
+        obs_list = []
+
+        obs_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.obs')
+
+        if os.path.isfile(obs_file):
+            with open(obs_file) as file:
+                for line in file:
+                    toks = line.split()
+
+                    if len(toks) < 11:
+                        continue
+
+                    obs = Obs(obs=int(toks[0]),
+                              scan=int(toks[1]),
+                              time_code=toks[2],
+                              source=toks[8],
+                              sta1=toks[9],
+                              sta2=toks[10])
+
+                    obs_list.append(obs)
+
+        return obs_list
 
     def clock_model(self):
         """

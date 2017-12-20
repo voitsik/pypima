@@ -699,7 +699,6 @@ calibration information')
                 obs_list.append(rec['obs'])
 
         self.pima.mk_exclude_obs_file(obs_list, 'splt')
-        # split_params.extend(('EXCLUDE_OBS_FILE:', exc_file))
 
         if source:
             split_params.extend(('SPLT.SOU_NAME:', source))
