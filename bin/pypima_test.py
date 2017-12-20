@@ -13,8 +13,6 @@ import psycopg2
 import sys
 import tempfile
 
-PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
@@ -88,10 +86,12 @@ def main(args):
             max_scan_len = fri.max_scan_length()
             logging.debug('DEBUG: max_scan_len = %s', max_scan_len)
             if args.split:
-                ra_exp.split(average=0)
+                for aver_time in (0, round(max_scan_len)):
+                    ra_exp.split(average=aver_time)
 
-                # Copy final UV-FITS files to the system tmp directory
-                ra_exp.copy_uvfits(tempfile.gettempdir())
+                    # Copy final UV-FITS files to the system tmp directory
+                    ra_exp.copy_uvfits(tempfile.gettempdir())
+
     except pypima.pima.Error as err:
         return 1
     except pypima.raexperiment.Error as err:
