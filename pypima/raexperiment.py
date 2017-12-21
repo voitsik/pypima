@@ -131,13 +131,6 @@ class RaExperiment:
         # Restrict delay rate window to +- 12 cm/s
         self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
 
-        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
-        if os.path.isdir(staging_dir):
-            staging_dir = os.path.join(staging_dir, self.exper)
-            if not os.path.exists(staging_dir):
-                os.mkdir(staging_dir)
-            self.pima.update_cnt({'STAGING_DIR:': staging_dir})
-
     def _print_info(self, msg):
         """Print some information"""
         self.logger.info(msg)
@@ -202,7 +195,6 @@ class RaExperiment:
         Download FITS-file from the FTP archive.
 
         """
-        # data_dir = os.path.join(self.data_dir, self.exper)
         fits_url, size = self.db.get_uvfits_url(self.exper, self.band,
                                                 self.gvlbi, force_small)
 
@@ -226,6 +218,21 @@ class RaExperiment:
                             format(fits_url, err))
 
             self.logger.info('FITS-file downloading is complete')
+
+        # Setup staging dir here while we know size of the FITS file
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        if os.path.isdir(staging_dir):
+            df = shutil.disk_usage(staging_dir)
+
+            # Free space > size of file + 10%
+            if df.free > 1.1 * size:
+                staging_dir = os.path.join(staging_dir, self.exper)
+                if not os.path.exists(staging_dir):
+                    os.mkdir(staging_dir)
+                self.pima.update_cnt({'STAGING_DIR:': staging_dir})
+            else:
+                logging.warning('Not enough space in STAGING_DIR')
+                self.pima.update_cnt({'STAGING_DIR:': 'NO'})
 
         # We use self.uv_fits as a flag of FITS file existence, so set it at
         # the end of this function
@@ -438,15 +445,16 @@ first line'.format(antab))
             self._get_orbit()
 
         # Set maximum scan length
-        self._print_info('Set maximum scan length to {} s'.format(scan_length))
+        self.logger.info('Set maximum scan length to %s s', scan_length)
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
 
         if update_db:
             self.run_id = self.db.add_exper_info(self.exper, self.band,
-                                                 os.path.basename(self.uv_fits),
-                                                 scan_part)
+                os.path.basename(self.uv_fits), scan_part)
+
         self.pima.load()
+
         if update_db:
             self.db.update_exper_info(self.pima.exper_info, self.run_id)
             if scan_part == 1:
