@@ -682,7 +682,7 @@ bandpass: %s', obs['SNR'])
                     if bandpass_mode:
                         bpas_params['BPS.MODE:'] = bandpass_mode
                     if not ampl_bandpass:
-                        bpas_params.extend['BPS.DEG_AMP:'] = '0'
+                        bpas_params['BPS.DEG_AMP:'] = '0'
                 elif bandpass_var == 1:
                     bpas_params = {
                                 'BPS.MODE:': 'FINE',
