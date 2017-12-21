@@ -5,6 +5,7 @@ Created on Tue Dec 10 17:21:29 2013
 @author: Petr Voytsik
 """
 
+from collections import namedtuple
 from datetime import datetime, timedelta
 import glob
 import logging
@@ -296,12 +297,20 @@ Check your PIMA installation!')
             Name of the fri-file
 
         """
-        log_name = '{}_{}_coarse.log'.format(self.exper, self.band)
+        if params and 'POLAR:' in params:
+            polar = params[params.index('POLAR:') + 1]
+        else:
+            polar = self.cnt_params['POLAR:']
+
+        log_name = '{}_{}_{}_coarse.log'.format(self.exper, self.band, polar)
         log_name = os.path.join(self.work_dir, log_name)
-        fri_file = '{}_{}_nobps.fri'.format(self.exper, self.band)
+        fri_file = '{}_{}_{}_nobps.fri'.format(self.exper, self.band, polar)
         fri_file = os.path.join(self.work_dir, fri_file)
-        frr_file = '{}_{}_nobps.frr'.format(self.exper, self.band)
+        frr_file = '{}_{}_{}_nobps.frr'.format(self.exper, self.band, polar)
         frr_file = os.path.join(self.work_dir, frr_file)
+        exc_obs_file = '{}_{}_{}_coarse_obs.exc'.format(self.exper, self.band,
+                                                        polar)
+        exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if os.path.isfile(fri_file):
             os.remove(fri_file)
@@ -320,6 +329,9 @@ Check your PIMA installation!')
                 'MKDB.FRINGE_ALGORITHM:', 'DRF',
                 'PHASE_ACCEL_MIN:', '0',
                 'PHASE_ACCEL_MAX:', '0']
+
+        if os.path.isfile(exc_obs_file):
+            opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
 
         if params:
             opts.extend(params)
@@ -352,8 +364,16 @@ Check your PIMA installation!')
             Name of the fri-file.
 
         """
-        log_name = '{}_{}_fine.log'.format(self.exper, self.band)
+        if params and 'POLAR:' in params:
+            polar = params[params.index('POLAR:') + 1]
+        else:
+            polar = self.cnt_params['POLAR:']
+
+        log_name = '{}_{}_{}_fine.log'.format(self.exper, self.band, polar)
         log_name = os.path.join(self.work_dir, log_name)
+        exc_obs_file = '{}_{}_{}_fine_obs.exc'.format(self.exper, self.band,
+                                                      polar)
+        exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if params and 'FRINGE_FILE:' in params:
             fri_file = params[params.index('FRINGE_FILE:') + 1]
@@ -371,7 +391,15 @@ Check your PIMA installation!')
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
-        ret = self._exec('frib', params, log_name=log_name)
+        opts = []
+
+        if os.path.isfile(exc_obs_file):
+            opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
+
+        if params:
+            opts.extend(params)
+
+        ret = self._exec('frib', opts, log_name=log_name)
 
         if ret:
             self._error('fine failed with code {}'.format(ret))
@@ -393,15 +421,24 @@ Check your PIMA installation!')
             elements.
 
         """
-        fri_file = '{}_{}_nobps.fri'.format(self.exper, self.band)
+        if params and 'POLAR:' in params:
+            polar = params[params.index('POLAR:') + 1]
+        else:
+            polar = self.cnt_params['POLAR:']
+
+        if polar in ['I', 'RPL']:
+            polar = 'RR'
+
+        fri_file = '{}_{}_{}_nobps.fri'.format(self.exper, self.band, polar)
         fri_file = os.path.join(self.work_dir, fri_file)
-        log_file = '{}_{}_bps.log'.format(self.exper, self.band)
+        log_file = '{}_{}_{}_bps.log'.format(self.exper, self.band, polar)
         log_file = os.path.join(self.work_dir, log_file)
-        exc_obs_file = '{}_{}_bpas_obs.exc'.format(self.exper, self.band)
+        exc_obs_file = '{}_{}_{}_bpas_obs.exc'.format(self.exper, self.band,
+                                                      polar)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if self.cnt_params['BANDPASS_FILE:'] == 'NO':
-            bps_file = '{}_{}.bps'.format(self.exper, self.band)
+            bps_file = '{}_{}_{}.bps'.format(self.exper, self.band, polar)
             bps_file = os.path.join(self.work_dir, bps_file)
             self.update_cnt({'BANDPASS_FILE:': bps_file})
 
@@ -409,13 +446,11 @@ Check your PIMA installation!')
                 'DEBUG_LEVEL:', '3',
                 'PHASE_ACCEL_MIN:', '0',
                 'PHASE_ACCEL_MAX:', '0',
-                'FRIB.FINE_SEARCH:', 'LSQ']
+                'FRIB.FINE_SEARCH:', 'LSQ',
+                'POLAR:', polar]
 
         if os.path.isfile(exc_obs_file):
             opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
-
-        if self.cnt_params['POLAR:'] in ['I', 'RPL']:
-            opts.extend(['POLAR:', 'RR'])
 
         if params:
             opts.extend(params)
@@ -442,8 +477,16 @@ Check your PIMA installation!')
             elements.
 
         """
-        exc_obs_file = '{}_{}_splt_obs.exc'.format(self.exper, self.band)
+        if params and 'POLAR:' in params:
+            polar = params[params.index('POLAR:') + 1]
+        else:
+            polar = self.cnt_params['POLAR:']
+
+        exc_obs_file = '{}_{}_{}_splt_obs.exc'.format(self.exper, self.band,
+                                                      polar)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
+        log_file = '{}_{}_{}_splt.log'.format(self.exper, self.band, polar)
+        log_file = os.path.join(self.work_dir, log_file)
 
         opts = ['SPLT.TIM_MSEG:', str(tim_mseg)]
 
@@ -452,7 +495,7 @@ Check your PIMA installation!')
 
         if params:
             opts.extend(params)
-        ret = self._exec('splt', opts)
+        ret = self._exec('splt', opts, log_file)
 
         if ret:
             self._error('splt failed with code {}'.format(ret))
@@ -691,6 +734,36 @@ Check your PIMA installation!')
 
         return freqs
 
+    def observations(self):
+        """
+        Return list of observations with some information.
+
+        """
+        Obs = namedtuple('Obs', 'obs scan time_code source sta1 sta2')
+        obs_list = []
+
+        obs_file = os.path.join(self.cnt_params['EXPER_DIR:'],
+                                self.cnt_params['SESS_CODE:'] + '.obs')
+
+        if os.path.isfile(obs_file):
+            with open(obs_file) as file:
+                for line in file:
+                    toks = line.split()
+
+                    if len(toks) < 11:
+                        continue
+
+                    obs = Obs(obs=int(toks[0]),
+                              scan=int(toks[1]),
+                              time_code=toks[2],
+                              source=toks[8],
+                              sta1=toks[9],
+                              sta2=toks[10])
+
+                    obs_list.append(obs)
+
+        return obs_list
+
     def clock_model(self):
         """
         Read clock model components from the PIMA mdc file and retrun
@@ -731,7 +804,7 @@ Check your PIMA installation!')
 
         return clock_model
 
-    def mk_exclude_obs_file(self, obs_list, suffix):
+    def mk_exclude_obs_file(self, obs_list, suffix, polar=None):
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
 
@@ -741,6 +814,8 @@ Check your PIMA installation!')
             List of observation indices.
         suffix : str
             ``bpas`` or ``splt``.
+        polar : str, optional
+            Create file for given polarization.
 
         Returns
         -------
@@ -748,7 +823,11 @@ Check your PIMA installation!')
             Return name of the generated file or ``NO`` if `obs_list` is empty.
 
         """
-        exc_obs_file = '{}_{}_{}_obs.exc'.format(self.exper, self.band, suffix)
+        if not polar:
+            polar = self.cnt_params['POLAR:']
+
+        exc_obs_file = '{}_{}_{}_{}_obs.exc'.format(self.exper, self.band,
+                                                    polar, suffix)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if obs_list:
@@ -838,6 +917,13 @@ class ActaFile:
                         self._header['experiment'] = cols[2]
                     elif cols[1] == 'Station:':
                         self._header['station'] = cols[2]
+                    elif cols[1] == 'Scan_name:':
+                        self.header['scan_name'] = cols[2]
+                        logging.debug('scan_name = %s', cols[2])
+                    elif cols[1] == 'Scan_index:':
+                        self.header['scan'] = int(cols[2])
+                    elif cols[1] == 'Observation_index:':
+                        self.header['obs'] = int(cols[2])
                     elif cols[1] == 'Start_date:':
                         self._header['start_date'] = \
                             datetime.strptime(cols[2][:23],
@@ -850,11 +936,6 @@ class ActaFile:
                                               '%Y.%m.%d-%H:%M:%S.%f')
                         if utc_tai:
                             self._header['stop_date'] += utc_tai
-                    elif cols[1] == 'Observation_index:':
-                        self.header['obs'] = int(cols[2])
-                    elif cols[1] == 'Scan_name:':
-                        self.header['scan_name'] = cols[2]
-                        logging.debug('scan_name = %s', cols[2])
                     elif cols[1] == 'Number_of_points:':
                         self.header['num_of_points'] = int(cols[2])
                 elif cols[0] == 'ACRL':

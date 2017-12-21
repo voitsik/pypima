@@ -13,6 +13,8 @@ import pycurl
 import shutil
 import threading
 
+import numpy as np
+
 import pypima.pima
 from pypima.fri import Fri
 from pypima.pima import Pima
@@ -80,6 +82,7 @@ class RaExperiment:
         self.orbit = orbit
         self.fri = None  # Result of last fringe fitting
         self.scan_part = 0
+        self.bad_obs_set = set()  # Set of bad obs (autospec)
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -127,13 +130,6 @@ class RaExperiment:
 
         # Restrict delay rate window to +- 12 cm/s
         self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
-
-        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
-        if os.path.isdir(staging_dir):
-            staging_dir = os.path.join(staging_dir, self.exper)
-            if not os.path.exists(staging_dir):
-                os.mkdir(staging_dir)
-            self.pima.update_cnt({'STAGING_DIR:': staging_dir})
 
     def _print_info(self, msg):
         """Print some information"""
@@ -199,7 +195,6 @@ class RaExperiment:
         Download FITS-file from the FTP archive.
 
         """
-        # data_dir = os.path.join(self.data_dir, self.exper)
         fits_url, size = self.db.get_uvfits_url(self.exper, self.band,
                                                 self.gvlbi, force_small)
 
@@ -223,6 +218,21 @@ class RaExperiment:
                             format(fits_url, err))
 
             self.logger.info('FITS-file downloading is complete')
+
+        # Setup staging dir here while we know size of the FITS file
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        if os.path.isdir(staging_dir):
+            df = shutil.disk_usage(staging_dir)
+
+            # Free space > size of file + 10%
+            if df.free > 1.1 * size:
+                staging_dir = os.path.join(staging_dir, self.exper)
+                if not os.path.exists(staging_dir):
+                    os.mkdir(staging_dir)
+                self.pima.update_cnt({'STAGING_DIR:': staging_dir})
+            else:
+                logging.warning('Not enough space in STAGING_DIR')
+                self.pima.update_cnt({'STAGING_DIR:': 'NO'})
 
         # We use self.uv_fits as a flag of FITS file existence, so set it at
         # the end of this function
@@ -419,6 +429,7 @@ first line'.format(antab))
 
         """
         self.scan_part = scan_part
+        self.bad_obs_set.clear()
 
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
@@ -434,15 +445,16 @@ first line'.format(antab))
             self._get_orbit()
 
         # Set maximum scan length
-        self._print_info('Set maximum scan length to {} s'.format(scan_length))
+        self.logger.info('Set maximum scan length to %s s', scan_length)
         self.pima.update_cnt({'MAX_SCAN_LEN:': str(scan_length),
                               'SCAN_LEN_USED:': str(scan_length)})
 
         if update_db:
             self.run_id = self.db.add_exper_info(self.exper, self.band,
-                                                 os.path.basename(self.uv_fits),
-                                                 scan_part)
+                os.path.basename(self.uv_fits), scan_part)
+
         self.pima.load()
+
         if update_db:
             self.db.update_exper_info(self.pima.exper_info, self.run_id)
             if scan_part == 1:
@@ -560,6 +572,36 @@ bandpass: %s', obs['SNR'])
         else:
             return False
 
+    def _check_bad_obs(self):
+        """
+        Return set of observation numbers with bad autospectrum.
+
+        """
+        acta_list = self.generate_autospectra()
+        obs_list = self.pima.observations()
+
+        bad_obs_set = set()
+
+        for acta_file in acta_list:
+            if np.median(acta_file.ampl) < 0.6:
+                # exper, band = acta_file.header['experiment'].split('_')
+                sta = acta_file.header['station']
+                scan = acta_file.header['scan']
+                # obs = acta_file.header['obs']
+                scan_name = acta_file.header['scan_name']
+
+#                self.logger.info('sta: %s obs: %s median(ampl) = %s',
+#                                 sta, obs, np.median(acta_file.ampl))
+
+                for obs in obs_list:
+                    if obs.scan == scan and obs.time_code == scan_name and \
+                            sta in (obs.sta1, obs.sta2):
+                        self.logger.warning('Bad autospec for sta: %s obs: %s',
+                                            sta, obs.obs)
+                        bad_obs_set.add(obs.obs)
+
+        return bad_obs_set
+
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True):
         """
@@ -605,8 +647,16 @@ bandpass: %s', obs['SNR'])
             bandpass = False
 
         if bandpass:
+            bad_obs = self._check_bad_obs()
+            if bad_obs:
+                self.bad_obs_set = bad_obs
+            else:
+                self.bad_obs_set.clear()
+
+            self.pima.mk_exclude_obs_file(self.bad_obs_set, 'coarse')
             fri_file = self.pima.coarse()
             fri = Fri(fri_file)
+
             if not fri:
                 self._error('PIMA fri-file is empty after coarse.')
 
@@ -641,6 +691,7 @@ bandpass: %s', obs['SNR'])
 scans')
                 bandpass = False
 
+        self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
         fri_file = self.pima.fine()
         self.fri = Fri(fri_file)
         self.fri.aux['bandpass'] = bandpass
@@ -699,7 +750,6 @@ calibration information')
                 obs_list.append(rec['obs'])
 
         self.pima.mk_exclude_obs_file(obs_list, 'splt')
-        # split_params.extend(('EXCLUDE_OBS_FILE:', exc_file))
 
         if source:
             split_params.extend(('SPLT.SOU_NAME:', source))
@@ -814,9 +864,14 @@ calibration information')
         out_dir : str
             Plot output directory.
 
+        Return
+        ------
+        acta_file_list : list
+            List of the ``ActaFile`` instances.
+
         """
-        if not plot and not db:  # Nothing to do
-            return
+#        if not plot and not db:  # Nothing to do
+#            return
 
         # Sometimes PIMA crashes on `acta` task
         try:
@@ -839,6 +894,8 @@ calibration information')
         if db:
             for acta_file in acta_file_list:
                 self.db.autospec2db(acta_file)
+
+        return acta_file_list
 
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):

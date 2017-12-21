@@ -13,8 +13,6 @@ import psycopg2
 import sys
 import tempfile
 
-PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
@@ -36,11 +34,21 @@ def main(args):
                          default=os.path.join(os.getenv('HOME'),
                                               'data', 'pima_data'))
 
+    if args.scan_length:
+        if args.scan_length <= 0:
+            logging.error('scan_length must be positive')
+            return 1
+
+        scan_length = args.scan_length
+    else:
+        scan_length = 1200
+
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
                               data_dir=data_dir, uv_fits=args.fits)
         ra_exp.init_workdir()
-        ra_exp.load(update_db=False, force_small=args.force_small)
+        ra_exp.load(update_db=False, force_small=args.force_small,
+                    scan_length=scan_length)
 
         if not polar:
             if band == 'l':
@@ -88,10 +96,12 @@ def main(args):
             max_scan_len = fri.max_scan_length()
             logging.debug('DEBUG: max_scan_len = %s', max_scan_len)
             if args.split:
-                ra_exp.split(average=0)
+                for aver_time in (0, round(max_scan_len)):
+                    ra_exp.split(average=aver_time)
 
-                # Copy final UV-FITS files to the system tmp directory
-                ra_exp.copy_uvfits(tempfile.gettempdir())
+                    # Copy final UV-FITS files to the system tmp directory
+                    ra_exp.copy_uvfits(tempfile.gettempdir())
+
     except pypima.pima.Error as err:
         return 1
     except pypima.raexperiment.Error as err:
@@ -140,6 +150,8 @@ if __name__ == "__main__":
                         help='set bandpass calibration mode')
     parser.add_argument('--no-ampl-bpas', action='store_true',
                         help='disable amplitude bandpass calibration')
+    parser.add_argument('--scan-length', type=float,
+                        help='set scan length in seconds')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='enable debug output')
 

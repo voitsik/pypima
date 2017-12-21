@@ -14,8 +14,6 @@ import shutil
 import sys
 import threading
 
-PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, PATH)
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB

@@ -69,32 +69,32 @@ def plot_autospectra(acta_file_list, out_dir_base):
         fig.savefig(out_file, format=out_format)
 
 
-def plot_ampl_phas(fri, out_dir):
-    """
-    """
-    if not fri:
-        return
-
-    # Check if Session code in RA AGN survey format
-    if '_' not in fri[0]['session_code']:
-        return
-
-    exper, band = fri[0]['session_code'].split('_')
-    out_dir = os.path.join(out_dir, '{}_{}'.format(exper, band))
-    os.makedirs(out_dir, exist_ok=True)
-
-    out_format = 'pdf'
-    fig = Figure()
-    FigureCanvas(fig)
-    ax_phas = fig.add_subplot(211)
-    ax_ampl = fig.add_subplot(212, sharex=ax_phas)
-
-    for rec in fri:
-        polar = rec['polar']
-        time_code = rec['time_code']
-        sta1 = rec['sta1']
-        sta2 = rec['sta2']
-
-        file_name_base = '{:_<8}_{}_{:_<8}_{:_<8}'.format(time_code, band,
-                                                          sta1.lower(),
-                                                          sta2.lower())
+#def plot_ampl_phas(fri, out_dir):
+#    """
+#    """
+#    if not fri:
+#        return
+#
+#    # Check if Session code in RA AGN survey format
+#    if '_' not in fri[0]['session_code']:
+#        return
+#
+#    exper, band = fri[0]['session_code'].split('_')
+#    out_dir = os.path.join(out_dir, '{}_{}'.format(exper, band))
+#    os.makedirs(out_dir, exist_ok=True)
+#
+#    out_format = 'pdf'
+#    fig = Figure()
+#    FigureCanvas(fig)
+#    ax_phas = fig.add_subplot(211)
+#    ax_ampl = fig.add_subplot(212, sharex=ax_phas)
+#
+#    for rec in fri:
+#        polar = rec['polar']
+#        time_code = rec['time_code']
+#        sta1 = rec['sta1']
+#        sta2 = rec['sta2']
+#
+#        file_name_base = '{:_<8}_{}_{:_<8}_{:_<8}'.format(time_code, band,
+#                                                          sta1.lower(),
+#                                                          sta2.lower())
