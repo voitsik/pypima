@@ -219,21 +219,6 @@ class RaExperiment:
 
             self.logger.info('FITS-file downloading is complete')
 
-        # Setup staging dir here while we know size of the FITS file
-        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
-        if os.path.isdir(staging_dir):
-            df = shutil.disk_usage(staging_dir)
-
-            # Free space > size of file + 10%
-            if df.free > 1.1 * size:
-                staging_dir = os.path.join(staging_dir, self.exper)
-                if not os.path.exists(staging_dir):
-                    os.mkdir(staging_dir)
-                self.pima.update_cnt({'STAGING_DIR:': staging_dir})
-            else:
-                logging.warning('Not enough space in STAGING_DIR')
-                self.pima.update_cnt({'STAGING_DIR:': 'NO'})
-
         # We use self.uv_fits as a flag of FITS file existence, so set it at
         # the end of this function
         self.uv_fits = uv_fits
@@ -440,6 +425,21 @@ first line'.format(antab))
             return
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
+
+        # Setup staging dir here to check size of the FITS file
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        if os.path.isdir(staging_dir):
+            df = shutil.disk_usage(staging_dir)
+
+            # Free space > size of file + 10%
+            if df.free > 1.1 * os.path.getsize(self.uv_fits):
+                staging_dir = os.path.join(staging_dir, self.exper)
+                if not os.path.exists(staging_dir):
+                    os.mkdir(staging_dir)
+                self.pima.update_cnt({'STAGING_DIR:': staging_dir})
+            else:
+                logging.warning('Not enough space in STAGING_DIR')
+                self.pima.update_cnt({'STAGING_DIR:': 'NO'})
 
         if self.orbit is None:
             self._get_orbit()
