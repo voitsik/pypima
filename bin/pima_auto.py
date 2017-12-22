@@ -115,9 +115,7 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
     ra_exp.delete_uvfits()
 
 
-def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
-                        bandpass_mode=None, force_small=False,
-                        scan_part_base=0, ampl_bandpass=True):
+def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     """
     Process space-ground part of the experiment.
 
@@ -138,12 +136,30 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         Use FITS-IDI with 64 spectral channels only.
     scan_part_base : int, optional
         Default value is 0.
+    bandpass_var : int, optional
+        Default value is 0.
 
     """
+    accel = kwargs.pop('accel', True)
+    force_small = kwargs.pop('force_small', False)
+    scan_part_base = kwargs.pop('scan_part_base', 0)
+
+    bandpass_mode = kwargs.pop('bandpass_mode', None)
+    ampl_bandpass = kwargs.pop('ampl_bandpass', True)
+    bandpass_var = kwargs.pop('bandpass_var', 0)
+
     # First run on full scan
     scan_part = scan_part_base + 1
     ra_exp.load(update_db=True, scan_part=scan_part, force_small=force_small)
     ra_exp.load_antab()
+
+    ff_params = {
+            'bandpass': True,
+            'accel': accel,
+            'bandpass_mode': bandpass_mode,
+            'ampl_bandpass': ampl_bandpass,
+            'bandpass_var': bandpass_var
+            }
 
     scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
@@ -151,9 +167,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
         if scan_part == 1:
             ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
                                         db=True)
-        fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                    bandpass_mode=bandpass_mode,
-                                    ampl_bandpass=ampl_bandpass)
+        fri = ra_exp.fringe_fitting(**ff_params)
         print(fri)
         scan_len_list.append(fri.max_scan_length())
         ra_exp.fringes2db()
@@ -177,9 +191,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
     detections = False
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                    bandpass_mode=bandpass_mode,
-                                    ampl_bandpass=ampl_bandpass)
+        fri = ra_exp.fringe_fitting(**ff_params)
         print(fri)
         if fri.any_detections():
             detections = True
@@ -205,9 +217,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
 
             for polar in ('RR', 'LL'):
                 ra_exp.pima.set_polar(polar)
-                fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                            bandpass_mode=bandpass_mode,
-                                            ampl_bandpass=ampl_bandpass)
+                fri = ra_exp.fringe_fitting(**ff_params)
                 print(fri)
                 if fri.any_detections():
                     detections = True
@@ -229,9 +239,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, accel=True,
 
         for polar in ('RR', 'LL'):
             ra_exp.pima.set_polar(polar)
-            fri = ra_exp.fringe_fitting(bandpass=True, accel=accel,
-                                        bandpass_mode=bandpass_mode,
-                                        ampl_bandpass=ampl_bandpass)
+            fri = ra_exp.fringe_fitting(**ff_params)
             print(fri)
             ra_exp.fringes2db()
             ra_exp.split(average=scan_len)
@@ -326,7 +334,8 @@ def main(args):
                                         bandpass_mode=args.bpas_mode,
                                         force_small=args.force_small,
                                         scan_part_base=args.scan_part_base,
-                                        ampl_bandpass=not args.no_ampl_bpas)
+                                        ampl_bandpass=not args.no_ampl_bpas,
+                                        bandpass_var=args.bpas_var)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -368,13 +377,16 @@ if __name__ == '__main__':
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
     parser.add_argument('--scan-part-base', type=int, default=0,
-                        choices=[1000 * x for x in range(5)],
+                        choices=[1000 * x for x in range(8)],
                         help='use alternative scan_part_base')
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
                         help='set bandpass calibration mode')
     parser.add_argument('--no-ampl-bpas', action='store_true',
                         help='disable amplitude bandpass calibration')
+    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
+                        default=0,
+                        help='predefined bandpass parameters')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',

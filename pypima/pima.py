@@ -166,6 +166,9 @@ Check your PIMA installation!')
         Update pima cnt-file according `opts` dictionary.
 
         """
+        if not opts:
+            return
+
         uv_fits = False
 
         old_cnt = open(self.cnt_file_name, 'r')
