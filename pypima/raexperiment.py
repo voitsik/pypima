@@ -578,6 +578,10 @@ bandpass: %s', obs['SNR'])
 
         """
         acta_list = self.generate_autospectra()
+
+        if not acta_list:
+            return
+
         obs_list = self.pima.observations()
 
         bad_obs_set = set()
@@ -946,9 +950,10 @@ calibration information')
         try:
             file_list = self.pima.acta()
         except pypima.pima.Error:
+            pass
             # Remove core dump file.
-            if os.path.isfile('core'):
-                os.remove('core')
+            # if os.path.isfile('core'):
+            #     os.remove('core')
 
             return
 
