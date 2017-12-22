@@ -740,7 +740,8 @@ bandpass: %s', obs['SNR'])
                                 'BPS.DEG_PHS:': '1',
                                 'BPS.AMP_MIN:': '0.1',
                                 'BPS.NORML:': 'IF',
-                                'BPS.SEFD_USE:': 'NO'
+                                'BPS.SEFD_USE:': 'NO',
+                                'SPLT.AUTOCORR_NRML_METHOD:': 'NO'
                             }
                 else:
                     self._error('Unsupported bandpass_var {}'.
