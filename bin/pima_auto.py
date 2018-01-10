@@ -147,6 +147,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     bandpass_mode = kwargs.pop('bandpass_mode', None)
     ampl_bandpass = kwargs.pop('ampl_bandpass', True)
     bandpass_var = kwargs.pop('bandpass_var', 0)
+    bandpass_use = kwargs.pop('bandpass_use', None)
 
     # First run on full scan
     scan_part = scan_part_base + 1
@@ -158,7 +159,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             'accel': accel,
             'bandpass_mode': bandpass_mode,
             'ampl_bandpass': ampl_bandpass,
-            'bandpass_var': bandpass_var
+            'bandpass_var': bandpass_var,
+            'bandpass_use': bandpass_use
             }
 
     scan_len_list = []
@@ -335,7 +337,8 @@ def main(args):
                                         force_small=args.force_small,
                                         scan_part_base=args.scan_part_base,
                                         ampl_bandpass=not args.no_ampl_bpas,
-                                        bandpass_var=args.bpas_var)
+                                        bandpass_var=args.bpas_var,
+                                        bandpass_use=args.bpas_use)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -382,6 +385,9 @@ if __name__ == '__main__':
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
                         help='set bandpass calibration mode')
+    parser.add_argument('--bpas-use', metavar='BANDPASS_USE',
+                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+                        help='set BANDPASS_USE PIMA parameter')
     parser.add_argument('--no-ampl-bpas', action='store_true',
                         help='disable amplitude bandpass calibration')
     parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],

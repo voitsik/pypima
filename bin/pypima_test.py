@@ -79,7 +79,8 @@ def main(args):
                     fri = ra_exp.fringe_fitting(bandpass=not args.no_bandpass,
                                                 accel=not args.no_accel,
                                                 bandpass_mode=args.bpas_mode,
-                                                ampl_bandpass=not args.no_ampl_bpas)
+                                                ampl_bandpass=not args.no_ampl_bpas,
+                                                bandpass_use=args.bpas_use)
                     print('IF #{}'.format(ind+1))
                     print(fri)
 
@@ -91,7 +92,8 @@ def main(args):
                                         accel=not args.no_accel,
                                         bandpass_mode=args.bpas_mode,
                                         ampl_bandpass=not args.no_ampl_bpas,
-                                        bandpass_var=args.bpas_var)
+                                        bandpass_var=args.bpas_var,
+                                        bandpass_use=args.bpas_use)
             print(fri)
 
             max_scan_len = fri.max_scan_length()
@@ -149,6 +151,9 @@ if __name__ == "__main__":
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
                         help='set bandpass calibration mode')
+    parser.add_argument('--bpas-use', metavar='BANDPASS_USE',
+                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+                        help='set BANDPASS_USE PIMA parameter')
     parser.add_argument('--no-ampl-bpas', action='store_true',
                         help='disable amplitude bandpass calibration')
     parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],

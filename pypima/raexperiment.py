@@ -607,7 +607,7 @@ bandpass: %s', obs['SNR'])
         return bad_obs_set
 
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
-                       ampl_bandpass=True, bandpass_var=0):
+                       ampl_bandpass=True, bandpass_var=0, bandpass_use=None):
         """
         Perform a fringe fitting.
 
@@ -624,6 +624,8 @@ bandpass: %s', obs['SNR'])
             degree to zero otherwise.
         bandpass_var : int, optional
             Select predefined bandpass parameters.
+        bandpass_use : str, optional
+            Set ``BANDPASS_USE`` **PIMA** parameter.
 
         Returns
         -------
@@ -653,6 +655,9 @@ bandpass: %s', obs['SNR'])
             bandpass = False
 
         if bandpass:
+            if bandpass_use:
+                self.pima.update_cnt({'BANDPASS_USE:': bandpass_use})
+
             bad_obs = self._check_bad_obs()
             if bad_obs:
                 self.bad_obs_set = bad_obs
@@ -744,8 +749,7 @@ bandpass: %s', obs['SNR'])
                                 'BPS.DEG_PHS:': '1',
                                 'BPS.AMP_MIN:': '0.1',
                                 'BPS.NORML:': 'IF',
-                                'BPS.SEFD_USE:': 'NO',
-                                'SPLT.AUTOCORR_NRML_METHOD:': 'NO'
+                                'BPS.SEFD_USE:': 'NO'
                             }
                 else:
                     self._error('Unsupported bandpass_var {}'.
@@ -950,7 +954,6 @@ calibration information')
         try:
             file_list = self.pima.acta()
         except pypima.pima.Error:
-            pass
             # Remove core dump file.
             # if os.path.isfile('core'):
             #     os.remove('core')
