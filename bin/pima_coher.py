@@ -70,9 +70,9 @@ def plot(obs_info, dur_arr, ampl_arr, snr_arr, out_format='pdf'):
 
     ax1.yaxis.get_major_formatter().set_powerlimits((-4, 6))
 
-    ax1.plot(dur_arr, ampl_arr, 'o')
+    ax1.plot(dur_arr, ampl_arr, '.')
     ax1.plot(0, 0, alpha=0)  # Dirty hack
-    ax2.plot(dur_arr, snr_arr, 'o')
+    ax2.plot(dur_arr, snr_arr, '.')
 
     plot_theo_curves(ax1, ax2, dur_arr, ampl_arr, snr_arr)
 
@@ -162,11 +162,11 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
     ampl_arr = []
     snr_arr = []
 
-    for divisor in [15, 12, 10, 8, 6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
+    for divisor in [20, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
         dur = round(full_duration / divisor)
 
-        if dur < 60:
-            continue
+#        if dur < 60:
+#            continue
 
         logging.debug('Set SCAN_LEN_USED %s', dur)
 
