@@ -162,8 +162,12 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
     ampl_arr = []
     snr_arr = []
 
-    for divisor in [6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
+    for divisor in [15, 12, 10, 8, 6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
         dur = round(full_duration / divisor)
+
+        if dur < 60:
+            continue
+
         logging.debug('Set SCAN_LEN_USED %s', dur)
 
         for j in range(math.ceil(divisor)):
