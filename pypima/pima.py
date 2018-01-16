@@ -588,7 +588,7 @@ Check your PIMA installation!')
             self._error('Wrong polarization: ' + polar)
 
         self._print_info('Set polarization to ' + polar)
-        self.update_cnt(({'POLAR:': polar, 'SPLT.POLAR:': polar}))
+        self.update_cnt({'POLAR:': polar, 'SPLT.POLAR:': polar})
 
     def ap_minmax(self):
         """

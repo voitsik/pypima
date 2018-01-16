@@ -776,6 +776,15 @@ scans')
                 bandpass = False
 
         self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
+
+        polar = self.pima.cnt_params['POLAR:']
+        fri_file = '{}_{}_{}.fri'.format(self.exper, self.band, polar)
+        fri_file = os.path.join(self.work_dir, fri_file)
+        frr_file = '{}_{}_{}.frr'.format(self.exper, self.band, polar)
+        frr_file = os.path.join(self.work_dir, frr_file)
+        self.pima.update_cnt({'FRINGE_FILE:': fri_file,
+                              'FRIRES_FILE:': frr_file})
+
         fri_file = self.pima.fine()
         self.fri = Fri(fri_file)
         self.fri.aux['bandpass'] = bandpass
