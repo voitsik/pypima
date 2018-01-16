@@ -845,6 +845,77 @@ Check your PIMA installation!')
 
         return exc_obs_file
 
+    def set_mask_file(self, mask_gen_file):
+        """
+        Create mask file based on `mask_gen_file` and update control file.
+
+        Prameters
+        ---------
+        mask_gen_file : str
+            **PIMA** mask definition file name.
+
+        Returns
+        -------
+        mask_file : str
+            Name of the generated mask file.
+
+        """
+        mask_file = None
+
+        if mask_gen_file and os.path.isfile(mask_gen_file):
+            mask_file = os.path.join(self.work_dir,
+                                     '{}_{}.mask'.format(self.exper,
+                                                         self.band))
+            if os.path.exists(mask_file):
+                os.remove(mask_file)
+
+            self.update_cnt({'BANDPASS_MASK_FILE:': mask_file})
+
+            options = ['mask_gen', mask_gen_file]
+            self._exec('bmge', options)
+        else:
+            self.update_cnt({'BANDPASS_MASK_FILE:': 'NO'})
+
+        return mask_file
+
+    def mk_bpass_mask_gen(self, params):
+        """
+        Create PIMA ``BPASS_MASK_GEN`` file.
+
+        Parameters
+        ----------
+        params : list
+            List of tuples with parameters. Each tuple represents one row in
+            mask gen file.
+
+        """
+        mask_gen_file = os.path.join(self.work_dir,
+                                     '{}_{}_mask.gen'.format(self.exper,
+                                                             self.band))
+
+        if params:
+            with open(mask_gen_file, 'w') as file:
+                print('# PIMA BPASS_MASK_GEN  v 0.90 2009.02.05', file=file)
+                print('#', file=file)
+                print('#  Control for bandpass mask generation for \
+experiment {}'.format(self.exper), file=file)
+                print('#', file=file)
+                print('#  Created on {}'.format(datetime.now()), file=file)
+                print('#', file=file)
+                print('BOTH   ALL:   ON', file=file)
+                print('#', file=file)
+
+                for row in params:
+                    print('{} STA: {} IND_FRQ: {} IND_CHN: {} {}'.format(*row),
+                          file=file)
+
+                print('#', file=file)
+        else:
+            if os.path.exists(mask_gen_file):
+                os.remove(mask_gen_file)
+
+        return mask_gen_file
+
 
 def fits_to_txt(fits_file):
     """

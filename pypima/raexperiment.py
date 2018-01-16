@@ -9,11 +9,11 @@ from datetime import datetime
 from io import BytesIO
 import logging
 import os.path
-import pycurl
 import shutil
 import threading
 
 import numpy as np
+import pycurl
 
 import pypima.pima
 from pypima.fri import Fri
@@ -497,6 +497,16 @@ first line'.format(antab))
             self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'NO',
                                   'FRIB.1D_RESTIM_PLOT:': 'NO'})
 
+        # Setup mask file
+        mask_gen_file = '{}_{}_mask.gen'.format(self.exper, self.band)
+        mask_gen_file = os.path.join(self.work_dir, mask_gen_file)
+
+        if os.path.isfile(mask_gen_file):
+            mask_file = self.pima.set_mask_file(mask_gen_file)
+
+            if mask_file:
+                self.logger.info('Set %s as new mask file', mask_file)
+
     def load_antab(self):
         """
         Download ANTAB file and load calibration information to PIMA.
@@ -650,8 +660,8 @@ bandpass: %s', obs['SNR'])
                                   'PHASE_ACCEL_MAX:': '0'})
 
         if bandpass and self.pima.chan_number() > 512:
-            self.logger.warning('Too many spectral channels for bandpass: {}'.
-                                format(self.pima.chan_number()))
+            self.logger.warning('Too many spectral channels for bandpass: %s',
+                                self.pima.chan_number())
             bandpass = False
 
         if bandpass:
@@ -694,63 +704,60 @@ bandpass: %s', obs['SNR'])
                         bpas_params['BPS.DEG_AMP:'] = '0'
                 elif bandpass_var == 1:
                     bpas_params = {
-                                'BPS.MODE:': 'FINE',
-                                'BPS.NOBS_ACCUM:': '8',
-                                'BPS.MSEG_ACCUM:': '1',
-                                'BPS.NOBS_FINE:': '12',
-                                'BPS.MINOBS_FINE:': '8',
-                                'BPS.MSEG_FINE:': '1',
-                                'BPS.SNR_MIN_ACCUM:': '200.0',
-                                'BPS.SNR_MIN_FINE:': '200.0',
-                                'BPS.AMPL_REJECT:': '0.4',
-                                'BPS.PHAS_REJECT:': '0.2',
-                                'BPS.INTRP_METHOD:': 'SPLINE',
-                                'BPS.DEG_AMP:': '17',
-                                'BPS.DEG_PHS:': '11',
-                                'BPS.AMP_MIN:': '0.02',
-                                'BPS.NORML:': 'IF',
-                                'BPS.SEFD_USE:': 'NO'
-                            }
+                        'BPS.MODE:': 'FINE',
+                        'BPS.NOBS_ACCUM:': '8',
+                        'BPS.MSEG_ACCUM:': '1',
+                        'BPS.NOBS_FINE:': '12',
+                        'BPS.MINOBS_FINE:': '8',
+                        'BPS.MSEG_FINE:': '1',
+                        'BPS.SNR_MIN_ACCUM:': '200.0',
+                        'BPS.SNR_MIN_FINE:': '200.0',
+                        'BPS.AMPL_REJECT:': '0.4',
+                        'BPS.PHAS_REJECT:': '0.2',
+                        'BPS.INTRP_METHOD:': 'SPLINE',
+                        'BPS.DEG_AMP:': '17',
+                        'BPS.DEG_PHS:': '11',
+                        'BPS.AMP_MIN:': '0.02',
+                        'BPS.NORML:': 'IF',
+                        'BPS.SEFD_USE:': 'NO'}
                 elif bandpass_var == 2:
                     bpas_params = {
-                                'BPS.MODE:': 'FINE',
-                                'BPS.NOBS_ACCUM:': '8',
-                                'BPS.MSEG_ACCUM:': '1',
-                                'BPS.NOBS_FINE:': '12',
-                                'BPS.MINOBS_FINE:': '8',
-                                'BPS.MSEG_FINE:': '1',
-                                'BPS.SNR_MIN_ACCUM:': '50.0',
-                                'BPS.SNR_MIN_FINE:': '50.0',
-                                'BPS.AMPL_REJECT:': '0.4',
-                                'BPS.PHAS_REJECT:': '0.2',
-                                'BPS.INTRP_METHOD:': 'SPLINE',
-                                'BPS.DEG_AMP:': '5',
-                                'BPS.DEG_PHS:': '5',
-                                'BPS.AMP_MIN:': '0.1',
-                                'BPS.NORML:': 'IF',
-                                'BPS.SEFD_USE:': 'NO'
-                            }
+                        'BPS.MODE:': 'FINE',
+                        'BPS.NOBS_ACCUM:': '8',
+                        'BPS.MSEG_ACCUM:': '1',
+                        'BPS.NOBS_FINE:': '12',
+                        'BPS.MINOBS_FINE:': '8',
+                        'BPS.MSEG_FINE:': '1',
+                        'BPS.SNR_MIN_ACCUM:': '50.0',
+                        'BPS.SNR_MIN_FINE:': '50.0',
+                        'BPS.AMPL_REJECT:': '0.4',
+                        'BPS.PHAS_REJECT:': '0.2',
+                        'BPS.INTRP_METHOD:': 'SPLINE',
+                        'BPS.DEG_AMP:': '5',
+                        'BPS.DEG_PHS:': '5',
+                        'BPS.AMP_MIN:': '0.1',
+                        'BPS.NORML:': 'IF',
+                        'BPS.SEFD_USE:': 'NO'}
                 elif bandpass_var == 3:
                     mseg = self.pima.chan_number() // 2
 
                     bpas_params = {
-                                'BPS.MODE:': 'ACCUM',
-                                'BPS.NOBS_ACCUM:': '6',
-                                'BPS.MSEG_ACCUM:': mseg,
-                                'BPS.NOBS_FINE:': '12',
-                                'BPS.MINOBS_FINE:': '8',
-                                'BPS.MSEG_FINE:': mseg,
-                                'BPS.SNR_MIN_ACCUM:': '6.5',
-                                'BPS.SNR_MIN_FINE:': '6.5',
-                                'BPS.AMPL_REJECT:': '0.4',
-                                'BPS.PHAS_REJECT:': '0.2',
-                                'BPS.INTRP_METHOD:': 'LINEAR',
-                                'BPS.DEG_AMP:': '0',
-                                'BPS.DEG_PHS:': '1',
-                                'BPS.AMP_MIN:': '0.1',
-                                'BPS.NORML:': 'IF',
-                                'BPS.SEFD_USE:': 'NO'
-                            }
+                        'BPS.MODE:': 'ACCUM',
+                        'BPS.NOBS_ACCUM:': '6',
+                        'BPS.MSEG_ACCUM:': mseg,
+                        'BPS.NOBS_FINE:': '12',
+                        'BPS.MINOBS_FINE:': '8',
+                        'BPS.MSEG_FINE:': mseg,
+                        'BPS.SNR_MIN_ACCUM:': '6.5',
+                        'BPS.SNR_MIN_FINE:': '6.5',
+                        'BPS.AMPL_REJECT:': '0.4',
+                        'BPS.PHAS_REJECT:': '0.2',
+                        'BPS.INTRP_METHOD:': 'LINEAR',
+                        'BPS.DEG_AMP:': '0',
+                        'BPS.DEG_PHS:': '1',
+                        'BPS.AMP_MIN:': '0.1',
+                        'BPS.NORML:': 'IF',
+                        'BPS.SEFD_USE:': 'NO'}
                 else:
                     self._error('Unsupported bandpass_var {}'.
                                 format(bandpass_var))
@@ -784,6 +791,31 @@ scans')
             self.fri.update_status(ch_num)
 
         return self.fri
+
+    def flag_edge_chann(self, number):
+        """
+        Flag `number` spectral channels at the edges of the bandpass.
+
+        Parameters
+        ----------
+        number : int
+            Number of spectrall channels to flag.
+        """
+        chann_num = self.pima.chan_number()
+        mask = []
+
+        if number < 0 or number >= chann_num / 2:
+            self._error('invald number of channels to flag: {}'.format(number))
+        elif number > 0:
+            ind_frq = '1-{}'.format(self.pima.exper_info['if_num'])
+            ind_chn1 = '1-{}'.format(number)
+            ind_chn2 = '{}-{}'.format(chann_num-number+1, chann_num)
+
+            mask = [('ALL', 'ALL', ind_frq, ind_chn1, 'OFF'),
+                    ('ALL', 'ALL', ind_frq, ind_chn2, 'OFF')]
+
+        self.pima.mk_bpass_mask_gen(mask)
+        # self.pima.set_mask_file(mask_gen_file)
 
     def split(self, source=None, average=0):
         """
