@@ -162,8 +162,7 @@ if __name__ == "__main__":
                         default=0,
                         help='predefined bandpass parameters')
     parser.add_argument('--flag-chann', type=int, default=0, metavar='N',
-                        help='flag N spectral channels at the edges of the \
-bandpass')
+                        help='flag N edge spectral channels of the bandpass')
     parser.add_argument('--scan-length', type=float,
                         help='set scan length in seconds')
     parser.add_argument('--debug', '-d', action='store_true',

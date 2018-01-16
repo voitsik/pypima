@@ -323,6 +323,8 @@ def main(args):
     for ra_exp in exp_list:
         try:
             ra_exp.init_workdir()
+            ra_exp.flag_edge_chann(args.flag_chann)
+
             if args.autospec_only:
                 generate_autospec(ra_exp, spec_out_dir, args.force_small)
             elif args.individual_ifs:
@@ -379,8 +381,8 @@ if __name__ == '__main__':
                         help='disable parabolic term fitting')
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
-    parser.add_argument('--scan-part-base', type=int, default=0,
-                        choices=[1000 * x for x in range(8)],
+    parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
+                        choices=[1000 * x for x in range(12)],
                         help='use alternative scan_part_base')
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
@@ -393,6 +395,8 @@ if __name__ == '__main__':
     parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
                         default=0,
                         help='predefined bandpass parameters')
+    parser.add_argument('--flag-chann', type=int, default=0, metavar='N',
+                        help='flag N edge spectral channels of the bandpass')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',

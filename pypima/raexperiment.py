@@ -538,7 +538,7 @@ first line'.format(antab))
         """
         snr_detecton = float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
         self.sta_ref = None
-        snr = 0
+        # snr = 0
         obs = fri.max_snr('RADIO-AS')
 
         if obs:
@@ -572,12 +572,12 @@ bandpass: %s', obs['SNR'])
                     self.sta_ref = obs['sta1']
 
         if self.sta_ref:
-            snr = round(min(10.0, obs['SNR']-0.1), 1)
+            # snr = round(min(10.0, obs['SNR']-0.1), 1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
-                                  'BPS.SNR_MIN_ACCUM:': str(snr),
-                                  'BPS.SNR_MIN_FINE:': str(snr)})
+                                  'BPS.SNR_MIN_ACCUM:': '6.5',
+                                  'BPS.SNR_MIN_FINE:': '6.5'})
             self.logger.info('New reference station is %s', self.sta_ref)
-            self.logger.info('Set SNR_MIN for bandpass to %s', snr)
+            # self.logger.info('Set SNR_MIN for bandpass to %s', snr)
             return True
         else:
             return False
