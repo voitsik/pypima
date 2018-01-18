@@ -163,6 +163,8 @@ GRANT SELECT ON ra_uvfits TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON ra_uvfits TO editor;
 GRANT USAGE, SELECT ON SEQUENCE ra_uvfits_id_seq TO editor;
 
+CREATE INDEX ra_uvfits_run_id_idx ON ra_uvfits(run_id);
+
 --
 -- PIMA station names catalog
 --
