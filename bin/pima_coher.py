@@ -57,6 +57,24 @@ def plot_theo_curves(ax_ampl, ax_snr, dur_arr, ampl_arr, snr_arr,
     ax_snr.plot(dur_theo_arr, snr_theo_arr, 'r-')
 
 
+def save_txt(obs_info, dur_arr, ampl_arr, snr_arr):
+    """
+    Save data as a text table.
+
+    """
+    data = np.vstack((dur_arr, ampl_arr, snr_arr)).T
+
+    file_name = '{}_{}_{:02d}_coher.{}'.format(obs_info.exper,
+                                               obs_info.band,
+                                               obs_info.id,
+                                               'txt')
+
+    header = '{:^4} {:^10} {:^8}'.format('solint', 'ampl', 'SNR')
+
+    np.savetxt(file_name, data, fmt=['%6.1f', '%10.3e', '%8.1f'],
+               header=header)
+
+
 def plot(obs_info, dur_arr, ampl_arr, snr_arr, out_format='pdf'):
     """
     Plot
@@ -205,6 +223,7 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
         os.remove(tmp_frr)
 
     if dur_arr:
+        save_txt(obs_info, dur_arr, ampl_arr, snr_arr)
         plot(obs_info, dur_arr, ampl_arr, snr_arr, out_format=plot_format)
     else:
         logging.warning('Nothing to plot...')
