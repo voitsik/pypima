@@ -138,6 +138,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         Default value is 0.
     bandpass_var : int, optional
         Default value is 0.
+    flag_chann : int, optional
+        Flag edge spectral channels.
 
     """
     accel = kwargs.pop('accel', True)
@@ -148,10 +150,12 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ampl_bandpass = kwargs.pop('ampl_bandpass', True)
     bandpass_var = kwargs.pop('bandpass_var', 0)
     bandpass_use = kwargs.pop('bandpass_use', None)
+    flag_chann = kwargs.pop('flag_chann', 0)
 
     # First run on full scan
     scan_part = scan_part_base + 1
     ra_exp.load(update_db=True, scan_part=scan_part, force_small=force_small)
+    ra_exp.flag_edge_chann(flag_chann)
     ra_exp.load_antab()
 
     ff_params = {
@@ -323,7 +327,6 @@ def main(args):
     for ra_exp in exp_list:
         try:
             ra_exp.init_workdir()
-            ra_exp.flag_edge_chann(args.flag_chann)
 
             if args.autospec_only:
                 generate_autospec(ra_exp, spec_out_dir, args.force_small)
@@ -340,7 +343,8 @@ def main(args):
                                         scan_part_base=args.scan_part_base,
                                         ampl_bandpass=not args.no_ampl_bpas,
                                         bandpass_var=args.bpas_var,
-                                        bandpass_use=args.bpas_use)
+                                        bandpass_use=args.bpas_use,
+                                        flag_chann=args.flag_chann)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()

@@ -499,16 +499,6 @@ first line'.format(antab))
             self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'NO',
                                   'FRIB.1D_RESTIM_PLOT:': 'NO'})
 
-#        # Setup mask file
-#        mask_gen_file = '{}_{}_mask.gen'.format(self.exper, self.band)
-#        mask_gen_file = os.path.join(self.work_dir, mask_gen_file)
-#
-#        if os.path.isfile(mask_gen_file):
-#            mask_file = self.pima.set_mask_file(mask_gen_file)
-#
-#            if mask_file:
-#                self.logger.info('Set %s as new mask file', mask_file)
-
     def load_antab(self):
         """
         Download ANTAB file and load calibration information to PIMA.
