@@ -852,7 +852,8 @@ Check your PIMA installation!')
         Prameters
         ---------
         mask_gen_file : str
-            **PIMA** mask definition file name.
+            **PIMA** mask definition file name. If empty or ``None`` set
+            ``BANDPASS_MASK_FILE`` to ``NO`` and return ``None``.
 
         Returns
         -------
@@ -886,7 +887,8 @@ Check your PIMA installation!')
         ----------
         params : list
             List of tuples with parameters. Each tuple represents one row in
-            mask gen file.
+            mask gen file. If `params` empty or ``None`` remove
+            ``BPASS_MASK_GEN`` file if exists.
 
         """
         mask_gen_file = os.path.join(self.work_dir,
@@ -913,6 +915,7 @@ experiment {}'.format(self.exper), file=file)
         else:
             if os.path.exists(mask_gen_file):
                 os.remove(mask_gen_file)
+            mask_gen_file = None
 
         return mask_gen_file
 

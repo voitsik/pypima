@@ -47,10 +47,10 @@ def main(args):
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
                               data_dir=data_dir, uv_fits=args.fits)
         ra_exp.init_workdir()
-        ra_exp.flag_edge_chann(args.flag_chann)
 
         ra_exp.load(update_db=False, force_small=args.force_small,
                     scan_length=scan_length)
+        ra_exp.flag_edge_chann(args.flag_chann)
 
         if not polar:
             if band == 'l':

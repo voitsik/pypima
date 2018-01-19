@@ -411,6 +411,8 @@ first line'.format(antab))
         scan_part : int, optional
             1 is full scan, 2 is half of scan. In general `scan_part` can be
             used as run index.
+        force_small : bool, optional
+            Force laod 64-channels FITS_IDI files.
 
         """
         self.scan_part = scan_part
@@ -473,7 +475,7 @@ first line'.format(antab))
                             format(distance, source))
 
         if 'RADIO-AS' not in self.pima.station_list():
-            self._print_warn('RADIO-AS is not in station list')
+            self.logger.warning('RADIO-AS is not in station list')
             self.sta_ref = self.pima.station_list()[0]
             self.pima.update_cnt({'STA_REF:': self.sta_ref})
 
@@ -497,15 +499,15 @@ first line'.format(antab))
             self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'NO',
                                   'FRIB.1D_RESTIM_PLOT:': 'NO'})
 
-        # Setup mask file
-        mask_gen_file = '{}_{}_mask.gen'.format(self.exper, self.band)
-        mask_gen_file = os.path.join(self.work_dir, mask_gen_file)
-
-        if os.path.isfile(mask_gen_file):
-            mask_file = self.pima.set_mask_file(mask_gen_file)
-
-            if mask_file:
-                self.logger.info('Set %s as new mask file', mask_file)
+#        # Setup mask file
+#        mask_gen_file = '{}_{}_mask.gen'.format(self.exper, self.band)
+#        mask_gen_file = os.path.join(self.work_dir, mask_gen_file)
+#
+#        if os.path.isfile(mask_gen_file):
+#            mask_file = self.pima.set_mask_file(mask_gen_file)
+#
+#            if mask_file:
+#                self.logger.info('Set %s as new mask file', mask_file)
 
     def load_antab(self):
         """
@@ -803,12 +805,13 @@ scans')
 
     def flag_edge_chann(self, number):
         """
-        Flag `number` spectral channels at the edges of the bandpass.
+        Flag `number` spectral channels at the edges of the bandpass. Must be
+        called after ``load``.
 
         Parameters
         ----------
         number : int
-            Number of spectrall channels to flag.
+            Number of spectral channels to flag.
         """
         chann_num = self.pima.chan_number()
         mask = []
@@ -823,8 +826,11 @@ scans')
             mask = [('ALL', 'ALL', ind_frq, ind_chn1, 'OFF'),
                     ('ALL', 'ALL', ind_frq, ind_chn2, 'OFF')]
 
-        self.pima.mk_bpass_mask_gen(mask)
-        # self.pima.set_mask_file(mask_gen_file)
+        mask_gen_file = self.pima.mk_bpass_mask_gen(mask)
+        mask_file = self.pima.set_mask_file(mask_gen_file)
+
+        if mask_file:
+            self.logger.info('Set %s as new mask file', mask_file)
 
     def split(self, source=None, average=0):
         """
