@@ -82,7 +82,8 @@ def main(args):
                                                 accel=not args.no_accel,
                                                 bandpass_mode=args.bpas_mode,
                                                 ampl_bandpass=not args.no_ampl_bpas,
-                                                bandpass_use=args.bpas_use)
+                                                bandpass_use=args.bpas_use,
+                                                reference_station=args.ref_sta)
                     print('IF #{}'.format(ind+1))
                     print(fri)
 
@@ -95,7 +96,8 @@ def main(args):
                                         bandpass_mode=args.bpas_mode,
                                         ampl_bandpass=not args.no_ampl_bpas,
                                         bandpass_var=args.bpas_var,
-                                        bandpass_use=args.bpas_use)
+                                        bandpass_use=args.bpas_use,
+                                        reference_station=args.ref_sta)
             print(fri)
 
             max_scan_len = fri.max_scan_length()
@@ -148,6 +150,8 @@ if __name__ == "__main__":
                         help='do SPLIT')
     parser.add_argument('--fits',
                         help='external FITS-IDI file')
+    parser.add_argument('--ref-sta', metavar='STA',
+                        help='reference station')
     parser.add_argument('--no-bandpass', action='store_true',
                         help='disable bandpass calibration')
     parser.add_argument('--bpas-mode', metavar='MODE',

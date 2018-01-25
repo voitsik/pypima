@@ -518,7 +518,7 @@ first line'.format(antab))
                 self._print_warn('Could not load calibration information')
                 self.calibration_loaded = False
 
-    def _select_ref_sta(self, fri):
+    def _select_ref_sta(self, fri, ref_sta=None):
         """
         Select reference station for bandpass calibration.
 
@@ -526,42 +526,49 @@ first line'.format(antab))
         ----------
         fri : ``Fri`` object
             ``PIMA`` fringe fitting results as ``Fri`` object.
+        ref_sta : str, optional
 
         """
-        snr_detecton = float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
-        self.sta_ref = None
-        # snr = 0
-        obs = fri.max_snr('RADIO-AS')
-
-        if obs:
-            if obs['SNR'] < snr_detecton:
-                self.logger.debug('SNR is too low on space baseline for \
-bandpass: %s', obs['SNR'])
-            else:
-                if obs['sta1'] == 'RADIO-AS':
-                    self.sta_ref = obs['sta2']
-                elif obs['sta2'] == 'RADIO-AS':
-                    self.sta_ref = obs['sta1']
+        if ref_sta and ref_sta not in self.pima.station_list():
+            self._error('Station {} is not in station list'.format(ref_sta))
         else:
-            self._print_info('No scans with RADIO-AS')
+            self.sta_ref = ref_sta
 
         if not self.sta_ref:
-            obs = fri.max_snr()
+            obs = fri.max_snr('RADIO-AS')
 
-            if not obs:
-                return False
+            if obs:
+                snr_detecton = \
+                    float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
 
-            if obs['SNR'] < snr_detecton:
-                self.logger.debug('SNR is too low for bandpass: %s',
-                                  obs['SNR'])
+                if obs['SNR'] < snr_detecton:
+                    self.logger.debug('SNR is too low on space baseline for \
+    bandpass: %s', obs['SNR'])
+                else:
+                    if obs['sta1'] == 'RADIO-AS':
+                        self.sta_ref = obs['sta2']
+                    elif obs['sta2'] == 'RADIO-AS':
+                        self.sta_ref = obs['sta1']
             else:
-                good_stations = ['ARECIBO', 'GBT-VLBA', 'EFLSBERG']
-                for sta in good_stations:
-                    if sta in [obs['sta1'], obs['sta2']]:
-                        self.sta_ref = sta
-                        break
-                if self.sta_ref is None:
-                    self.sta_ref = obs['sta1']
+                self.logger.info('No scans with RADIO-AS')
+
+            if not self.sta_ref:
+                obs = fri.max_snr()
+
+                if not obs:
+                    return False
+
+                if obs['SNR'] < snr_detecton:
+                    self.logger.debug('SNR is too low for bandpass: %s',
+                                      obs['SNR'])
+                else:
+                    good_stations = ['ARECIBO', 'GBT-VLBA', 'EFLSBERG']
+                    for sta in good_stations:
+                        if sta in (obs['sta1'], obs['sta2']):
+                            self.sta_ref = sta
+                            break
+                    if self.sta_ref is None:
+                        self.sta_ref = obs['sta1']
 
         if self.sta_ref:
             # snr = round(min(10.0, obs['SNR']-0.1), 1)
@@ -608,8 +615,93 @@ bandpass: %s', obs['SNR'])
 
         return bad_obs_set
 
+    def _bandpass(self, bandpass_mode=None, ampl_bandpass=True, bandpass_var=0,
+                  bandpass_use=None):
+        """
+        Setup **PIMA** bandpass parameters and run ``bpas`` task.
+
+        """
+        bpas_params = {}
+
+        if bandpass_var == 0:
+            if bandpass_mode:
+                bpas_params['BPS.MODE:'] = bandpass_mode
+            if not ampl_bandpass:
+                bpas_params['BPS.DEG_AMP:'] = '0'
+        elif bandpass_var == 1:
+            bpas_params = {
+                'BPS.MODE:': 'FINE',
+                'BPS.NOBS_ACCUM:': '8',
+                'BPS.MSEG_ACCUM:': '1',
+                'BPS.NOBS_FINE:': '12',
+                'BPS.MINOBS_FINE:': '8',
+                'BPS.MSEG_FINE:': '1',
+                'BPS.SNR_MIN_ACCUM:': '200.0',
+                'BPS.SNR_MIN_FINE:': '200.0',
+                'BPS.AMPL_REJECT:': '0.4',
+                'BPS.PHAS_REJECT:': '0.2',
+                'BPS.INTRP_METHOD:': 'SPLINE',
+                'BPS.DEG_AMP:': '17',
+                'BPS.DEG_PHS:': '11',
+                'BPS.AMP_MIN:': '0.01',
+                'BPS.NORML:': 'IF',
+                'BPS.SEFD_USE:': 'NO'}
+        elif bandpass_var == 2:
+            bpas_params = {
+                'BPS.MODE:': 'FINE',
+                'BPS.NOBS_ACCUM:': '8',
+                'BPS.MSEG_ACCUM:': '1',
+                'BPS.NOBS_FINE:': '12',
+                'BPS.MINOBS_FINE:': '8',
+                'BPS.MSEG_FINE:': '1',
+                'BPS.SNR_MIN_ACCUM:': '50.0',
+                'BPS.SNR_MIN_FINE:': '50.0',
+                'BPS.AMPL_REJECT:': '0.4',
+                'BPS.PHAS_REJECT:': '0.2',
+                'BPS.INTRP_METHOD:': 'SPLINE',
+                'BPS.DEG_AMP:': '5',
+                'BPS.DEG_PHS:': '5',
+                'BPS.AMP_MIN:': '0.01',
+                'BPS.NORML:': 'IF',
+                'BPS.SEFD_USE:': 'NO'}
+        elif bandpass_var == 3:
+            mseg = self.pima.chan_number() // 2
+
+            bpas_params = {
+                'BPS.MODE:': 'ACCUM',
+                'BPS.NOBS_ACCUM:': '6',
+                'BPS.MSEG_ACCUM:': mseg,
+                'BPS.NOBS_FINE:': '12',
+                'BPS.MINOBS_FINE:': '8',
+                'BPS.MSEG_FINE:': mseg,
+                'BPS.SNR_MIN_ACCUM:': '6.5',
+                'BPS.SNR_MIN_FINE:': '6.5',
+                'BPS.AMPL_REJECT:': '0.4',
+                'BPS.PHAS_REJECT:': '0.2',
+                'BPS.INTRP_METHOD:': 'LINEAR',
+                'BPS.DEG_AMP:': '0',
+                'BPS.DEG_PHS:': '1',
+                'BPS.AMP_MIN:': '0.1',
+                'BPS.NORML:': 'IF',
+                'BPS.SEFD_USE:': 'NO'}
+        else:
+            self._error('Unsupported bandpass_var {}'.
+                        format(bandpass_var))
+
+        self.pima.update_cnt(bpas_params)
+
+        try:
+            self.pima.bpas()
+        except pypima.pima.Error:
+            self.logger.warning('continue without bandpass')
+            self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
+            return False
+
+        return True
+
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
-                       ampl_bandpass=True, bandpass_var=0, bandpass_use=None):
+                       ampl_bandpass=True, bandpass_var=0, bandpass_use=None,
+                       reference_station=None):
         """
         Perform a fringe fitting.
 
@@ -686,82 +778,10 @@ bandpass: %s', obs['SNR'])
             self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
 
             # Now auto select reference station
-            if fri and self._select_ref_sta(fri):
-                bpas_params = {}
-
-                if bandpass_var == 0:
-                    if bandpass_mode:
-                        bpas_params['BPS.MODE:'] = bandpass_mode
-                    if not ampl_bandpass:
-                        bpas_params['BPS.DEG_AMP:'] = '0'
-                elif bandpass_var == 1:
-                    bpas_params = {
-                        'BPS.MODE:': 'FINE',
-                        'BPS.NOBS_ACCUM:': '8',
-                        'BPS.MSEG_ACCUM:': '1',
-                        'BPS.NOBS_FINE:': '12',
-                        'BPS.MINOBS_FINE:': '8',
-                        'BPS.MSEG_FINE:': '1',
-                        'BPS.SNR_MIN_ACCUM:': '200.0',
-                        'BPS.SNR_MIN_FINE:': '200.0',
-                        'BPS.AMPL_REJECT:': '0.4',
-                        'BPS.PHAS_REJECT:': '0.2',
-                        'BPS.INTRP_METHOD:': 'SPLINE',
-                        'BPS.DEG_AMP:': '17',
-                        'BPS.DEG_PHS:': '11',
-                        'BPS.AMP_MIN:': '0.02',
-                        'BPS.NORML:': 'IF',
-                        'BPS.SEFD_USE:': 'NO'}
-                elif bandpass_var == 2:
-                    bpas_params = {
-                        'BPS.MODE:': 'FINE',
-                        'BPS.NOBS_ACCUM:': '8',
-                        'BPS.MSEG_ACCUM:': '1',
-                        'BPS.NOBS_FINE:': '12',
-                        'BPS.MINOBS_FINE:': '8',
-                        'BPS.MSEG_FINE:': '1',
-                        'BPS.SNR_MIN_ACCUM:': '50.0',
-                        'BPS.SNR_MIN_FINE:': '50.0',
-                        'BPS.AMPL_REJECT:': '0.4',
-                        'BPS.PHAS_REJECT:': '0.2',
-                        'BPS.INTRP_METHOD:': 'SPLINE',
-                        'BPS.DEG_AMP:': '5',
-                        'BPS.DEG_PHS:': '5',
-                        'BPS.AMP_MIN:': '0.1',
-                        'BPS.NORML:': 'IF',
-                        'BPS.SEFD_USE:': 'NO'}
-                elif bandpass_var == 3:
-                    mseg = self.pima.chan_number() // 2
-
-                    bpas_params = {
-                        'BPS.MODE:': 'ACCUM',
-                        'BPS.NOBS_ACCUM:': '6',
-                        'BPS.MSEG_ACCUM:': mseg,
-                        'BPS.NOBS_FINE:': '12',
-                        'BPS.MINOBS_FINE:': '8',
-                        'BPS.MSEG_FINE:': mseg,
-                        'BPS.SNR_MIN_ACCUM:': '6.5',
-                        'BPS.SNR_MIN_FINE:': '6.5',
-                        'BPS.AMPL_REJECT:': '0.4',
-                        'BPS.PHAS_REJECT:': '0.2',
-                        'BPS.INTRP_METHOD:': 'LINEAR',
-                        'BPS.DEG_AMP:': '0',
-                        'BPS.DEG_PHS:': '1',
-                        'BPS.AMP_MIN:': '0.1',
-                        'BPS.NORML:': 'IF',
-                        'BPS.SEFD_USE:': 'NO'}
-                else:
-                    self._error('Unsupported bandpass_var {}'.
-                                format(bandpass_var))
-
-                self.pima.update_cnt(bpas_params)
-
-                try:
-                    self.pima.bpas()
-                except pypima.pima.Error:
-                    self.logger.warning('continue without bandpass')
-                    self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
-                    bandpass = False
+            if fri and self._select_ref_sta(fri, reference_station):
+                bandpass = self._bandpass(bandpass_mode,
+                                          ampl_bandpass, bandpass_var,
+                                          bandpass_use)
             else:
                 self.logger.info('skip bandpass due to absence of the useful \
 scans')
