@@ -452,8 +452,10 @@ first line'.format(antab))
                               'SCAN_LEN_USED:': str(scan_length)})
 
         if update_db:
-            self.run_id = self.db.add_exper_info(self.exper, self.band,
-                os.path.basename(self.uv_fits), scan_part)
+            self.run_id = \
+                self.db.add_exper_info(self.exper, self.band,
+                                       os.path.basename(self.uv_fits),
+                                       scan_part)
 
         self.pima.load()
 
@@ -525,7 +527,7 @@ first line'.format(antab))
         Parameters
         ----------
         fri : ``Fri`` object
-            ``PIMA`` fringe fitting results as ``Fri`` object.
+            **PIMA** fringe fitting results as ``Fri`` object.
         ref_sta : str, optional
 
         """
@@ -615,8 +617,8 @@ first line'.format(antab))
 
         return bad_obs_set
 
-    def _bandpass(self, bandpass_mode=None, ampl_bandpass=True, bandpass_var=0,
-                  bandpass_use=None):
+    def _bandpass(self, bandpass_mode=None, ampl_bandpass=True,
+                  bandpass_var=0):
         """
         Setup **PIMA** bandpass parameters and run ``bpas`` task.
 
@@ -779,9 +781,8 @@ first line'.format(antab))
 
             # Now auto select reference station
             if fri and self._select_ref_sta(fri, reference_station):
-                bandpass = self._bandpass(bandpass_mode,
-                                          ampl_bandpass, bandpass_var,
-                                          bandpass_use)
+                bandpass = self._bandpass(bandpass_mode, ampl_bandpass,
+                                          bandpass_var)
             else:
                 self.logger.info('skip bandpass due to absence of the useful \
 scans')
