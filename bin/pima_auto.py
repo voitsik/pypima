@@ -9,10 +9,11 @@ Created on 18.02.2014
 import argparse
 import logging
 import os.path
-import psycopg2
 import shutil
 import sys
 import threading
+
+import psycopg2
 
 import pypima
 from pypima.raexperiment import RaExperiment
@@ -52,7 +53,7 @@ def download_it(ra_exps, force_small):
 
 def generate_autospec(ra_exp, spec_out_dir, force_small=False):
     """
-    Run ``PIMA`` only for average autocorrelation spectrum computing by
+    Run **PIMA** only for average autocorrelation spectrum computing by
     ``acta`` task.
 
     Parameters
@@ -74,27 +75,67 @@ def generate_autospec(ra_exp, spec_out_dir, force_small=False):
     ra_exp.delete_uvfits()
 
 
-def process_gvlbi(ra_exp, accel=False, force_small=False):
+def process_gvlbi(ra_exp, **kwargs):
     """
     Process ground-only part of the experiment.
 
     """
+    accel = kwargs.pop('accel', False)
+    force_small = kwargs.pop('force_small', False)
+    # scan_part_base = kwargs.pop('scan_part_base', 0)
+    reference_station = kwargs.pop('ref_sta', None)
+    bandpass_mode = kwargs.pop('bandpass_mode', None)
+    ampl_bandpass = kwargs.pop('ampl_bandpass', True)
+    bandpass_var = kwargs.pop('bandpass_var', 0)
+    bandpass_use = kwargs.pop('bandpass_use', None)
+    flag_chann = kwargs.pop('flag_chann', 0)
+
+    ff_params = {
+        'bandpass': True,
+        'accel': accel,
+        'reference_station': reference_station,
+        'bandpass_mode': bandpass_mode,
+        'ampl_bandpass': ampl_bandpass,
+        'bandpass_var': bandpass_var,
+        'bandpass_use': bandpass_use}
+
     ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+    ra_exp.flag_edge_chann(flag_chann)
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
-        print(ra_exp.fringe_fitting(True, accel))
+        print(ra_exp.fringe_fitting(**ff_params))
         ra_exp.fringes2db()
 
     ra_exp.delete_uvfits()
 
 
-def process_ind_ifs(ra_exp, accel=False, force_small=False):
+def process_ind_ifs(ra_exp, **kwargs):
     """
     Do fringe fitting for each IF separatly.
 
     """
+    accel = kwargs.pop('accel', True)
+    force_small = kwargs.pop('force_small', False)
+    # scan_part_base = kwargs.pop('scan_part_base', 0)
+    reference_station = kwargs.pop('ref_sta', None)
+    bandpass_mode = kwargs.pop('bandpass_mode', None)
+    ampl_bandpass = kwargs.pop('ampl_bandpass', True)
+    bandpass_var = kwargs.pop('bandpass_var', 0)
+    bandpass_use = kwargs.pop('bandpass_use', None)
+    flag_chann = kwargs.pop('flag_chann', 0)
+
+    ff_params = {
+        'bandpass': True,
+        'accel': accel,
+        'reference_station': reference_station,
+        'bandpass_mode': bandpass_mode,
+        'ampl_bandpass': ampl_bandpass,
+        'bandpass_var': bandpass_var,
+        'bandpass_use': bandpass_use}
+
     ra_exp.load(update_db=True, scan_part=-1, force_small=force_small)
+    ra_exp.flag_edge_chann(flag_chann)
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
         ra_exp.pima.set_polar(polar)
@@ -103,7 +144,7 @@ def process_ind_ifs(ra_exp, accel=False, force_small=False):
         for ind in range(if_num):
             ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
                                     'END_FRQ:': str(ind+1)})
-            fri = ra_exp.fringe_fitting(True, accel)
+            fri = ra_exp.fringe_fitting(**ff_params)
             print('IF #{}'.format(ind+1))
             print(fri)
             ra_exp.fringes2db()
@@ -130,7 +171,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     accel : bool, optional
         If True, do the parabolic term fitting.
     bandpass_mode : str, optional
-        Set the ``BPS.MODE:`` **PIMA** parameter. If ``None``, a value from the
+        Set the ``BPS.MODE`` **PIMA** parameter. If ``None``, a value from the
         control file is used.
     force_small : bool, optional
         Use FITS-IDI with 64 spectral channels only.
@@ -140,12 +181,14 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         Default value is 0.
     flag_chann : int, optional
         Flag edge spectral channels.
+    reference_station : str, optional
+        Reference station for bandpass calibration. Default value is ``None``.
 
     """
     accel = kwargs.pop('accel', True)
     force_small = kwargs.pop('force_small', False)
     scan_part_base = kwargs.pop('scan_part_base', 0)
-
+    reference_station = kwargs.pop('ref_sta', None)
     bandpass_mode = kwargs.pop('bandpass_mode', None)
     ampl_bandpass = kwargs.pop('ampl_bandpass', True)
     bandpass_var = kwargs.pop('bandpass_var', 0)
@@ -159,13 +202,13 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ra_exp.load_antab()
 
     ff_params = {
-            'bandpass': True,
-            'accel': accel,
-            'bandpass_mode': bandpass_mode,
-            'ampl_bandpass': ampl_bandpass,
-            'bandpass_var': bandpass_var,
-            'bandpass_use': bandpass_use
-            }
+        'bandpass': True,
+        'accel': accel,
+        'reference_station': reference_station,
+        'bandpass_mode': bandpass_mode,
+        'ampl_bandpass': ampl_bandpass,
+        'bandpass_var': bandpass_var,
+        'bandpass_use': bandpass_use}
 
     scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
@@ -324,6 +367,17 @@ def main(args):
     load_thread.daemon = True
     load_thread.start()
 
+    params = {
+        'scan_part_base': args.scan_part_base,
+        'force_small': args.force_small,
+        'accel': not args.no_accel,
+        'ref_sta': args.ref_sta,
+        'bandpass_mode': args.bpas_mode,
+        'ampl_bandpass': not args.no_ampl_bpas,
+        'bandpass_var': args.bpas_var,
+        'bandpass_use': args.bpas_use,
+        'flag_chann': args.flag_chann}
+
     for ra_exp in exp_list:
         try:
             ra_exp.init_workdir()
@@ -331,20 +385,22 @@ def main(args):
             if args.autospec_only:
                 generate_autospec(ra_exp, spec_out_dir, args.force_small)
             elif args.individual_ifs:
-                process_ind_ifs(ra_exp, not args.no_accel, args.force_small)
+                process_ind_ifs(ra_exp, **params)
             else:
                 if ra_exp.gvlbi:
-                    process_gvlbi(ra_exp, not args.no_accel, args.force_small)
+                    process_gvlbi(ra_exp, **params)
                 else:
                     process_radioastron(ra_exp, out_dir, spec_out_dir,
-                                        accel=not args.no_accel,
-                                        bandpass_mode=args.bpas_mode,
-                                        force_small=args.force_small,
-                                        scan_part_base=args.scan_part_base,
-                                        ampl_bandpass=not args.no_ampl_bpas,
-                                        bandpass_var=args.bpas_var,
-                                        bandpass_use=args.bpas_use,
-                                        flag_chann=args.flag_chann)
+                                        **params)
+#                    process_radioastron(ra_exp, out_dir, spec_out_dir,
+#                                        accel=not args.no_accel,
+#                                        bandpass_mode=args.bpas_mode,
+#                                        force_small=args.force_small,
+#                                        scan_part_base=args.scan_part_base,
+#                                        ampl_bandpass=not args.no_ampl_bpas,
+#                                        bandpass_var=args.bpas_var,
+#                                        bandpass_use=args.bpas_use,
+#                                        flag_chann=args.flag_chann)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -388,6 +444,8 @@ if __name__ == '__main__':
     parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
                         choices=[1000 * x for x in range(13)],
                         help='use alternative scan_part_base')
+    parser.add_argument('--ref-sta', metavar='STA',
+                        help='reference station')
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
                         help='set bandpass calibration mode')

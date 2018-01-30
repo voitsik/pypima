@@ -575,8 +575,8 @@ first line'.format(antab))
         if self.sta_ref:
             # snr = round(min(10.0, obs['SNR']-0.1), 1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
-                                  'BPS.SNR_MIN_ACCUM:': '6.5',
-                                  'BPS.SNR_MIN_FINE:': '6.5'})
+                                  'BPS.SNR_MIN_ACCUM:': '5.5',
+                                  'BPS.SNR_MIN_FINE:': '5.5'})
             self.logger.info('New reference station is %s', self.sta_ref)
             # self.logger.info('Set SNR_MIN for bandpass to %s', snr)
             return True
@@ -676,14 +676,14 @@ first line'.format(antab))
                 'BPS.NOBS_FINE:': '12',
                 'BPS.MINOBS_FINE:': '8',
                 'BPS.MSEG_FINE:': mseg,
-                'BPS.SNR_MIN_ACCUM:': '6.5',
-                'BPS.SNR_MIN_FINE:': '6.5',
+                'BPS.SNR_MIN_ACCUM:': '5.5',
+                'BPS.SNR_MIN_FINE:': '5.5',
                 'BPS.AMPL_REJECT:': '0.4',
                 'BPS.PHAS_REJECT:': '0.2',
                 'BPS.INTRP_METHOD:': 'LINEAR',
                 'BPS.DEG_AMP:': '0',
                 'BPS.DEG_PHS:': '1',
-                'BPS.AMP_MIN:': '0.1',
+                'BPS.AMP_MIN:': '0.01',
                 'BPS.NORML:': 'IF',
                 'BPS.SEFD_USE:': 'NO'}
         else:
@@ -722,6 +722,9 @@ first line'.format(antab))
             Select predefined bandpass parameters.
         bandpass_use : str, optional
             Set ``BANDPASS_USE`` **PIMA** parameter.
+        reference_station : str, optional
+            Reference station for bandpass calibration. If ``None`` select
+            an optimal station for ground-space baselines.
 
         Returns
         -------
