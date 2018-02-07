@@ -537,12 +537,12 @@ first line'.format(antab))
             self.sta_ref = ref_sta
 
         if not self.sta_ref:
+            snr_detecton = \
+                float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
+
             obs = fri.max_snr('RADIO-AS')
 
             if obs:
-                snr_detecton = \
-                    float(self.pima.cnt_params['FRIB.SNR_DETECTION:'])
-
                 if obs['SNR'] < snr_detecton:
                     self.logger.debug('SNR is too low on space baseline for \
     bandpass: %s', obs['SNR'])
