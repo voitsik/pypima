@@ -748,15 +748,15 @@ first line'.format(antab))
                                   'PHASE_ACCEL_MIN:': '0',
                                   'PHASE_ACCEL_MAX:': '0'})
 
+        if bandpass_use:
+            self.pima.update_cnt({'BANDPASS_USE:': bandpass_use})
+
         if bandpass and self.pima.chan_number() > 512:
             self.logger.warning('Too many spectral channels for bandpass: %s',
                                 self.pima.chan_number())
             bandpass = False
 
         if bandpass:
-            if bandpass_use:
-                self.pima.update_cnt({'BANDPASS_USE:': bandpass_use})
-
             bad_obs = self._check_bad_obs()
             if bad_obs:
                 self.bad_obs_set = bad_obs
@@ -879,7 +879,9 @@ calibration information')
 
         snr_detection = round(min(7.0, self.fri.min_detected_snr()-0.05), 2)
         self.logger.info('Set FRIB.SNR_DETECTION to %s', snr_detection)
-        split_params = ['FRIB.SNR_DETECTION:', str(snr_detection)]
+        split_params = ['FRIB.SNR_DETECTION:',
+                        '{:.2f}'.format(snr_detection),
+                        'DEBUG_LEVEL:', '6']
 
         # Exclude suspicious observations
         obs_list = self.fri.non_detections()
