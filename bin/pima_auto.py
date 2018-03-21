@@ -442,7 +442,7 @@ if __name__ == '__main__':
     parser.add_argument('--force-small', action='store_true',
                         help='force to use 64-channel FITS file (if any)')
     parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
-                        choices=[1000 * x for x in range(15)],
+                        choices=[1000 * x for x in range(20)],
                         help='use alternative scan_part_base')
     parser.add_argument('--ref-sta', metavar='STA',
                         help='reference station')
