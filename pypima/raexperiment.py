@@ -128,8 +128,8 @@ class RaExperiment:
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
 
-        # Restrict delay rate window to +- 12 cm/s
-        self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '4.0D-10'})
+        # Do not restrict delay rate window
+        self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '1.0D-8'})
 
     def _print_info(self, msg):
         """Print some information"""
