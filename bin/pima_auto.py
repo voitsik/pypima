@@ -32,8 +32,9 @@ def download_it(ra_exps, force_small):
     for exp in ra_exps:
         # Hack: make data directory for shutil.disk_usage
         os.makedirs(exp.data_dir, exist_ok=True)
-        df = shutil.disk_usage(exp.data_dir)
-        if df.free / df.total < 0.1:
+        disk_usage = shutil.disk_usage(exp.data_dir)
+
+        if disk_usage.free / disk_usage.total < 0.1:
             logger.warning('less then 10% of free space left on disk')
             return
 
@@ -297,25 +298,112 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ra_exp.delete_uvfits()
 
 
-def main(args):
+def parser_input_file(file_name, database, data_dir, gvlbi):
     """
-    Main function.
+    Parse input file.
 
-    Parameters:
-    -----------
-    args.file_name : str
-        Name of the file with list of the experiments and bands. Each line in
-        this file must have two words: experiment code and band code.
+    The input file is a table with three columns: exper_name, band, and
+    FITS-IDI file name (optional).
+
+    Returns
+    -------
+    exp_list : list
+        List of RaExperiment instances.
 
     """
+    exp_list = []
+
+    with open(file_name, 'r') as file:
+        for line in file:
+            line = line.split('#')[0].strip()
+
+            if not line:
+                continue
+
+            columns = line.split()
+
+            if len(columns) in (2, 3):
+                exper_name = columns[0]
+                band = columns[1]
+
+                if len(columns) == 3:
+                    fits = columns[2]
+                else:
+                    fits = None
+
+                exp_list.append(RaExperiment(exper_name, band,
+                                             database, uv_fits=fits,
+                                             data_dir=data_dir,
+                                             gvlbi=gvlbi))
+
+    return exp_list
+
+
+def parse_args():
+    """
+    Parse command line arguments.
+
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file_name', metavar='FILE',
+                        help='File with list of experiments and bands')
+
+    # Optional arguments
+    parser.add_argument('-l', '--log-file', metavar='LOG',
+                        help='log file')
+    parser.add_argument('--gvlbi', '-g', action='store_true',
+                        help='process ground-only part of the experiments')
+    parser.add_argument('--no-accel', action='store_true',
+                        help='disable parabolic term fitting')
+    parser.add_argument('--force-small', action='store_true',
+                        help='force to use 64-channel FITS file (if any)')
+    parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
+                        choices=[1000 * x for x in range(20)],
+                        help='use alternative scan_part_base')
+    parser.add_argument('--ref-sta', metavar='STA',
+                        help='reference station')
+    parser.add_argument('--bpas-mode', metavar='MODE',
+                        choices=['INIT', 'ACCUM', 'FINE'],
+                        help='set bandpass calibration mode')
+    parser.add_argument('--bpas-use', metavar='BANDPASS_USE',
+                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+                        help='set BANDPASS_USE PIMA parameter')
+    parser.add_argument('--no-ampl-bpas', action='store_true',
+                        help='disable amplitude bandpass calibration')
+    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
+                        default=0,
+                        help='predefined bandpass parameters')
+    parser.add_argument('--flag-chann', type=int, default=0, metavar='N',
+                        help='flag N edge spectral channels of the bandpass')
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--autospec-only', action='store_true',
+                       help='generate autocorrelation spectra only')
+    group.add_argument('--individual-ifs', action='store_true',
+                       help='do fringe fittig for individual IFs')
+
+    parser.add_argument('--debug', '-d', action='store_true',
+                        help='enable debug output')
+
+    return parser.parse_args()
+
+
+def main():
+    """Main"""
+    args = parse_args()
+
+    if not args.log_file:
+        log_file = args.file_name.rsplit('.', 1)[0] + '.log'
+    else:
+        log_file = args.log_file
+
     log_format = '%(asctime)s %(levelname)s: %(name)s: %(message)s'
     logging.basicConfig(format=log_format,
-                        level=logging.INFO, filename=args.log_file)
+                        level=logging.INFO, filename=log_file)
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    exp_list = []
-
+    # Connect to database
     try:
         database = DB()
     except psycopg2.Error as err:
@@ -326,29 +414,9 @@ def main(args):
                          default=os.path.join(os.getenv('HOME'),
                                               'data', 'pima_data'))
 
-    # Parse input file.
-    # The input file is a table with three columns: exper_name, band, and
-    # FITS-IDI file name (optional)
     try:
-        with open(args.file_name, 'r') as in_file:
-            for line in in_file:
-                line = line.split('#')[0].strip()
-
-                if not line:
-                    continue
-
-                exp_band = line.split()
-
-                if len(exp_band) in (2, 3):
-                    if len(exp_band) == 3:
-                        fits = exp_band[2]
-                    else:
-                        fits = None
-
-                    exp_list.append(RaExperiment(exp_band[0], exp_band[1],
-                                                 database, uv_fits=fits,
-                                                 data_dir=data_dir,
-                                                 gvlbi=args.gvlbi))
+        exp_list = parser_input_file(args.file_name, database, data_dir,
+                                     args.gvlbi)
     except OSError as err:
         logging.error('OSError: %s', err)
         return 1
@@ -392,15 +460,6 @@ def main(args):
                 else:
                     process_radioastron(ra_exp, out_dir, spec_out_dir,
                                         **params)
-#                    process_radioastron(ra_exp, out_dir, spec_out_dir,
-#                                        accel=not args.no_accel,
-#                                        bandpass_mode=args.bpas_mode,
-#                                        force_small=args.force_small,
-#                                        scan_part_base=args.scan_part_base,
-#                                        ampl_bandpass=not args.no_ampl_bpas,
-#                                        bandpass_var=args.bpas_var,
-#                                        bandpass_use=args.bpas_use,
-#                                        flag_chann=args.flag_chann)
         except pypima.pima.Error as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
@@ -428,45 +487,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('file_name', metavar='FILE',
-                        help='File with list of experiments and bands')
-
-    # Optional arguments
-    parser.add_argument('-l', '--log-file', metavar='LOG',
-                        help='log file')
-    parser.add_argument('--gvlbi', '-g', action='store_true',
-                        help='process ground-only part of the experiments')
-    parser.add_argument('--no-accel', action='store_true',
-                        help='disable parabolic term fitting')
-    parser.add_argument('--force-small', action='store_true',
-                        help='force to use 64-channel FITS file (if any)')
-    parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
-                        choices=[1000 * x for x in range(20)],
-                        help='use alternative scan_part_base')
-    parser.add_argument('--ref-sta', metavar='STA',
-                        help='reference station')
-    parser.add_argument('--bpas-mode', metavar='MODE',
-                        choices=['INIT', 'ACCUM', 'FINE'],
-                        help='set bandpass calibration mode')
-    parser.add_argument('--bpas-use', metavar='BANDPASS_USE',
-                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
-                        help='set BANDPASS_USE PIMA parameter')
-    parser.add_argument('--no-ampl-bpas', action='store_true',
-                        help='disable amplitude bandpass calibration')
-    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
-                        default=0,
-                        help='predefined bandpass parameters')
-    parser.add_argument('--flag-chann', type=int, default=0, metavar='N',
-                        help='flag N edge spectral channels of the bandpass')
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('--autospec-only', action='store_true',
-                       help='generate autocorrelation spectra only')
-    group.add_argument('--individual-ifs', action='store_true',
-                       help='do fringe fittig for individual IFs')
-
-    parser.add_argument('--debug', '-d', action='store_true',
-                        help='enable debug output')
-
-    sys.exit(main(parser.parse_args()))
+    sys.exit(main())
