@@ -988,14 +988,21 @@ calibration information')
                 self.uv_fits.startswith(self.data_dir):
             os.remove(self.uv_fits)
 
+            # Delete data directory if empty
+            try:
+                os.rmdir(self.data_dir)
+            except OSError:
+                pass
+
+        # Delete staging directory
         staging_dir = self.pima.cnt_params['STAGING_DIR:']
         if os.path.isdir(staging_dir):
             shutil.rmtree(staging_dir)
 
     def generate_autospectra(self, plot=False, out_dir=None, db=False):
         """
-        Generate autospectrum for each station for each scan using ``acta``
-        PIMA task.
+        Generate autocorrelation spectrum for each station for each scan
+        using ``acta`` PIMA task.
 
         Parameters
         ----------
@@ -1003,6 +1010,8 @@ calibration information')
             If ``True`` plot autospectra.
         out_dir : str
             Plot output directory.
+        db : bool
+            If ``True`` store autospectra to the database.
 
         Return
         ------
@@ -1010,16 +1019,13 @@ calibration information')
             List of the ``ActaFile`` instances.
 
         """
-#        if not plot and not db:  # Nothing to do
-#            return
-
         # Sometimes PIMA crashes on `acta` task
         try:
             file_list = self.pima.acta()
         except pypima.pima.Error:
             # Remove core dump file.
-            # if os.path.isfile('core'):
-            #     os.remove('core')
+            if os.path.isfile('core'):
+                os.remove('core')
 
             return
 
