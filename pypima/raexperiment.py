@@ -751,6 +751,9 @@ first line'.format(antab))
         if bandpass_use:
             self.pima.update_cnt({'BANDPASS_USE:': bandpass_use})
 
+            if bandpass_use == 'NO':
+                bandpass = False
+
         if bandpass and self.pima.chan_number() > 512:
             self.logger.warning('Too many spectral channels for bandpass: %s',
                                 self.pima.chan_number())
