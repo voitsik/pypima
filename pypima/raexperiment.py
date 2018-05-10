@@ -84,6 +84,12 @@ class RaExperiment:
         self.scan_part = 0
         self.bad_obs_set = set()  # Set of bad obs (autospec)
 
+        # dict POLAR -> BANDPASS_FILE
+        self.bpass_files = {'RR': None,
+                            'LL': None,
+                            'RL': None,
+                            'LR': None}
+
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
 
@@ -759,6 +765,8 @@ first line'.format(antab))
                                 self.pima.chan_number())
             bandpass = False
 
+        polar = self.pima.cnt_params['POLAR:']
+
         if bandpass:
             bad_obs = self._check_bad_obs()
             if bad_obs:
@@ -766,37 +774,43 @@ first line'.format(antab))
             else:
                 self.bad_obs_set.clear()
 
-            self.pima.mk_exclude_obs_file(self.bad_obs_set, 'coarse')
-            fri_file = self.pima.coarse()
-            fri = Fri(fri_file)
-
-            if not fri:
-                self._error('PIMA fri-file is empty after coarse.')
-
-            # Exclude suspicious observations
-            obs_list = []
-            for rec in fri:
-                if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6:
-                    obs_list.append(rec['obs'])
-
-            self.pima.mk_exclude_obs_file(obs_list, 'bpas')
-            fri.remove_obs(obs_list)
-
-            # Detection limit for bandpass calibration
-            self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
-
-            # Now auto select reference station
-            if fri and self._select_ref_sta(fri, reference_station):
-                bandpass = self._bandpass(bandpass_mode, ampl_bandpass,
-                                          bandpass_var)
+            if self.bpass_files[polar] and \
+                    os.path.isfile(self.bpass_files[polar]):
+                self.pima.update_cnt({'BANDPASS_FILE:':
+                                      self.bpass_files[polar]})
             else:
-                self.logger.info('skip bandpass due to absence of the useful \
-scans')
-                bandpass = False
+                self.pima.mk_exclude_obs_file(self.bad_obs_set, 'coarse')
+                fri_file = self.pima.coarse()
+                fri = Fri(fri_file)
+
+                if not fri:
+                    self._error('PIMA fri-file is empty after coarse.')
+
+                # Exclude suspicious observations
+                obs_list = []
+                for rec in fri:
+                    if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6:
+                        obs_list.append(rec['obs'])
+
+                self.pima.mk_exclude_obs_file(obs_list, 'bpas')
+                fri.remove_obs(obs_list)
+
+                # Detection limit for bandpass calibration
+                self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
+
+                # Now auto select reference station
+                if fri and self._select_ref_sta(fri, reference_station):
+                    bandpass = self._bandpass(bandpass_mode, ampl_bandpass,
+                                              bandpass_var)
+                    self.bpass_files[polar] = \
+                        self.pima.cnt_params['BANDPASS_FILE:']
+                else:
+                    self.logger.info('skip bandpass due to absence of the \
+useful scans')
+                    bandpass = False
+                    self.bpass_files[polar] = None
 
         self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
-
-        polar = self.pima.cnt_params['POLAR:']
         fri_file = '{}_{}_{}.fri'.format(self.exper, self.band, polar)
         fri_file = os.path.join(self.work_dir, fri_file)
         frr_file = '{}_{}_{}.frr'.format(self.exper, self.band, polar)

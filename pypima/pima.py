@@ -440,10 +440,9 @@ Check your PIMA installation!')
                                                       polar)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
-        if self.cnt_params['BANDPASS_FILE:'] == 'NO':
-            bps_file = '{}_{}_{}.bps'.format(self.exper, self.band, polar)
-            bps_file = os.path.join(self.work_dir, bps_file)
-            self.update_cnt({'BANDPASS_FILE:': bps_file})
+        bps_file = '{}_{}_{}.bps'.format(self.exper, self.band, polar)
+        bps_file = os.path.join(self.work_dir, bps_file)
+        self.update_cnt({'BANDPASS_FILE:': bps_file})
 
         opts = ['FRINGE_FILE:', fri_file,
                 'DEBUG_LEVEL:', '3',
