@@ -903,7 +903,8 @@ calibration information')
         # Exclude suspicious observations
         obs_list = self.fri.non_detections()
         for rec in self.fri:
-            if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6:
+            if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6 or \
+                    rec['duration'] < 30:
                 obs_list.append(rec['obs'])
 
         self.pima.mk_exclude_obs_file(obs_list, 'splt')
