@@ -356,25 +356,26 @@ def parse_args():
     parser.add_argument('--no-accel', action='store_true',
                         help='disable parabolic term fitting')
     parser.add_argument('--force-small', action='store_true',
-                        help='force to use 64-channel FITS file (if any)')
+                        help='force to use 64-channel FITS file')
     parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
                         choices=[1000 * x for x in range(20)],
                         help='use alternative scan_part_base')
     parser.add_argument('--ref-sta', metavar='STA',
-                        help='reference station')
+                        help='reference station for bandpass calibration')
     parser.add_argument('--bpas-mode', metavar='MODE',
                         choices=['INIT', 'ACCUM', 'FINE'],
-                        help='set bandpass calibration mode')
-    parser.add_argument('--bpas-use', metavar='BANDPASS_USE',
+                        help='bandpass calibration mode')
+    parser.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
                         choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
-                        help='set BANDPASS_USE PIMA parameter')
+                        help='BANDPASS_USE PIMA parameter (default is PHS)')
     parser.add_argument('--no-ampl-bpas', action='store_true',
                         help='disable amplitude bandpass calibration')
     parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
-                        default=0,
-                        help='predefined bandpass parameters')
-    parser.add_argument('--flag-chann', type=int, default=0, metavar='N',
-                        help='flag N edge spectral channels of the bandpass')
+                        default=3,
+                        help='predefined bandpass parameters (default is 3)')
+    parser.add_argument('--flag-chann', type=int, default=2, metavar='N',
+                        help='flag N edge spectral channels of the bandpass \
+(default is 2)')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',

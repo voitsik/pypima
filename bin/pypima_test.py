@@ -9,17 +9,67 @@ Created on Fri Dec 13 17:50:20 2013
 import argparse
 import logging
 import os.path
-import psycopg2
 import sys
 import tempfile
+
+import psycopg2
 
 import pypima
 from pypima.raexperiment import RaExperiment
 from pypima.db import DB
 
 
-def main(args):
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('exper', help='experiment code')
+    parser.add_argument('band', help='frequency band')
+
+    # Optional arguments
+    parser.add_argument('--polar', help='polarization')
+    parser.add_argument('--gvlbi', '-g', action='store_true',
+                        help='process GVLBI FITS-file')
+    parser.add_argument('--no-accel', action='store_true',
+                        help='disable acceleration term fitting')
+    parser.add_argument('--force-small', action='store_true',
+                        help='force to use 64-channel FITS file (if any)')
+    parser.add_argument('--autospec-only', action='store_true',
+                        help='generate autocorrelation spectra only')
+    parser.add_argument('--individual-ifs', action='store_true',
+                        help='do fringe fittig for individual IFs')
+    parser.add_argument('--split', action='store_true',
+                        help='do SPLIT')
+    parser.add_argument('--fits',
+                        help='external FITS-IDI file')
+    parser.add_argument('--ref-sta', metavar='STA',
+                        help='reference station')
+    parser.add_argument('--no-bandpass', action='store_true',
+                        help='disable bandpass calibration')
+    parser.add_argument('--bpas-mode', metavar='MODE',
+                        choices=['INIT', 'ACCUM', 'FINE'],
+                        help='set bandpass calibration mode')
+    parser.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
+                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+                        help='set BANDPASS_USE PIMA parameter')
+    parser.add_argument('--no-ampl-bpas', action='store_true',
+                        help='disable amplitude bandpass calibration')
+    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
+                        default=3,
+                        help='predefined bandpass parameters')
+    parser.add_argument('--flag-chann', type=int, default=2, metavar='N',
+                        help='flag N edge spectral channels of the bandpass')
+    parser.add_argument('--scan-length', type=float,
+                        help='set scan length in seconds')
+    parser.add_argument('--debug', '-d', action='store_true',
+                        help='enable debug output')
+
+    return parser.parse_args()
+
+
+def main():
     """Main"""
+    args = parse_args()
+
     log_format = '%(asctime)s %(levelname)s: %(name)s: %(message)s'
     logging.basicConfig(format=log_format, level=logging.INFO)
 
@@ -130,46 +180,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('exper', help='experiment code')
-    parser.add_argument('band', help='frequency band')
-
-    # Optional arguments
-    parser.add_argument('--polar', help='polarization')
-    parser.add_argument('--gvlbi', '-g', action='store_true',
-                        help='process GVLBI FITS-file')
-    parser.add_argument('--no-accel', action='store_true',
-                        help='disable acceleration term fitting')
-    parser.add_argument('--force-small', action='store_true',
-                        help='force to use 64-channel FITS file (if any)')
-    parser.add_argument('--autospec-only', action='store_true',
-                        help='generate autocorrelation spectra only')
-    parser.add_argument('--individual-ifs', action='store_true',
-                        help='do fringe fittig for individual IFs')
-    parser.add_argument('--split', action='store_true',
-                        help='do SPLIT')
-    parser.add_argument('--fits',
-                        help='external FITS-IDI file')
-    parser.add_argument('--ref-sta', metavar='STA',
-                        help='reference station')
-    parser.add_argument('--no-bandpass', action='store_true',
-                        help='disable bandpass calibration')
-    parser.add_argument('--bpas-mode', metavar='MODE',
-                        choices=['INIT', 'ACCUM', 'FINE'],
-                        help='set bandpass calibration mode')
-    parser.add_argument('--bpas-use', metavar='BANDPASS_USE',
-                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
-                        help='set BANDPASS_USE PIMA parameter')
-    parser.add_argument('--no-ampl-bpas', action='store_true',
-                        help='disable amplitude bandpass calibration')
-    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
-                        default=0,
-                        help='predefined bandpass parameters')
-    parser.add_argument('--flag-chann', type=int, default=0, metavar='N',
-                        help='flag N edge spectral channels of the bandpass')
-    parser.add_argument('--scan-length', type=float,
-                        help='set scan length in seconds')
-    parser.add_argument('--debug', '-d', action='store_true',
-                        help='enable debug output')
-
-    sys.exit(main(parser.parse_args()))
+    sys.exit(main())
