@@ -16,11 +16,11 @@ import numpy as np
 import pycurl
 
 import pypima.pima
-from pypima.fri import Fri
-from pypima.pima import Pima
-from pypima.pima import ActaFile
-from pypima.uvfits import UVFits
-from pypima.plot_utils import plot_autospectra
+from .fri import Fri
+from .pima import Pima
+from .pima import ActaFile
+from .uvfits import UVFits
+from .plot_utils import plot_autospectra
 
 
 class Error(Exception):
@@ -110,6 +110,10 @@ class RaExperiment:
             self.data_dir = os.path.join(data_dir, self.exper)
         else:
             self.data_dir = self.work_dir
+
+        if len(self.data_dir) >= pypima.pima.UVFILE_NAME_LEN-1:
+            self._error('Length of the data_dir path must be less than {} \
+bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         # PIMA control file path
         self.cnt_file_name = os.path.join(self.work_dir, '{}_{}_pima.cnt'.
@@ -210,6 +214,10 @@ class RaExperiment:
         # Delete spaces in filename
         uv_fits = os.path.join(self.data_dir,
                                os.path.basename(fits_url).replace(' ', ''))
+
+        if len(uv_fits) > pypima.pima.UVFILE_NAME_LEN:
+            uv_fits = uv_fits[:pypima.pima.UVFILE_NAME_LEN]
+            assert uv_fits[-1] == '/'
 
         if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
             self.logger.info('File %s already exists', uv_fits)
@@ -579,12 +587,11 @@ first line'.format(antab))
                         self.sta_ref = obs['sta1']
 
         if self.sta_ref:
-            # snr = round(min(10.0, obs['SNR']-0.1), 1)
             self.pima.update_cnt({'STA_REF:': self.sta_ref,
                                   'BPS.SNR_MIN_ACCUM:': '5.5',
                                   'BPS.SNR_MIN_FINE:': '5.5'})
             self.logger.info('New reference station is %s', self.sta_ref)
-            # self.logger.info('Set SNR_MIN for bandpass to %s', snr)
+
             return True
         else:
             return False

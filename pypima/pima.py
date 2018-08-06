@@ -100,6 +100,10 @@ deselected points:'):
         return self._data[key]
 
 
+# Some global variables
+UVFILE_NAME_LEN = 128
+
+
 class Pima(object):
     """
     Pima class is analog of pima_fringe.csh script.
@@ -193,11 +197,10 @@ Check your PIMA installation!')
 
                 # In case of many FITS-files
                 if key == 'UV_FITS:' and isinstance(val, list):
-                    line = ''
-                    for items in val:
-                        line += '{:<20} {}\n'.format(key, items)
+                    lines = ['{:<10} {}'.format(key, item) for item in val]
+                    line = '\n'.join(lines)
                 else:
-                    line = '{:<30} {}\n'.format(key, val)
+                    line = '{:<20} {}\n'.format(key, val)
             elif line.startswith('# Last update on'):
                 line = '# Last update on  {}\n'.format(str(datetime.now()))
 
