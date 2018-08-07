@@ -91,7 +91,7 @@ def main():
 
         scan_length = args.scan_length
     else:
-        scan_length = 1200
+        scan_length = 1500
 
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,

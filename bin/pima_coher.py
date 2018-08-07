@@ -252,7 +252,7 @@ def main():
     parser.add_argument('obs_list', type=valid_obs_list,
                         help='comma-separated list of observation numbers')
 
-    parser.add_argument('--scan-length', type=float, default=1200.,
+    parser.add_argument('--scan-length', type=float, default=1500.,
                         help='full scan length')
     parser.add_argument('--plot-format', default='pdf',
                         help='output plot file format (PDF by default)')

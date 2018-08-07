@@ -318,10 +318,7 @@ def parser_input_file(file_name, database, data_dir, gvlbi):
 
     with open(file_name, 'r') as file:
         for line in file:
-            line = line.split('#')[0].strip()
-
-            if not line:
-                continue
+            line = line.split('#')[0].strip()  # Strip comments out
 
             columns = line.split()
 
@@ -377,8 +374,10 @@ def parse_args():
                         default=3,
                         help='predefined bandpass parameters (default is 3)')
     parser.add_argument('--flag-chann', type=int, default=2, metavar='N',
-                        help='flag N edge spectral channels of the bandpass \
-(default is 2)')
+                        help='flag N edge spectral channels of the bandpass '
+                        '(default is 2)')
+    parser.add_argument('--max-scan-length', type=float, default=1500,
+                        help='maximum scan length in seconds')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',
@@ -406,6 +405,14 @@ def main():
                         level=logging.INFO, filename=log_file)
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    # Check input parameters
+    if args.max_scan_length <= 0:
+        logging.error('Max scan length must be positive')
+        return 1
+
+    if args.flag_chenn < 0:
+        logging.error('Number of flagged channels must not be negative')
 
     # Connect to database
     try:
