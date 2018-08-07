@@ -104,7 +104,7 @@ class ExperInfo:
 UVFILE_NAME_LEN = 128
 
 
-class Pima(object):
+class Pima:
     """
     Pima class is analog of pima_fringe.csh script.
 
@@ -124,14 +124,14 @@ class Pima(object):
         self.pima_dir = os.getenv('PIMA_DIR')
 
         if not self.pima_dir or not os.path.isdir(self.pima_dir):
-            self._error('Could not find PIMA directory. \
-Please, set $PIMA_DIR environment variable.')
+            self._error('Could not find PIMA directory. Please, set $PIMA_DIR '
+                        'environment variable.')
 
         self.pima_exec = os.path.join(self.pima_dir, 'bin', 'pima')
 
         if not os.path.isfile(self.pima_exec):
-            self._error('Could not find pima executable. \
-Check your PIMA installation!')
+            self._error('Could not find pima executable. Check your PIMA '
+                        'installation!')
 
         # PIMA control file path
         self.cnt_file_name = '{}_{}_pima.cnt'.format(self.exper, self.band)

@@ -411,7 +411,7 @@ def main():
         logging.error('Max scan length must be positive')
         return 1
 
-    if args.flag_chenn < 0:
+    if args.flag_chann < 0:
         logging.error('Number of flagged channels must not be negative')
 
     # Connect to database
