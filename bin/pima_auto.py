@@ -90,6 +90,7 @@ def process_gvlbi(ra_exp, **kwargs):
     bandpass_var = kwargs.pop('bandpass_var', 0)
     bandpass_use = kwargs.pop('bandpass_use', None)
     flag_chann = kwargs.pop('flag_chann', 0)
+    scan_len = kwargs.pop('max_scan_length', 1500)
 
     ff_params = {
         'bandpass': True,
@@ -98,9 +99,11 @@ def process_gvlbi(ra_exp, **kwargs):
         'bandpass_mode': bandpass_mode,
         'ampl_bandpass': ampl_bandpass,
         'bandpass_var': bandpass_var,
-        'bandpass_use': bandpass_use}
+        'bandpass_use': bandpass_use,
+        }
 
-    ra_exp.load(update_db=True, scan_part=1, force_small=force_small)
+    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=1,
+                force_small=force_small)
     ra_exp.flag_edge_chann(flag_chann)
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
@@ -125,6 +128,7 @@ def process_ind_ifs(ra_exp, **kwargs):
     bandpass_var = kwargs.pop('bandpass_var', 0)
     bandpass_use = kwargs.pop('bandpass_use', None)
     flag_chann = kwargs.pop('flag_chann', 0)
+    scan_len = kwargs.pop('max_scan_length', 1500)
 
     ff_params = {
         'bandpass': True,
@@ -133,9 +137,11 @@ def process_ind_ifs(ra_exp, **kwargs):
         'bandpass_mode': bandpass_mode,
         'ampl_bandpass': ampl_bandpass,
         'bandpass_var': bandpass_var,
-        'bandpass_use': bandpass_use}
+        'bandpass_use': bandpass_use,
+        }
 
-    ra_exp.load(update_db=True, scan_part=-1, force_small=force_small)
+    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=-1,
+                force_small=force_small)
     ra_exp.flag_edge_chann(flag_chann)
 
     for polar in ('RR', 'RL', 'LR', 'LL'):
@@ -195,10 +201,12 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     bandpass_var = kwargs.pop('bandpass_var', 0)
     bandpass_use = kwargs.pop('bandpass_use', None)
     flag_chann = kwargs.pop('flag_chann', 0)
+    scan_len = kwargs.pop('max_scan_length', 1500)
 
     # First run on full scan
     scan_part = scan_part_base + 1
-    ra_exp.load(update_db=True, scan_part=scan_part, force_small=force_small)
+    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=scan_part,
+                force_small=force_small)
     ra_exp.flag_edge_chann(flag_chann)
     ra_exp.load_antab()
 
@@ -209,7 +217,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         'bandpass_mode': bandpass_mode,
         'ampl_bandpass': ampl_bandpass,
         'bandpass_var': bandpass_var,
-        'bandpass_use': bandpass_use}
+        'bandpass_use': bandpass_use,
+        }
 
     scan_len_list = []
     for polar in ('RR', 'RL', 'LR', 'LL'):
@@ -455,7 +464,9 @@ def main():
         'ampl_bandpass': not args.no_ampl_bpas,
         'bandpass_var': args.bpas_var,
         'bandpass_use': args.bpas_use,
-        'flag_chann': args.flag_chann}
+        'flag_chann': args.flag_chann,
+        'max_scan_length': args.max_scan_length,
+        }
 
     for ra_exp in exp_list:
         try:
