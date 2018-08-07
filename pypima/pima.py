@@ -63,11 +63,11 @@ class ExperInfo:
                 elif line.startswith('Total number of deselected points:'):
                     self._data['deselected_points_num'] = \
                         int(line.split(':')[1])
-                elif line.startswith('Number of cross-correl NO_AUTO_1 \
-deselected points:'):
+                elif line.startswith('Number of cross-correl NO_AUTO_1 '
+                                     'deselected points:'):
                     no_auto1 = int(line.split(':')[1])
-                elif line.startswith('Number of cross-correl NO_AUTO_2 \
-deselected points:'):
+                elif line.startswith('Number of cross-correl NO_AUTO_2 '
+                                     'deselected points:'):
                     no_auto2 = int(line.split(':')[1])
                 elif line.startswith('Accummulation period length_min:'):
                     acc_min = float(line.split(':')[1])
@@ -334,7 +334,8 @@ Check your PIMA installation!')
                 'FRIB.FINE_SEARCH:', 'PAR',
                 'MKDB.FRINGE_ALGORITHM:', 'DRF',
                 'PHASE_ACCEL_MIN:', '0',
-                'PHASE_ACCEL_MAX:', '0']
+                'PHASE_ACCEL_MAX:', '0',
+                ]
 
         if os.path.isfile(exc_obs_file):
             opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])
@@ -452,7 +453,8 @@ Check your PIMA installation!')
                 'PHASE_ACCEL_MIN:', '0',
                 'PHASE_ACCEL_MAX:', '0',
                 'FRIB.FINE_SEARCH:', 'LSQ',
-                'POLAR:', polar]
+                'POLAR:', polar,
+                ]
 
         if os.path.isfile(exc_obs_file):
             opts.extend(['EXCLUDE_OBS_FILE:', exc_obs_file])

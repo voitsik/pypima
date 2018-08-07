@@ -88,7 +88,8 @@ class RaExperiment:
         self.bpass_files = {'RR': None,
                             'LL': None,
                             'RL': None,
-                            'LR': None}
+                            'LR': None,
+                            }
 
         if self.band not in ('p', 'l', 'c', 'k'):
             self._error('unknown band {}'.format(band))
@@ -660,7 +661,8 @@ first line'.format(antab))
                 'BPS.DEG_PHS:': '11',
                 'BPS.AMP_MIN:': '0.01',
                 'BPS.NORML:': 'IF',
-                'BPS.SEFD_USE:': 'NO'}
+                'BPS.SEFD_USE:': 'NO',
+                }
         elif bandpass_var == 2:
             bpas_params = {
                 'BPS.MODE:': 'FINE',
@@ -678,7 +680,8 @@ first line'.format(antab))
                 'BPS.DEG_PHS:': '5',
                 'BPS.AMP_MIN:': '0.01',
                 'BPS.NORML:': 'IF',
-                'BPS.SEFD_USE:': 'NO'}
+                'BPS.SEFD_USE:': 'NO',
+                }
         elif bandpass_var == 3:
             mseg = self.pima.chan_number() // 2
 
@@ -698,7 +701,8 @@ first line'.format(antab))
                 'BPS.DEG_PHS:': '1',
                 'BPS.AMP_MIN:': '0.01',
                 'BPS.NORML:': 'IF',
-                'BPS.SEFD_USE:': 'NO'}
+                'BPS.SEFD_USE:': 'NO',
+                }
         else:
             self._error('Unsupported bandpass_var {}'.
                         format(bandpass_var))
@@ -812,8 +816,8 @@ first line'.format(antab))
                     self.bpass_files[polar] = \
                         self.pima.cnt_params['BANDPASS_FILE:']
                 else:
-                    self.logger.info('skip bandpass due to absence of the \
-useful scans')
+                    self.logger.info('skip bandpass due to absence of the '
+                                     'useful scans')
                     bandpass = False
                     self.bpass_files[polar] = None
 
@@ -893,8 +897,8 @@ useful scans')
             shutil.rmtree(pima_fits_dir)
 
         if not self.calibration_loaded:
-            self.logger.warning('Could not do splitting due to absence of \
-calibration information')
+            self.logger.warning('Could not do splitting due to absence of '
+                                'calibration information')
             return
 
         if not self.fri.any_detections():
