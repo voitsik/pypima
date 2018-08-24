@@ -33,3 +33,7 @@ build
 !.gitignore
 !.mailmap
 
+#
+# Data files
+#
+*fits
