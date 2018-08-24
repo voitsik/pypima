@@ -1,0 +1,175 @@
+# PIMA_CONTROL file.  Format Version of 2016.10.19
+#
+# Created     on  2018-08-24 15:41:23.694650
+# Last update on  2018-08-24 15:42:01.760031
+#
+SESS_CODE:      raes03eo_l
+BAND:           L
+#
+UV_FITS:            NO
+#
+STAGING_DIR:        NO
+SOU_NAMES:          /home/pima/share/vtd_data/source.names
+STA_NAMES:          /home/pima/share/pima/ra_station.names
+PCAL:               NO
+TSYS:               INTRP
+GAIN:               USE
+SAMPLER_CAL:        USE
+#
+WARNING:            YES
+DEBUG_LEVEL:        2
+CHECK_SEVERITY:     1
+FRINGE_ERRORS:      IGNORE
+FFT_METHOD:         MEASURE
+FFT_CONFIG_FILE:    /home/pima/share/pima/pima_big_measure_4thr.wis
+NUM_THREADS:        4
+#
+AP_TOLERANCE:       2.D-6
+MIN_SCAN_LEN:       20.0
+MAX_SCAN_LEN:        1500
+MAX_SCAN_GAP:       10.0
+SCAN_LEN_USED:       1500
+SCAN_LEN_SKIP:        0.0
+FRT_OFFSET:         AUTO
+STA_REF:             ZELENCHK
+VTD_CONFIG_FILE:    /home/pima/share/vtd_data/vtd_pima.cnf
+EXPER_DIR:          NO
+UV_EXCLUDE_FILE:    AUTO
+INCLUDE_OBS_FILE:   NO
+EXCLUDE_OBS_FILE:   NO
+BANDPASS_USE:        PHS
+BANDPASS_FILE:      NO
+BANDPASS_MASK_FILE: NO
+PCAL_MASK_FILE:     NO
+POLARCAL_FILE:      NO
+INTMOD_TYPE:        NO
+INTMOD_FILE:        NO
+CORR_FLAG_MIN:      1
+TIME_FLAG_FILE:     NO
+TEC_FILE:           NO
+FRINGE_FILE:        raes03eo_l_RR.fri
+FRIRES_FILE:        raes03eo_l_RR.frr
+BEG_FRQ:            1
+END_FRQ:            2
+POLAR:               RR
+FRQ_GRP:            1
+EPHEMERIDES_FILE:   NO
+EPHEMERIDES_USE:    RA_PUSCH
+PHASE_ACCELERATION: 0
+PHASE_ACCEL_MIN:     -1.D-13
+PHASE_ACCEL_MAX:     1.D-13
+WVR_FILE:               NO
+WVR_USE:                NO
+WVR_SMOOTHING_INTERVAL: 0.0
+WVR_SMOOTHING_SIGMA:    0.0
+#
+BPS.MODE:            ACCUM
+BPS.NOBS_ACCUM:      6
+BPS.MSEG_ACCUM:      32
+BPS.NOBS_FINE:       12
+BPS.MINOBS_FINE:     8
+BPS.MSEG_FINE:       32
+BPS.SNR_MIN_ACCUM:   5.5
+BPS.SNR_MIN_FINE:    5.5
+BPS.AMPL_REJECT:     0.4
+BPS.PHAS_REJECT:     0.2
+BPS.INTRP_METHOD:    LINEAR
+BPS.DEG_AMP:         0
+BPS.DEG_PHS:         1
+BPS.AMP_MIN:         0.01
+BPS.NORML:           IF
+BPS.SEFD_USE:        NO
+#
+FRIB.SEARCH_TYPE:          2FFT
+FRIB.DELAY_WINDOW_CENTER:  0.0
+FRIB.RATE_WINDOW_CENTER:   0.0
+FRIB.DELAY_WINDOW_WIDTH:   64.0D-6
+FRIB.RATE_WINDOW_WIDTH: 1.0D-8
+FRIB.AUTOCORR_CALIB:       SQRT_MEA
+FRIB.AMPL_FUDGE_TYPE:      DIFX
+FRIB.AMPL_EDGE_WINDOW_COR: USE
+FRIB.AMPL_EDGE_BEAM_COR:      NO
+#
+FRIB.OVERSAMPLE_MD:           4
+FRIB.OVERSAMPLE_RT:           4
+FRIB.SECONDARY_SNR_MIN:       0.0
+FRIB.SECONDARY_MAX_TRIES:     0
+FRIB.FINE_SEARCH:    ACC
+#
+FRIB.AUTOCORR_THRESHOLD:      0.2
+FRIB.WEIGHTS_THRESHOLD:       0.2
+FRIB.NOISE_NSIGMA:            4.0
+FRIB.SNR_DETECTION:  5.5
+FRIB.FRQ_TRANSFER_BAND:       NO
+FRIB.FRQ_TRANSFER_METHOD:     NO
+FRIB.FRQ_TRANSFER_DEG:        1
+FRIB.FRQ_TRANSFER_MSEG:       1
+#
+FRIB.2D_FRINGE_PLOT:          NO
+FRIB.1D_RESFRQ_PLOT: TXT
+FRIB.1D_RESTIM_PLOT: TXT
+FRIB.1D_DRF_PLOT:             NO
+FRIB.PLOT_DELAY_WINDOW_WIDTH: 1.0D-6
+FRIB.PLOT_RATE_WINDOW_WIDTH:  20.D-12
+FRIB.OVERSAMPLE_PLOT_MD:      1
+FRIB.OVERSAMPLE_PLOT_RT:      1
+FRIB.1D_FRQ_MSEG:             1
+FRIB.1D_TIM_MSEG:             1
+FRIB.1D_DRF_SPAN:             1.1
+FRIB.OBS:                     ALL
+#
+FRIP.SCAN_FILE:               NO
+FRIP.STA_INC_FILE:            NO
+FRIP.STA_EXC_FILE:            NO
+FRIP.STA_REFS:                SAME
+FRIP.RESOLUTION:              4096
+FRIP.OVERSAMPLE:              1
+FRIP.SCA:                     ALL
+FRIP.MAP_DIR:                 SAME
+FRIP.ATM_ZEN_FILE:            NO
+FRIP.CAL_PLOT:                GIF
+FRIP.CAL_RES:                 400
+FRIP.TAG_PLOT:                GIF
+FRIP.TAG_RES:                 400
+FRIP.BEAM_PLOT:               GIF
+FRIP.FRQ_MSEG:                128
+FRIP.TIM_MSEG:                1
+FRIP.RA_CENTER:               APRIORI
+FRIP.DEC_CENTER:              APRIORI
+FRIP.RA_STEP:                 0.1
+FRIP.DEC_STEP:                0.1
+FRIP.RA_RANGE:                1.0
+FRIP.DEC_RANGE:               1.0
+#
+ONOF.GEN_FLAGS_MODE:          NO
+ONOF.KERNEL_START_SHARE:      0.10
+ONOF.KERNEL_END_SHARE:        0.90
+ONOF.COHERENT_INTERVAL:       1200.0
+ONOF.AMPL_THRESHOLD:          0.0
+ONOF.NSIG_THRESHOLD:          3.0
+ONOF.MIN_LOW_AP:              3
+#
+SPLT.SOU_NAME:                ALL
+SPLT.FRQ_MSEG:       64
+SPLT.TIM_MSEG:                1
+SPLT.WEIGHT_TYPE:             AUTO
+SPLT.POLAR:          RR
+SPLT.AUTOCORR_NRML_METHOD:    AVERAGED
+SPLT.BPASS_NRML_METHOD:       WEIGHTED
+SPLT.BPASS_NRML_RANGE:        0.25:0.75
+SPLT.SUBARRY_CONSOLIDATION:   MIN
+SPLT.GAIN_CORR_FILE:          NO
+SPLT.STA_BASED:               NO
+#
+MKDB.OUTPUT_TYPE:      GVF
+MKDB.SRT:              MID_SCAN
+MKDB.FILTER:           NO
+MKDB.FRINGE_ALGORITHM: LSQ
+MKDB.GD_MAX_ADD_ERROR: 5.D-12
+MKDB.GD_MAX_SCL_ERROR: 0.2
+MKDB.2ND_BAND:         NO
+MKDB.VCAT_CONFIG:      /home/pima/share/pima/vcat.conf
+MKDB.OUTPUT_NAME:      p
+MKDB.DESC_FILE:        NO
+#
+# PIMA_CONTROL file.  Format Version of 2016.10.19
