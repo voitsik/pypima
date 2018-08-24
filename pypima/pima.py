@@ -594,6 +594,7 @@ class Pima:
         self._print_info('Set polarization to ' + polar)
         self.update_cnt({'POLAR:': polar, 'SPLT.POLAR:': polar})
 
+    @property
     def ap_minmax(self):
         """
         Return minimum and maximum accummulation periods in experiment.
@@ -613,6 +614,7 @@ class Pima:
 
         return ap_min, ap_max
 
+    @property
     def number_of_deselected_points(self):
         """
         Return total number of deselected points
@@ -654,6 +656,7 @@ class Pima:
 
         return sta_l
 
+    @property
     def source_list(self):
         """
         Return a list of the source names.
@@ -697,6 +700,7 @@ class Pima:
 
         return dist
 
+    @property
     def obs_number(self):
         """
         Return number of the observations in the experiment.
@@ -704,6 +708,7 @@ class Pima:
         """
         return self.exper_info['obs_num']
 
+    @property
     def chan_number(self):
         """
         Return number of the spectral channels in uv-data.
@@ -711,6 +716,7 @@ class Pima:
         """
         return self.exper_info['sp_chann_num']
 
+    @property
     def frequencies(self):
         """
         Return list of frequencies used in the experiment.
@@ -741,6 +747,7 @@ class Pima:
 
         return freqs
 
+    @property
     def observations(self):
         """
         Return list of observations with some information.

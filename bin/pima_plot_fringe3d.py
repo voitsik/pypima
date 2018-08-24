@@ -142,9 +142,9 @@ def main(args):
         print('PIMA Error: ', err, file=sys.stderr)
         return 1
 
-    if obs <= 0 or obs > pim.obs_number():
+    if obs <= 0 or obs > pim.obs_number:
         print('Incorrect observation number {} must be in range [{} {}]'.
-              format(obs, 1, pim.obs_number()))
+              format(obs, 1, pim.obs_number))
         return 1
 
     params = ['FRIB.OBS:', str(obs), 'FRIB.2D_FRINGE_PLOT:', 'TXT']

@@ -229,7 +229,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         scan_len_list.append(fri.max_scan_length())
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
+        if ra_exp.pima.chan_number <= 128 and ra_exp.calibration_loaded and \
                 polar in ('RR', 'LL'):
             for aver in (0, round(scan_len_list[-1])):
                 ra_exp.split(average=aver)
@@ -254,7 +254,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             detections = True
         ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number() <= 128 and ra_exp.calibration_loaded and \
+        if ra_exp.pima.chan_number <= 128 and ra_exp.calibration_loaded and \
                 polar in ('RR', 'LL'):
             ra_exp.split(average=scan_len)
             ra_exp.copy_uvfits(uv_fits_out_dir)
@@ -262,7 +262,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     #
     # For good experiments more runs
     #
-    if ra_exp.pima.chan_number() <= 128:
+    if ra_exp.pima.chan_number <= 128:
         scan_part = scan_part_base + 3
         scan_len = round(max_scan_len / (scan_part-scan_part_base))
 
@@ -288,7 +288,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             scan_len = round(max_scan_len / (scan_part-scan_part_base))
 
     # Special run for ground-ground baselines with 60 s scan length
-    if ra_exp.pima.chan_number() <= 128 and detections:
+    if ra_exp.pima.chan_number <= 128 and detections:
         scan_part = scan_part_base + 100
         scan_len = 60
         ra_exp.load(update_db=True, scan_length=scan_len,

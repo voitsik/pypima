@@ -325,7 +325,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         if antab == new_antab:
             return new_antab
 
-        freq_setup = self.pima.frequencies()
+        freq_setup = self.pima.frequencies
         freq_list = [1e-6 * freq['freq'] for freq in freq_setup]
 
         # Should we fix frequency setup?
@@ -482,7 +482,7 @@ first line'.format(antab))
         #
         # Various checks and setups
         #
-        if self.pima.obs_number() == 0:
+        if self.pima.obs_number == 0:
             self._error('ZERO observations have been loaded')
 
         sou_dist = self.pima.source_dist()
@@ -496,18 +496,18 @@ first line'.format(antab))
             self.sta_ref = self.pima.station_list()[0]
             self.pima.update_cnt({'STA_REF:': self.sta_ref})
 
-        desel_nam = self.pima.number_of_deselected_points()
+        desel_nam = self.pima.number_of_deselected_points
         if desel_nam > 10:
             self._print_warn('Total number of deselected points is ' +
                              str(desel_nam))
 
         # Save memory by reducing oversampling
-        if self.pima.ap_minmax()[0] < 0.1:
+        if self.pima.ap_minmax[0] < 0.1:
             self.pima.update_cnt({'FRIB.OVERSAMPLE_MD:': '2',
                                   'FRIB.OVERSAMPLE_RT:': '2'})
 
         # Average all spectral channels in each IF when splitting.
-        self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number())})
+        self.pima.update_cnt({'SPLT.FRQ_MSEG:': str(self.pima.chan_number)})
 
         if scan_part == 1:
             self.pima.update_cnt({'FRIB.1D_RESFRQ_PLOT:': 'TXT',
@@ -607,8 +607,6 @@ first line'.format(antab))
         if not acta_list:
             return
 
-        obs_list = self.pima.observations()
-
         bad_obs_set = set()
 
         for acta_file in acta_list:
@@ -622,7 +620,7 @@ first line'.format(antab))
 #                self.logger.info('sta: %s obs: %s median(ampl) = %s',
 #                                 sta, obs, np.median(acta_file.ampl))
 
-                for obs in obs_list:
+                for obs in self.pima.observations:
                     if obs.scan == scan and obs.time_code == scan_name and \
                             sta in (obs.sta1, obs.sta2):
                         self.logger.warning('Bad autospec for sta: %s obs: %s',
@@ -683,7 +681,7 @@ first line'.format(antab))
                 'BPS.SEFD_USE:': 'NO',
                 }
         elif bandpass_var == 3:
-            mseg = self.pima.chan_number() // 2
+            mseg = self.pima.chan_number // 2
 
             bpas_params = {
                 'BPS.MODE:': 'ACCUM',
@@ -771,9 +769,9 @@ first line'.format(antab))
             if bandpass_use == 'NO':
                 bandpass = False
 
-        if bandpass and self.pima.chan_number() > 512:
+        if bandpass and self.pima.chan_number > 512:
             self.logger.warning('Too many spectral channels for bandpass: %s',
-                                self.pima.chan_number())
+                                self.pima.chan_number)
             bandpass = False
 
         polar = self.pima.cnt_params['POLAR:']
@@ -855,7 +853,7 @@ first line'.format(antab))
         number : int
             Number of spectral channels to flag.
         """
-        chann_num = self.pima.chan_number()
+        chann_num = self.pima.chan_number
         mask = []
 
         if number < 0 or number >= chann_num / 2:
@@ -925,7 +923,7 @@ first line'.format(antab))
         else:
             split_params.extend(('SPLT.SOU_NAME:', 'ALL'))
 
-        ap = self.pima.ap_minmax()[0]
+        ap = self.pima.ap_minmax[0]
         if average > 0:
             time_segments = round(average / ap)
         else:
@@ -946,10 +944,9 @@ first line'.format(antab))
 
         pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
 
-        sources = self.pima.source_list()
         splt_sou_name = self.pima.cnt_params['SPLT.SOU_NAME:']
 
-        for source_names in sources:
+        for source_names in self.pima.source_list:
             if splt_sou_name != 'ALL' and splt_sou_name not in source_names:
                 continue
 

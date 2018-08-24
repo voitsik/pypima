@@ -54,7 +54,7 @@ class TestPima:
                          'STAGING_DIR:': 'NO',
                          'EXPER_DIR:': str(tmpdir),
                          'EPHEMERIDES_FILE:': SAMPLE_SCF,
-                        })
+                         })
 
         assert pima.cnt_params['UV_FITS:'] == [SAMPLE_RA_FITS]
 
@@ -63,9 +63,9 @@ class TestPima:
         assert pima.exper_info.band == band
         assert pima.exper_info['sp_chann_num'] == 64
 
-        assert pima.ap_minmax() == (1.0, 1.0)
-        assert pima.number_of_deselected_points() == 0
+        assert pima.ap_minmax == (1.0, 1.0)
+        assert pima.number_of_deselected_points == 0
         assert pima.station_list(ivs_name=False) == ['RA', 'ZC']
         assert pima.station_list(ivs_name=True) == ['RADIO-AS', 'ZELENCHK']
-        assert pima.chan_number() == 64
-        assert pima.obs_number() == 1
+        assert pima.chan_number == 64
+        assert pima.obs_number == 1

@@ -137,10 +137,10 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
         logging.error('OSError: %s', err)
         return 1
 
-    if obs <= 0 or obs > pim.obs_number():
+    if obs <= 0 or obs > pim.obs_number:
         logging.error(
             'Incorrect observation number %s, must be in range [%s %s]',
-            obs, 1, pim.obs_number())
+            obs, 1, pim.obs_number)
         return 1
 
     # Prepare temporary fri and frr files
