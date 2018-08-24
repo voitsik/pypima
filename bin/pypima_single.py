@@ -14,9 +14,7 @@ import tempfile
 
 import psycopg2
 
-import pypima
-from pypima.raexperiment import RaExperiment
-from pypima.db import DB
+from pypima import DB, PimaError, RaExperiment, RaExperimentError
 
 
 def parse_args():
@@ -159,9 +157,9 @@ def main():
                     # Copy final UV-FITS files to the system tmp directory
                     ra_exp.copy_uvfits(tempfile.gettempdir())
 
-    except pypima.pima.Error as err:
+    except PimaError as err:
         return 1
-    except pypima.raexperiment.Error as err:
+    except RaExperimentError as err:
         return 1
     except psycopg2.Error as err:
         logging.error('DBError: %s', err)

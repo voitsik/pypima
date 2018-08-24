@@ -15,9 +15,7 @@ import threading
 
 import psycopg2
 
-import pypima
-from pypima.raexperiment import RaExperiment
-from pypima.db import DB
+from pypima import DB, PimaError, RaExperiment, RaExperimentError
 
 
 def download_it(ra_exps, force_small):
@@ -40,9 +38,9 @@ def download_it(ra_exps, force_small):
 
         try:
             exp.load(download_only=True, force_small=force_small)
-        except pypima.pima.Error:
+        except PimaError:
             continue
-        except pypima.raexperiment.Error:
+        except RaExperimentError:
             continue
         except KeyboardInterrupt:
             logger.warning('KeyboardInterrupt')
@@ -482,11 +480,11 @@ def main():
                 else:
                     process_radioastron(ra_exp, out_dir, spec_out_dir,
                                         **params)
-        except pypima.pima.Error as err:
+        except PimaError as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
             continue
-        except pypima.raexperiment.Error as err:
+        except RaExperimentError as err:
             continue
         except psycopg2.Error as err:
             logging.error('DBError: %s', err)
