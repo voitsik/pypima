@@ -20,11 +20,13 @@ def work_dir(tmpdir_factory):
     """
     Create and prepare a temporary working directory.
     """
-    wd = tmpdir_factory.mktemp('raes03eo_l')
+    wdir = tmpdir_factory.mktemp('work_dir')
+    sdir = tmpdir_factory.mktemp('pima_scr')
 
-    shutil.copy(SAMPLE_RA_CNT, str(wd))
+    for cnt_file in SAMPLE_RA_CNT.values():
+        shutil.copy(cnt_file, str(wdir))
 
-    return str(wd)
+    return (str(wdir), str(sdir))
 
 
 class TestPima:
@@ -39,24 +41,45 @@ class TestPima:
 
     @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
     def test_pima_init(self, work_dir, exper, band):
-        pima = Pima(exper, band, work_dir=work_dir)
+        """
+        Test Pima.__init__
+        """
+        wdir, sdir = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
 
         assert pima.exper == exper
         assert pima.band == band
         assert os.path.basename(pima.cnt_file_name) == \
-            os.path.basename(SAMPLE_RA_CNT)
+            os.path.basename(SAMPLE_RA_CNT[exper, band])
 
     @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
-    def test_pima_load(self, tmpdir, work_dir, exper, band):
-        pima = Pima(exper, band, work_dir=work_dir)
+    def test_pima_update_cnt(self, work_dir, exper, band):
+        """
+        Test pima.update_cnt
+        """
+        wdir, sdir = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
 
-        pima.update_cnt({'UV_FITS:': SAMPLE_RA_FITS,
+        fits_file = SAMPLE_RA_FITS[exper, band]
+        scf_file = SAMPLE_SCF[exper]
+        pima.update_cnt({'UV_FITS:': fits_file,
                          'STAGING_DIR:': 'NO',
-                         'EXPER_DIR:': str(tmpdir),
-                         'EPHEMERIDES_FILE:': SAMPLE_SCF,
+                         'EXPER_DIR:': str(sdir),
+                         'EPHEMERIDES_FILE:': scf_file,
                          })
 
-        assert pima.cnt_params['UV_FITS:'] == [SAMPLE_RA_FITS]
+        assert pima.cnt_params['UV_FITS:'] == [fits_file]
+        assert pima.cnt_params['STAGING_DIR:'] == 'NO'
+        assert pima.cnt_params['EXPER_DIR:'] == str(sdir)
+        assert pima.cnt_params['EPHEMERIDES_FILE:'] == scf_file
+
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    def test_pima_load(self, work_dir, exper, band):
+        """
+        Test pima.load
+        """
+        wdir, sdir = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
 
         pima.load()
         assert pima.exper_info.exper == exper
@@ -69,3 +92,15 @@ class TestPima:
         assert pima.station_list(ivs_name=True) == ['RADIO-AS', 'ZELENCHK']
         assert pima.chan_number == 64
         assert pima.obs_number == 1
+
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    def test_pima_coarse(self, work_dir, exper, band):
+        """
+        Test pima.coarse
+        """
+        wdir, sdir = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
+
+        fri = pima.coarse()
+
+        assert os.path.isfile(fri)
