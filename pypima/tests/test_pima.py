@@ -8,11 +8,21 @@ Created on Fri Aug 24 16:09:11 2018
 
 import pytest
 
+from collections import namedtuple
 import os.path
 import shutil
 
 from .. import Pima
 from ..data import SAMPLE_RA_FITS, SAMPLE_RA_CNT, SAMPLE_SCF
+
+
+LoadResult = namedtuple('LoadResult', ['sp_chann_num',
+                                       'ap_minmax',
+                                       'number_of_deselected_points',
+                                       'station_list_ivs',
+                                       'station_list_corr',
+                                       'obs_number',
+                                       ])
 
 
 @pytest.fixture(scope='module')
@@ -30,6 +40,16 @@ def work_dir(tmpdir_factory):
 
 
 class TestPima:
+    load_results = \
+        {('raes03eo', 'l'): LoadResult(64,
+                                       (1.0, 1.0),
+                                       0,
+                                       ['RADIO-AS', 'ZELENCHK'],
+                                       ['RA', 'ZC'],
+                                       1,
+                                       ),
+         }
+
     def test_environ(self):
         """
         Test environment variables.
@@ -44,7 +64,7 @@ class TestPima:
         """
         Test Pima.__init__
         """
-        wdir, sdir = work_dir
+        wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
         assert pima.exper == exper
@@ -78,27 +98,30 @@ class TestPima:
         """
         Test pima.load
         """
-        wdir, sdir = work_dir
+        wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
         pima.load()
+        result = self.load_results[exper, band]
+
         assert pima.exper_info.exper == exper
         assert pima.exper_info.band == band
-        assert pima.exper_info['sp_chann_num'] == 64
+        assert pima.exper_info['sp_chann_num'] == result.sp_chann_num
 
-        assert pima.ap_minmax == (1.0, 1.0)
-        assert pima.number_of_deselected_points == 0
-        assert pima.station_list(ivs_name=False) == ['RA', 'ZC']
-        assert pima.station_list(ivs_name=True) == ['RADIO-AS', 'ZELENCHK']
-        assert pima.chan_number == 64
-        assert pima.obs_number == 1
+        assert pima.ap_minmax == result.ap_minmax
+        assert pima.number_of_deselected_points == \
+            result.number_of_deselected_points
+        assert pima.station_list(ivs_name=False) == result.station_list_corr
+        assert pima.station_list(ivs_name=True) == result.station_list_ivs
+        assert pima.chan_number == result.sp_chann_num
+        assert pima.obs_number == result.obs_number
 
     @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
     def test_pima_coarse(self, work_dir, exper, band):
         """
         Test pima.coarse
         """
-        wdir, sdir = work_dir
+        wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
         fri = pima.coarse()
