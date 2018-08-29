@@ -14,17 +14,20 @@ from .. import Fri
 from .data import SAMPLE_FRI
 
 FriResult = namedtuple('FriResult', ['length',
+                                     'polar_0',
                                      'max_snr_obs',
                                      'max_snr_ra_obs',
                                      'status_0',
                                      ])
 
 fri_results = {('raes03eo', 'l'): FriResult(1,
+                                            'RR',
                                             1,
                                             1,
                                             'y',
                                             ),
                ('raks16nq', 'c'): FriResult(172,
+                                            'LL',
                                             163,
                                             136,
                                             'n',
@@ -51,6 +54,7 @@ class TestFri:
         fri, result = fri_to_test
 
         assert len(fri) == result.length
+        assert fri[0]['polar'] == result.polar_0
 
     def test_max_snr(self, fri_to_test):
         fri, result = fri_to_test
