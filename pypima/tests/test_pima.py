@@ -13,7 +13,7 @@ import os.path
 import shutil
 
 from .. import Pima
-from ..data import SAMPLE_RA_FITS, SAMPLE_RA_CNT, SAMPLE_SCF
+from .data import SAMPLE_RA_FITS, SAMPLE_RA_CNT, SAMPLE_SCF
 
 
 LoadResult = namedtuple('LoadResult', ['sp_chann_num',

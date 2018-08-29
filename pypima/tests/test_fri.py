@@ -11,7 +11,7 @@ import pytest
 from collections import namedtuple
 
 from .. import Fri
-from ..data import SAMPLE_FRI
+from .data import SAMPLE_FRI
 
 FriResult = namedtuple('FriResult', ['length',
                                      'max_snr_obs',
