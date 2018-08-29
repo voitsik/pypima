@@ -25,3 +25,7 @@ SAMPLE_SCF = {'raes03eo': _full_path('RA121015_2100_v02.scf'),
               }
 """Reconstructed orbit file sample.
 """
+
+SAMPLE_FRI = {('raes03eo', 'l'): _full_path('raes03eo_l_RR.fri'),
+              ('raks16nq', 'c'): _full_path('raks16nq_c_LL.fri'),
+              }

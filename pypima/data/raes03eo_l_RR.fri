@@ -1,0 +1,36 @@
+# PIMA Fringe results  v  1.02  Format version of 2014.12.24
+# 
+# PIMA_FRINGE started on 2018.08.24-15:42:01
+# 
+# Control file:    /home/voitsik/pima/raes03eo_auto/raes03eo_l_pima.cnt
+# Experiment code: RE03EO
+# Session code     raes03eo_l
+# 
+# BANDPASS_USE:              PHS     
+# CORR_FLAG_MIN:                1
+# BANDPASS_MASK_FILE:        /home/voitsik/pima/raes03eo_auto/raes03eo_l.mask
+# PCAL_USE:                  NO      
+# FRINGE_FITTING_STYLE:      PH_ACC
+# FRIB.SEARCH_TYPE:          2FFT    
+# FRIB.DELAY_WINDOW_CENTER:    0.0000D+00
+# FRIB.RATE_WINDOW_CENTER:     0.0000D+00
+# FRIB.DELAY_WINDOW_WIDTH:     6.4000D-05
+# FRIB.RATE_WINDOW_WIDTH:      1.0000D-08
+# FRIB.FRQ_GRP:                1
+# FRIB.BEG_IFRQ:               1
+# FRIB.END_IFRQ:               2
+# FRIB.POLAR:                 RR      
+# FRIB.OVERSAMPLE_MD:          4
+# FRIB.OVERSAMPLE_RT:          4
+# FRIB.FINE_SEARCH:          ACC     
+# FRIB.AUTOCORR_CALIB:       SQRT_MEA
+# FRIB.AMPL_FUDGE_TYPE:      DIFX    
+# FRIB.AUTOCORR_THRESHOLD:     2.0000D-01
+# FRIB.WEIGHTS_THRESHOLD:      2.0000D-01
+# FRIB.NOISE_NSIGMA:           4.0000D+00
+# FRIB.SNR_DETECTION:          5.5000D+00
+# PHASE_ACCELERATION:          0.0000D+00
+# 
+     1    1 290-1000   0529+483 RADIO-AS ZELENCHK SNR:    12.27 Ampl: 0.0001074 [ 2012.10.16-10:00:36.500, 2012.10.16-10:10:04.500 ] Ampl_lsq: 0.0001096 No_ap  569  FRT_offst:    283.988181277 Gr_del_drf:  3.90625000D-09 Gr_del_lsq:  2.37217024D-09 Gr_del_mul:  2.37217024D-09 Gr_del_add:  2.35997607D-09 Ph_rat_drf: -1.82800150D-23 Ph_rat_lsq: -3.02843271D-14 Ph_rat_add: -3.02843271D-14 Ph_rat_add: -2.91004574D-14 Ph_acc:  2.68393328D-16 Sb_del:  1.20737138D-09 Phs_drf:   0.76473 Phs_lsq:   0.77838 Phs_mul:   0.77838 Phs_add:   0.76126 Gd_err_drf:  1.517459D-09 Gd_err_lsq:  1.170726D-09 Gd_err_mul:  8.176895D-10 Gd_err_add:  1.141047D-09 Pr_err_drf:  4.900057D-14 Pr_err_lsq:  3.843029D-14 Pr_err_mul:  2.684151D-14 Pr_err_add:  3.736538D-14 Ph_acc_err:  5.340238D-16 Sb_err:   2.002729D-09 Pd_err_drf:  8.048205D-12 Pd_err_lsq:  1.447536D-11 Pd_err_mul:  1.011027D-11 Pd_err_add:  1.410105D-11 Gr_amb_sp:  4.00000000D-06 Duration:  568.97 s  AP_len: 1.0000000 UV: -3.5413134D+08  1.6944572D+08  Amp_Intg:  1.00000 El_Deg:  0.000 10.858 Noi: 8.7376D-06 Ref_Frq:  1.644250000000D+09   Eff_Frq:  1.644298554612D+09   1.659687520107D+09   1.659135398471D+09   Cov_Pr:  0.00000D+00 Cov_Gr:  0.00000D+00 Tec:   0.00000D+00 Tec_err:   0.00000D+00 Tec_rate:  0.00000D+00 Tec_rate_err:  0.00000D+00 Sts:               10
+# 
+# PIMA_FRINGE ended on 2018.08.24-15:42:06
