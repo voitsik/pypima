@@ -12,8 +12,8 @@ from collections import namedtuple
 import os.path
 import shutil
 
-from .. import Pima
-from .data import SAMPLE_RA_FITS, SAMPLE_RA_CNT, SAMPLE_SCF
+from .. import Pima, Fri
+from .data import SAMPLE_RA_FITS, SAMPLE_RA_CNT, SAMPLE_SCF, SAMPLE_FRI
 
 
 LoadResult = namedtuple('LoadResult', ['sp_chann_num',
@@ -37,6 +37,17 @@ def work_dir(tmpdir_factory):
         shutil.copy(cnt_file, str(wdir))
 
     return (str(wdir), str(sdir))
+
+
+def fri_rec_equivalent(rec1, rec2):
+    """
+    Check two records of fri-file for equivalence.
+    """
+    return ((rec1['exper_code'] == rec2['exper_code']) and
+            (rec1['session_code'] == rec2['session_code']) and
+            (rec1['source'] == rec2['source']) and
+            (rec1['sta1'] == rec2['sta1']) and
+            (rec1['sat2'] == rec2['sta2']))
 
 
 class TestPima:
@@ -124,6 +135,104 @@ class TestPima:
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
-        fri = pima.coarse()
+        fri_file = pima.coarse()
 
-        assert os.path.isfile(fri)
+        assert os.path.isfile(fri_file)
+
+        fri = Fri(fri_file)
+        ref_fri = Fri(SAMPLE_FRI[exper, band, 'nobps'])
+
+        rec1 = fri[0]
+        rec2 = ref_fri[0]
+
+        assert rec1['obs'] == rec2['obs']
+        assert rec1['exper_code'] == rec2['exper_code']
+        assert rec1['session_code'] == rec2['session_code']
+        assert rec1['polar'] == rec2['polar']
+        assert rec1['source'] == rec2['source']
+        assert rec1['sta1'] == rec2['sta1']
+        assert rec1['sta2'] == rec2['sta2']
+        assert rec1['U'] == pytest.approx(rec2['U'])
+        assert rec1['V'] == pytest.approx(rec2['V'])
+        assert rec1['SNR'] == pytest.approx(rec2['SNR'], rel=1e-3)
+        assert rec1['ampl_lsq'] == pytest.approx(rec2['ampl_lsq'], rel=1e-3)
+        assert rec1['delay'] == pytest.approx(rec2['delay'], rel=1e-3)
+        assert rec1['rate'] == pytest.approx(rec2['rate'], rel=1e-3)
+        assert rec1['accel'] == pytest.approx(rec2['accel'], rel=1e-3)
+
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    def test_pima_bpas(self, work_dir, exper, band):
+        """
+        Test pima.bpas
+        """
+        wdir, _ = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
+
+        mseg = pima.chan_number // 2
+
+        bpas_params = {
+            'BPS.MODE:': 'ACCUM',
+            'BPS.NOBS_ACCUM:': '6',
+            'BPS.MSEG_ACCUM:': mseg,
+            'BPS.NOBS_FINE:': '12',
+            'BPS.MINOBS_FINE:': '8',
+            'BPS.MSEG_FINE:': mseg,
+            'BPS.SNR_MIN_ACCUM:': '5.5',
+            'BPS.SNR_MIN_FINE:': '5.5',
+            'BPS.AMPL_REJECT:': '0.4',
+            'BPS.PHAS_REJECT:': '0.2',
+            'BPS.INTRP_METHOD:': 'LINEAR',
+            'BPS.DEG_AMP:': '0',
+            'BPS.DEG_PHS:': '1',
+            'BPS.AMP_MIN:': '0.01',
+            'BPS.NORML:': 'IF',
+            'BPS.SEFD_USE:': 'NO',
+            }
+
+        pima.update_cnt(bpas_params)
+
+        pima.bpas()
+
+        bps_file = pima.cnt_params['BANDPASS_FILE:']
+        assert os.path.isfile(bps_file)
+
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    def test_pima_fine(self, work_dir, exper, band):
+        """
+        Test pima.fine
+        """
+        wdir, _ = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
+
+        polar = pima.cnt_params['POLAR:']
+        fri_file = '{}_{}_{}.fri'.format(exper, band, polar)
+        fri_file = os.path.join(wdir, fri_file)
+        frr_file = '{}_{}_{}.frr'.format(exper, band, polar)
+        frr_file = os.path.join(wdir, frr_file)
+        pima.update_cnt({'FRINGE_FILE:': fri_file,
+                         'FRIRES_FILE:': frr_file})
+
+        fri_file = pima.fine()
+
+        assert os.path.isfile(fri_file)
+
+        ref_fri = Fri(SAMPLE_FRI[exper, band])
+        fri = Fri(fri_file)
+
+        rec1 = fri[0]
+        rec2 = ref_fri[0]
+
+        assert rec1['obs'] == rec2['obs']
+        assert rec1['exper_code'] == rec2['exper_code']
+        assert rec1['session_code'] == rec2['session_code']
+        assert rec1['polar'] == rec2['polar']
+        assert rec1['source'] == rec2['source']
+        assert rec1['sta1'] == rec2['sta1']
+        assert rec1['sta2'] == rec2['sta2']
+        assert rec1['U'] == pytest.approx(rec2['U'])
+        assert rec1['V'] == pytest.approx(rec2['V'])
+        assert rec1['SNR'] == pytest.approx(rec2['SNR'], rel=1e-3)
+        assert rec1['ampl_lsq'] == pytest.approx(rec2['ampl_lsq'], rel=1e-3)
+        assert rec1['delay'] == pytest.approx(rec2['delay'], rel=1e-3)
+        assert rec1['rate'] == pytest.approx(rec2['rate'], rel=1e-3)
+        assert rec1['accel'] == pytest.approx(rec2['accel'], rel=1e-3)
