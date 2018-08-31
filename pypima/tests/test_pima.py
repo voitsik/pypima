@@ -59,6 +59,14 @@ class TestPima:
                                        ['RA', 'ZC'],
                                        1,
                                        ),
+         ('raks16nq', 'c'): LoadResult(64,
+                                       (0.5, 0.5),
+                                       0,
+                                       ['EFLSBERG', 'IRBENE16', 'RADIO-AS',
+                                        'TORUN'],
+                                       ['EF', 'IB', 'RA', 'TR'],
+                                       14,
+                                       ),
          }
 
     def test_environ(self):
@@ -70,7 +78,8 @@ class TestPima:
         pima_exec = os.path.join(pima_dir, 'bin', 'pima')
         assert os.path.isfile(pima_exec)
 
-    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
     def test_pima_init(self, work_dir, exper, band):
         """
         Test Pima.__init__
@@ -83,7 +92,8 @@ class TestPima:
         assert os.path.basename(pima.cnt_file_name) == \
             os.path.basename(SAMPLE_RA_CNT[exper, band])
 
-    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
     def test_pima_update_cnt(self, work_dir, exper, band):
         """
         Test pima.update_cnt
@@ -104,7 +114,8 @@ class TestPima:
         assert pima.cnt_params['EXPER_DIR:'] == str(sdir)
         assert pima.cnt_params['EPHEMERIDES_FILE:'] == scf_file
 
-    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
     def test_pima_load(self, work_dir, exper, band):
         """
         Test pima.load
@@ -127,7 +138,8 @@ class TestPima:
         assert pima.chan_number == result.sp_chann_num
         assert pima.obs_number == result.obs_number
 
-    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
     def test_pima_coarse(self, work_dir, exper, band):
         """
         Test pima.coarse
@@ -160,7 +172,8 @@ class TestPima:
         assert rec1['rate'] == pytest.approx(rec2['rate'], rel=1e-3)
         assert rec1['accel'] == pytest.approx(rec2['accel'], rel=1e-3)
 
-    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
     def test_pima_bpas(self, work_dir, exper, band):
         """
         Test pima.bpas
@@ -196,7 +209,8 @@ class TestPima:
         bps_file = pima.cnt_params['BANDPASS_FILE:']
         assert os.path.isfile(bps_file)
 
-    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l')])
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
     def test_pima_fine(self, work_dir, exper, band):
         """
         Test pima.fine
