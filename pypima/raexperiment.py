@@ -326,11 +326,11 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             return new_antab
 
         freq_setup = self.pima.frequencies
-        freq_list = [1e-6 * freq['freq'] for freq in freq_setup]
+        freq_list = [1e-6 * freq.freq for freq in freq_setup]
 
         # Should we fix frequency setup?
         fix_freq = False
-        if self.band != 'p' and freq_setup[0]['side_band'] != -1:
+        if self.band != 'p' and freq_setup[0].side_band != -1:
             fix_freq = True
 
         sta_list = self.pima.station_list(ivs_name=False)

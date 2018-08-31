@@ -574,7 +574,7 @@ class Pima:
         file_list = []
         with open(log_file, 'r') as fil:
             for line in fil:
-                if line.startswith('PIMA_ACTA created file'):
+                if line.startswith('PIMA_ACTA created file:'):
                     file_name = line.split(':')[1].strip()
                     file_list.append(file_name)
 
@@ -724,10 +724,12 @@ class Pima:
         Returns
         -------
         freqs : list
-            The function returns a list of dictionaries.
+            The function returns a list of named tuples.
 
         """
+        Freq = namedtuple('Freq', 'freq band_width chan_width side_band')
         freqs = []
+
         frq_file = os.path.join(self.cnt_params['EXPER_DIR:'],
                                 self.cnt_params['SESS_CODE:'] + '.frq')
 
@@ -738,11 +740,10 @@ class Pima:
                         break
                     if line.startswith('Ind_grp:'):
                         toks = line.split()
-                        freq = dict()
-                        freq['freq'] = float(toks[6])
-                        freq['band_width'] = float(toks[8])
-                        freq['chan_width'] = float(toks[10])
-                        freq['side_band'] = int(toks[12])
+                        freq = Freq(freq=float(toks[6]),
+                                    band_width=float(toks[8]),
+                                    chan_width=float(toks[10]),
+                                    side_band=int(toks[12]))
                         freqs.append(freq)
 
         return freqs
