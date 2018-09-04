@@ -152,14 +152,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             self.pima.update_cnt({'STAGING_DIR:': 'NO'})
 
-    def _print_info(self, msg):
-        """Print some information"""
-        self.logger.info(msg)
-
-    def _print_warn(self, msg):
-        """Print warning"""
-        self.logger.warning(msg)
-
     def _error(self, msg):
         """Raise pima.Error exception"""
         self.logger.error(msg)
@@ -254,8 +246,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
 
-        self._print_info('Start downloading orbit file {} ...'.
-                         format(orbit_url))
+        self.logger.info('Start downloading orbit file %s ...', orbit_url)
 
         buffer = BytesIO()
         try:
@@ -287,7 +278,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
                 orb_file.write(line + '\n')
 
-        self._print_info('Orbit downloading is complete')
+        self.logger.info('Orbit downloading is complete')
         self.pima.update_cnt({'EPHEMERIDES_FILE:': self.orbit})
 
     def _get_antab(self):
@@ -298,25 +289,25 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         antab_url = self.db.get_antab_url(self.exper, self.band)
 
         if not antab_url:
-            self._print_warn('Could not get ANTAB-file url from DB.')
+            self.logger.warning('Could not get ANTAB-file url from DB.')
         else:
             antab_dir = os.path.join(self.work_dir, 'antab')
             os.makedirs(antab_dir, exist_ok=True)
 
             antab_file = os.path.join(antab_dir,
                                       os.path.basename(antab_url) + '.orig')
-            self._print_info('Start downloading file {}'.format(antab_url))
+            self.logger.info('Start downloading file %s', antab_url)
             try:
                 with open(antab_file, 'wb') as fil:
                     _download_it(antab_url, fil)
 
                 self.antab_downloaded = True
-                self._print_info('ANTAB-file downloading is complete.')
+                self.logger.info('ANTAB-file downloading is complete.')
                 self.antab = self._fix_antab(antab_file)
             except pycurl.error as err:
                 self.antab_downloaded = False
-                self._print_warn('Could not download file {}: {}'.
-                                 format(antab_url, err))
+                self.logger.warning('Could not download file %s: %s',
+                                    antab_url, err)
 
     def _fix_antab(self, antab):
         """
@@ -345,9 +336,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         with open(antab, 'r') as inp, open(new_antab, 'w') as out:
             magic = inp.readline()
             if not magic.startswith('! Produced by: TSM'):
-                self._print_warn('antab file {} does NOT have magic in the \
-first line'.format(antab))
-                return None
+                self.logger.warning('antab file %s does NOT have magic in the'
+                                    'first line', antab)
+                return
 
             # Do not forget to write a 'magic' line to the output file
             out.write(magic)
@@ -504,8 +495,8 @@ first line'.format(antab))
 
         desel_nam = self.pima.number_of_deselected_points
         if desel_nam > 10:
-            self._print_warn('Total number of deselected points is ' +
-                             str(desel_nam))
+            self.logger.warning('Total number of deselected points is %s',
+                                desel_nam)
 
         # Save memory by reducing oversampling
         if self.pima.ap_minmax[0] < 0.1:
@@ -538,7 +529,7 @@ first line'.format(antab))
                 self.pima.load_tsys(self.antab)
                 self.calibration_loaded = True
             except pypima.pima.Error:
-                self._print_warn('Could not load calibration information')
+                self.logger.warning('Could not load calibration information')
                 self.calibration_loaded = False
 
     def _select_ref_sta(self, fri, ref_sta=None):
@@ -960,8 +951,8 @@ first line'.format(antab))
             pima_fits_path = os.path.join(pima_fits_dir, pima_fits_name)
 
             if not os.path.isfile(pima_fits_path):
-                self._print_warn('UV-FITS "{}" does not exists.'.format(
-                    pima_fits_path))
+                self.logger.warning('UV-FITS "%s" does not exists.',
+                                    pima_fits_path)
                 continue
 
             # Use B1950 name for output directory
@@ -990,8 +981,7 @@ first line'.format(antab))
 
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
 
-            self._print_info('Copy {} to {}'.format(pima_fits_path,
-                                                    out_fits_path))
+            self.logger.info('Copy %s to %s', pima_fits_path, out_fits_path)
             shutil.copy(pima_fits_path, out_fits_path)
 
             # Run `fits_to_radplot` only for averaged uv-fits
