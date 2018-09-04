@@ -455,7 +455,7 @@ first line'.format(antab))
                     os.mkdir(staging_dir)
                 self.pima.update_cnt({'STAGING_DIR:': staging_dir})
             else:
-                logging.warning('Not enough space in STAGING_DIR')
+                self.logger.warning('Not enough space in STAGING_DIR')
                 self.pima.update_cnt({'STAGING_DIR:': 'NO'})
 
         if self.orbit is None:
