@@ -33,3 +33,8 @@ build
 !.gitignore
 !.mailmap
 
+#
+# Data files
+#
+*fits
+*scf

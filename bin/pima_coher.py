@@ -18,9 +18,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
 
-from pypima.pima import Pima
-from pypima.pima import Error as PIMAError
-from pypima.fri import Fri
+from pypima import Pima, PimaError, Fri
+
 
 ObsInfo = namedtuple('ObsInfo', ['id', 'exper', 'band', 'sta1', 'sta2',
                                  'start_time'])
@@ -131,17 +130,17 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
     """
     try:
         pim = Pima(exper, band)
-    except PIMAError as err:
+    except PimaError as err:
         logging.error('PIMA Error: %s', err)
         return 1
     except OSError as err:
         logging.error('OSError: %s', err)
         return 1
 
-    if obs <= 0 or obs > pim.obs_number():
+    if obs <= 0 or obs > pim.obs_number:
         logging.error(
             'Incorrect observation number %s, must be in range [%s %s]',
-            obs, 1, pim.obs_number())
+            obs, 1, pim.obs_number)
         return 1
 
     # Prepare temporary fri and frr files
@@ -156,7 +155,7 @@ def proc_obs(exper, band, obs, max_dur, plot_format='pdf'):
                              'SCAN_LEN_USED:', str(max_dur),
                              'FRINGE_FILE:', tmp_fri,
                              'FRIRES_FILE:', tmp_frr])
-    except PIMAError as err:
+    except PimaError as err:
         logging.error('PIMA Error: %s', err)
         return 1
 

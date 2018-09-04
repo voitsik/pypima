@@ -574,7 +574,7 @@ class Pima:
         file_list = []
         with open(log_file, 'r') as fil:
             for line in fil:
-                if line.startswith('PIMA_ACTA created file'):
+                if line.startswith('PIMA_ACTA created file:'):
                     file_name = line.split(':')[1].strip()
                     file_list.append(file_name)
 
@@ -594,6 +594,7 @@ class Pima:
         self._print_info('Set polarization to ' + polar)
         self.update_cnt({'POLAR:': polar, 'SPLT.POLAR:': polar})
 
+    @property
     def ap_minmax(self):
         """
         Return minimum and maximum accummulation periods in experiment.
@@ -613,6 +614,7 @@ class Pima:
 
         return ap_min, ap_max
 
+    @property
     def number_of_deselected_points(self):
         """
         Return total number of deselected points
@@ -654,6 +656,7 @@ class Pima:
 
         return sta_l
 
+    @property
     def source_list(self):
         """
         Return a list of the source names.
@@ -697,6 +700,7 @@ class Pima:
 
         return dist
 
+    @property
     def obs_number(self):
         """
         Return number of the observations in the experiment.
@@ -704,6 +708,7 @@ class Pima:
         """
         return self.exper_info['obs_num']
 
+    @property
     def chan_number(self):
         """
         Return number of the spectral channels in uv-data.
@@ -711,6 +716,7 @@ class Pima:
         """
         return self.exper_info['sp_chann_num']
 
+    @property
     def frequencies(self):
         """
         Return list of frequencies used in the experiment.
@@ -718,10 +724,12 @@ class Pima:
         Returns
         -------
         freqs : list
-            The function returns a list of dictionaries.
+            The function returns a list of named tuples.
 
         """
+        Freq = namedtuple('Freq', 'freq band_width chan_width side_band')
         freqs = []
+
         frq_file = os.path.join(self.cnt_params['EXPER_DIR:'],
                                 self.cnt_params['SESS_CODE:'] + '.frq')
 
@@ -732,15 +740,15 @@ class Pima:
                         break
                     if line.startswith('Ind_grp:'):
                         toks = line.split()
-                        freq = dict()
-                        freq['freq'] = float(toks[6])
-                        freq['band_width'] = float(toks[8])
-                        freq['chan_width'] = float(toks[10])
-                        freq['side_band'] = int(toks[12])
+                        freq = Freq(freq=float(toks[6]),
+                                    band_width=float(toks[8]),
+                                    chan_width=float(toks[10]),
+                                    side_band=int(toks[12]))
                         freqs.append(freq)
 
         return freqs
 
+    @property
     def observations(self):
         """
         Return list of observations with some information.
