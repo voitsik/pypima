@@ -142,6 +142,16 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         # Do not restrict delay rate window
         self.pima.update_cnt({'FRIB.RATE_WINDOW_WIDTH:': '1.0D-8'})
 
+        # Setup staging dir
+        staging_dir = os.getenv('PYPIMA_STAGING_DIR')
+
+        if staging_dir:
+            staging_dir = os.path.join(staging_dir, self.exper)
+            os.makedirs(staging_dir, exist_ok=True)
+            self.pima.update_cnt({'STAGING_DIR:': staging_dir})
+        else:
+            self.pima.update_cnt({'STAGING_DIR:': 'NO'})
+
     def _print_info(self, msg):
         """Print some information"""
         self.logger.info(msg)
@@ -163,9 +173,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         cnt_templ_name = os.path.join(self.pima_dir, 'share', 'pima',
                                       'TEMPLATE_pima.cnt')
 
-        cnt_templ = open(cnt_templ_name, 'r')
-        cnt_file = open(self.cnt_file_name, 'w')
-
         sess_code = '{}_{}'.format(self.exper, self.band)
         fringe_file = os.path.join(self.work_dir, sess_code + '.fri')
         frires_file = os.path.join(self.work_dir, sess_code + '.frr')
@@ -175,31 +182,31 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             polar = 'LL'
 
-        for line in cnt_templ:
-            if '@CDATE@' in line:
-                line = line.replace('@CDATE@', str(datetime.now()))
-            elif line.startswith('SESS_CODE:'):
-                line = line.replace('@sess_code@', sess_code)
-            elif line.startswith('BAND:'):
-                line = line.replace('@band@', self.band.upper())
-            elif line.startswith('EXPER_DIR:'):
-                line = line.replace('@exper_dir@', self.pima_scr)
-            elif line.startswith('UV_FITS:') and self.uv_fits:
-                line = line.replace('@uv_fits@', self.uv_fits)
-            elif line.startswith('FRINGE_FILE:'):
-                line = line.replace('@fringe_file@', fringe_file)
-            elif line.startswith('FRIRES_FILE:'):
-                line = line.replace('@frires_file@', frires_file)
-            elif line.startswith('STA_REF:') and self.sta_ref:
-                line = '{:<20}{}\n'.format('STA_REF:', self.sta_ref)
-            elif line.startswith('EPHEMERIDES_FILE:') and self.orbit:
-                line = line.replace('@ephemerides_file@', self.orbit)
-            elif line.startswith('POLAR:') or line.startswith('SPLT.POLAR:'):
-                line = line.replace('@polar@', polar)
-            cnt_file.write(line)
-
-        cnt_templ.close()
-        cnt_file.close()
+        with open(cnt_templ_name, 'r') as cnt_templ, \
+                open(self.cnt_file_name, 'w') as cnt_file:
+            for line in cnt_templ:
+                if '@CDATE@' in line:
+                    line = line.replace('@CDATE@', str(datetime.now()))
+                elif line.startswith('SESS_CODE:'):
+                    line = line.replace('@sess_code@', sess_code)
+                elif line.startswith('BAND:'):
+                    line = line.replace('@band@', self.band.upper())
+                elif line.startswith('EXPER_DIR:'):
+                    line = line.replace('@exper_dir@', self.pima_scr)
+                elif line.startswith('UV_FITS:') and self.uv_fits:
+                    line = line.replace('@uv_fits@', self.uv_fits)
+                elif line.startswith('FRINGE_FILE:'):
+                    line = line.replace('@fringe_file@', fringe_file)
+                elif line.startswith('FRIRES_FILE:'):
+                    line = line.replace('@frires_file@', frires_file)
+                elif line.startswith('STA_REF:') and self.sta_ref:
+                    line = '{:<20}{}\n'.format('STA_REF:', self.sta_ref)
+                elif line.startswith('EPHEMERIDES_FILE:') and self.orbit:
+                    line = line.replace('@ephemerides_file@', self.orbit)
+                elif line.startswith('POLAR:') or \
+                        line.startswith('SPLT.POLAR:'):
+                    line = line.replace('@polar@', polar)
+                cnt_file.write(line)
 
     def _download_fits(self, force_small=False):
         """
@@ -443,20 +450,19 @@ first line'.format(antab))
 
         self.pima.update_cnt({'UV_FITS:': self.uv_fits})
 
-        # Setup staging dir here to check size of the FITS file
-        staging_dir = os.getenv('PYPIMA_STAGING_DIR', default='NO')
+        # Check free space in STAGING_DIR
+        staging_dir = self.pima.cnt_params['STAGING_DIR:']
+
         if os.path.isdir(staging_dir):
             df = shutil.disk_usage(staging_dir)
+            fits_file = os.path.join(staging_dir, self.uv_fits)
 
-            # Free space > size of file + 10%
-            if df.free > 1.1 * os.path.getsize(self.uv_fits):
-                staging_dir = os.path.join(staging_dir, self.exper)
-                if not os.path.exists(staging_dir):
-                    os.mkdir(staging_dir)
-                self.pima.update_cnt({'STAGING_DIR:': staging_dir})
-            else:
+            # Free space < size of file + 10%
+            if not os.path.isfile(fits_file) and \
+                    df.free < 1.1 * os.path.getsize(self.uv_fits):
                 self.logger.warning('Not enough space in STAGING_DIR')
                 self.pima.update_cnt({'STAGING_DIR:': 'NO'})
+                shutil.rmtree(staging_dir)
 
         if self.orbit is None:
             self._get_orbit()
