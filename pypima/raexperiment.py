@@ -941,6 +941,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         pima_fits_dir = os.path.join(exper_dir, sess_code + '_uvs')
 
+        if not os.path.isdir(pima_fits_dir):
+            return
+
         splt_sou_name = self.pima.cnt_params['SPLT.SOU_NAME:']
 
         for source_names in self.pima.source_list:
