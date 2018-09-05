@@ -152,6 +152,18 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             self.pima.update_cnt({'STAGING_DIR:': 'NO'})
 
+        # Select the best fftw wisdom file
+        thread_num = 4
+
+        for size in ('huge', 'big', 'small'):
+            wis_file = 'pima_{}_measure_{:d}thr.wis'.format(size, thread_num)
+            wis_file = os.path.join(self.pima_dir, 'share', 'pima', wis_file)
+
+            if os.path.isfile(wis_file):
+                self.pima.update_cnt({'FFT_CONFIG_FILE:': wis_file,
+                                      'NUM_THREADS:': thread_num})
+                break
+
     def _error(self, msg):
         """Raise pima.Error exception"""
         self.logger.error(msg)
