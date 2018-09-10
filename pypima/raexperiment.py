@@ -619,7 +619,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         bad_obs_set = set()
 
         for acta_file in acta_list:
-            if np.median(acta_file.ampl) < 0.6:
+            if np.median(acta_file.ampl) < 0.5:
                 # exper, band = acta_file.header['experiment'].split('_')
                 sta = acta_file.header['station']
                 scan = acta_file.header['scan']
