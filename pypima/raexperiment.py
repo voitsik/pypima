@@ -606,7 +606,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             return False
 
-    def _check_bad_obs(self):
+    def _check_bad_autospec_obs(self):
         """
         Return set of observation numbers with bad autospectrum.
 
@@ -691,6 +691,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 }
         elif bandpass_var == 3:
             mseg = self.pima.chan_number // 2
+            min_snr = 5.5  # Could be tuned
 
             bpas_params = {
                 'BPS.MODE:': 'ACCUM',
@@ -699,8 +700,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 'BPS.NOBS_FINE:': '12',
                 'BPS.MINOBS_FINE:': '8',
                 'BPS.MSEG_FINE:': mseg,
-                'BPS.SNR_MIN_ACCUM:': '5.5',
-                'BPS.SNR_MIN_FINE:': '5.5',
+                'BPS.SNR_MIN_ACCUM:': min_snr,
+                'BPS.SNR_MIN_FINE:': min_snr,
                 'BPS.AMPL_REJECT:': '0.4',
                 'BPS.PHAS_REJECT:': '0.2',
                 'BPS.INTRP_METHOD:': 'LINEAR',
@@ -709,6 +710,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 'BPS.AMP_MIN:': '0.01',
                 'BPS.NORML:': 'IF',
                 'BPS.SEFD_USE:': 'NO',
+                'FRIB.SNR_DETECTION:': min_snr,
                 }
         else:
             self._error('Unsupported bandpass_var {}'.
@@ -786,12 +788,14 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         polar = self.pima.cnt_params['POLAR:']
 
         if bandpass:
-            bad_obs = self._check_bad_obs()
+            # Update list of obs with bad autospectrum
+            bad_obs = self._check_bad_autospec_obs()
             if bad_obs:
                 self.bad_obs_set = bad_obs
             else:
                 self.bad_obs_set.clear()
 
+            # If bps-file already exists -- use it
             if self.bpass_files[polar] and \
                     os.path.isfile(self.bpass_files[polar]):
                 self.pima.update_cnt({'BANDPASS_FILE:':
@@ -801,20 +805,14 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 fri_file = self.pima.coarse()
                 fri = Fri(fri_file)
 
-                if not fri:
-                    self._error('PIMA fri-file is empty after coarse.')
-
                 # Exclude suspicious observations
                 obs_list = []
                 for rec in fri:
-                    if abs(rec['rate']) > 1e-10 or abs(rec['delay']) > 1e-6:
+                    if abs(rec['rate']) > 1e-11 or abs(rec['delay']) > 1e-6:
                         obs_list.append(rec['obs'])
 
                 self.pima.mk_exclude_obs_file(obs_list, 'bpas')
                 fri.remove_obs(obs_list)
-
-                # Detection limit for bandpass calibration
-                self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.5'})
 
                 # Now auto select reference station
                 if fri and self._select_ref_sta(fri, reference_station):
