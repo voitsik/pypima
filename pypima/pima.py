@@ -822,6 +822,7 @@ class Pima:
     def mk_exclude_obs_file(self, obs_list, suffix, polar=None):
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
+        If `obs_list` is empty delete the file.
 
         Parameters
         ----------
