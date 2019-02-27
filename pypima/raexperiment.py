@@ -191,6 +191,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             for line in cnt_templ:
                 if '@CDATE@' in line:
                     line = line.replace('@CDATE@', str(datetime.now()))
+                elif '@pima_dir@' in line:
+                    line = line.replace('@pima_dir@', self.pima_dir)
                 elif line.startswith('SESS_CODE:'):
                     line = line.replace('@sess_code@', sess_code)
                 elif line.startswith('BAND:'):
@@ -691,7 +693,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 }
         elif bandpass_var == 3:
             mseg = self.pima.chan_number // 2
-            min_snr = 5.5  # Could be tuned
+            min_snr = 5.2  # Could be tuned
 
             bpas_params = {
                 'BPS.MODE:': 'ACCUM',
@@ -813,6 +815,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
                 self.pima.mk_exclude_obs_file(obs_list, 'bpas')
                 fri.remove_obs(obs_list)
+
+                self.pima.update_cnt({'FRIB.SNR_DETECTION:': '5.2'})
 
                 # Now auto select reference station
                 if fri and self._select_ref_sta(fri, reference_station):
