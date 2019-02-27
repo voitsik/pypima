@@ -6,12 +6,10 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt
-import os.path
+# import os.path
 import sys
 import tempfile
 
-PATH = os.path.normpath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.insert(0, PATH)
 import pypima
 from pypima.pima import Pima
 from pypima.fri import Fri
@@ -83,16 +81,21 @@ def plot(file_name, fri, format, title=False):
                 Z[i, j] = float(z)
 
     mean = np.mean(Z)
-    print("Mean = {:.3e}".format(mean))
-    print("Peak = {:.3e}".format(Z.max()))
-    print("Peak/mean = {:.1f}" .format(Z.max() / mean))
+    std = np.std(Z)
+    mean_corr = np.mean(Z[Z < mean + 2*std])
 
+    print("Mean = {:.3e}".format(mean))
+    print("Std = {:.3e}".format(std))
+    print("Peak = {:.3e}".format(Z.max()))
+    print("Peak/mean = {:.1f}" .format(Z.max() / mean_corr))
+
+    plt.style.use('seaborn-paper')
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
     freq = fri['ref_freq']
 
-    ax.plot_surface(X*1e9, freq*Y*1e3, Z/mean, rstride=1, cstride=1,
+    ax.plot_surface(X*1e9, freq*Y*1e3, Z / mean_corr, rstride=1, cstride=1,
                     cmap=cm.jet, linewidth=0)
     # ax.set_title(subtitle, fontsize='small')
     ax.set_ylabel('Fringe rate (mHz)')
@@ -114,7 +117,9 @@ def plot(file_name, fri, format, title=False):
                                            sta2sta(fri['sta1']),
                                            sta2sta(fri['sta2']))
         title += ' ({:.1f} Earth Diameters)'.format(fri['uv_rad_ed'])
-        plt.title(title)
+        # plt.title(title)
+        # fig.suptitle(suptitle)
+        ax.set_title(title)
 
     file_name = '{}_{}_{}_{:02d}_fringe3D'.format(source, exper, band, obs)
     file_name = '{}.{}'.format(file_name, format)
