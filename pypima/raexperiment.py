@@ -163,7 +163,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 if os.path.isfile(wis_file):
                     self.pima.update_cnt({'FFT_CONFIG_FILE:': wis_file,
                                           'NUM_THREADS:': thread_num})
-                    break
+                    return
 
     def _error(self, msg):
         """Raise pima.Error exception"""
