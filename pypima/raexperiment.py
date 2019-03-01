@@ -163,6 +163,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 if os.path.isfile(wis_file):
                     self.pima.update_cnt({'FFT_CONFIG_FILE:': wis_file,
                                           'NUM_THREADS:': thread_num})
+                    os.environ['OMP_NUM_THREADS'] = str(thread_num)
+
                     return
 
     def _error(self, msg):
