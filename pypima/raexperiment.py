@@ -1118,10 +1118,12 @@ def _download_it(url, buffer, max_retries=0, ftp_user=None):
             curl.perform()
         except pycurl.error as err:
             errno, errstr = err.args
-            if errno == 28 and retries < max_retries:
+
+            if errno == pycurl.E_OPERATION_TIMEDOUT and retries < max_retries:
                 retries += 1
-                buffer.seek(0)
-                buffer.truncate(0)
+
+                # Try to continue data transfer
+                curl.setopt(pycurl.RESUME_FROM_LARGE, buffer.tell())
             else:
                 raise
         else:
