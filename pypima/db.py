@@ -60,7 +60,7 @@ class DB:
         size = 0
 
         query = """SELECT path, size, ftp_user FROM fits_files
-        WHERE exper_name = %s AND band = %s AND
+        WHERE exper_name = %s AND band = %s AND basename NOT LIKE '%FRB%' AND
         split_part(basename, '_', 1) = %s #EXT#
         ORDER BY corr_date DESC, path DESC;"""
 
