@@ -37,29 +37,31 @@ def parse_args():
                         help='do fringe fittig for individual IFs')
     parser.add_argument('--split', action='store_true',
                         help='do SPLIT')
-    parser.add_argument('--fits',
-                        help='external FITS-IDI file')
-    parser.add_argument('--ref-sta', metavar='STA',
-                        help='reference station')
-    parser.add_argument('--no-bandpass', action='store_true',
-                        help='disable bandpass calibration')
-    parser.add_argument('--bpas-mode', metavar='MODE',
-                        choices=['INIT', 'ACCUM', 'FINE'],
-                        help='set bandpass calibration mode')
-    parser.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
-                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
-                        help='set BANDPASS_USE PIMA parameter')
-    parser.add_argument('--no-ampl-bpas', action='store_true',
-                        help='disable amplitude bandpass calibration')
-    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
-                        default=3,
-                        help='predefined bandpass parameters')
-    parser.add_argument('--flag-chann', type=int, default=2, metavar='N',
-                        help='flag N edge spectral channels of the bandpass')
+    parser.add_argument('--fits', nargs='+',
+                        help='external FITS-IDI file(s)')
     parser.add_argument('--scan-length', type=float,
                         help='set scan length in seconds')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='enable debug output')
+
+    group = parser.add_argument_group("bandpass settings")
+    group.add_argument('--ref-sta', metavar='STA',
+                       help='reference station')
+    group.add_argument('--no-bandpass', action='store_true',
+                       help='disable bandpass calibration')
+    group.add_argument('--bpas-mode', metavar='MODE',
+                       choices=['INIT', 'ACCUM', 'FINE'],
+                       help='set bandpass calibration mode')
+    group.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
+                       choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+                       help='set BANDPASS_USE PIMA parameter')
+    group.add_argument('--no-ampl-bpas', action='store_true',
+                       help='disable amplitude bandpass calibration')
+    group.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
+                       default=3,
+                       help='predefined bandpass parameters')
+    group.add_argument('--flag-chann', type=int, default=2, metavar='N',
+                       help='flag N edge spectral channels of the bandpass')
 
     return parser.parse_args()
 

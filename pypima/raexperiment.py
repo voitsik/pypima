@@ -53,9 +53,9 @@ class RaExperiment:
         data_dir : str, optional
             Directory for FITS-IDI. If ``None`` working directory of the
             current experiment is used.
-        uv_fits : str, optional
-            Path to the data file (FITS-IDI). If ``None`` (default) get a file
-            name from data base and download file from the FTP archive.
+        uv_fits : str or list, optional
+            Path(s) to the data file (FITS-IDI). If ``None`` (default) get a
+            file name from data base and download file from the FTP archive.
         orbit : str, optional
             Path to a file with reconstructed orbit. If ``None`` (default),
             download it from the FTP archive.
@@ -135,6 +135,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
 
+        if self.uv_fits:
+            self.pima.update_cnt({'UV_FITS:': self.uv_fits})
+
         # Only one sideband at P-band
         if self.band == 'p':
             self.pima.update_cnt({'END_FRQ:': '1'})
@@ -202,8 +205,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                     line = line.replace('@band@', self.band.upper())
                 elif line.startswith('EXPER_DIR:'):
                     line = line.replace('@exper_dir@', self.pima_scr)
-                elif line.startswith('UV_FITS:') and self.uv_fits:
-                    line = line.replace('@uv_fits@', self.uv_fits)
                 elif line.startswith('FRINGE_FILE:'):
                     line = line.replace('@fringe_file@', fringe_file)
                 elif line.startswith('FRIRES_FILE:'):
@@ -450,7 +451,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
-            if self.uv_fits is None:
+            if not self.uv_fits:
                 self._download_fits(force_small)
 
         if download_only:
@@ -463,11 +464,22 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         if os.path.isdir(staging_dir):
             df = shutil.disk_usage(staging_dir)
-            fits_file = os.path.join(staging_dir, self.uv_fits)
+
+            if isinstance(self.uv_fits, list):
+                fits_file = self.uv_fits[0]
+
+                uv_fits_size = sum([os.path.getsize(file) for file in
+                                    self.uv_fits])
+            else:
+                fits_file = self.uv_fits
+                uv_fits_size = os.path.getsize(fits_file)
+
+            fits_file_staging = os.path.join(staging_dir,
+                                             os.path.basename(fits_file))
 
             # Free space < size of file + 10%
-            if not os.path.isfile(fits_file) and \
-                    df.free < 1.1 * os.path.getsize(self.uv_fits):
+            if not os.path.isfile(fits_file_staging) and \
+                    df.free < 1.1 * uv_fits_size:
                 self.logger.warning('Not enough space in STAGING_DIR')
                 self.pima.update_cnt({'STAGING_DIR:': 'NO'})
                 shutil.rmtree(staging_dir)
