@@ -167,48 +167,48 @@ class Pima:
 
     def update_cnt(self, opts):
         """
-        Update pima cnt-file according `opts` dictionary.
+        Update pima cnt-file according to `opts` dictionary.
 
         """
         if not opts:
             return
 
-        uv_fits = False
+        uv_fits_flag = False
 
-        old_cnt = open(self.cnt_file_name, 'r')
-        new_cnt = open(self.cnt_file_name + '.new', 'w')
+        lines = []
 
-        for line in old_cnt:
-            key = line.split()[0].strip()
+        with open(self.cnt_file_name, 'r') as file:
+            for line in file:
+                key = line.split()[0].strip()
 
-            if key in opts.keys():
-                val = opts[key]
+                if key in opts.keys():
+                    val = opts[key]
 
-                # Skip empty values
-                if not val:
-                    continue
-
-                # Modify UV_FITS only once
-                if key == 'UV_FITS:':
-                    if uv_fits:
+                    # Skip empty values
+                    if not val:
                         continue
+
+                    # Modify UV_FITS only once
+                    if key == 'UV_FITS:':
+                        if uv_fits_flag:
+                            continue
+                        else:
+                            uv_fits_flag = True
+
+                    # In case of many FITS-files
+                    if key == 'UV_FITS:' and isinstance(val, list):
+                        line = ''.join(['{:<10} {}\n'.format(key, item) for
+                                        item in val])
                     else:
-                        uv_fits = True
+                        line = '{:<20} {}\n'.format(key, val)
+                elif line.startswith('# Last update on'):
+                    line = '# Last update on  {}\n'.format(str(datetime.now()))
 
-                # In case of many FITS-files
-                if key == 'UV_FITS:' and isinstance(val, list):
-                    lines = ['{:<10} {}'.format(key, item) for item in val]
-                    line = '\n'.join(lines)
-                else:
-                    line = '{:<20} {}\n'.format(key, val)
-            elif line.startswith('# Last update on'):
-                line = '# Last update on  {}\n'.format(str(datetime.now()))
+                lines.append(line)
 
-            new_cnt.write(line)
+        with open(self.cnt_file_name, 'w') as file:
+            file.write(''.join(lines))
 
-        old_cnt.close()
-        new_cnt.close()
-        os.rename(self.cnt_file_name + '.new', self.cnt_file_name)
         self._update_cnt_params()
 
     def _exec(self, operation, options=None, log_name=None):
