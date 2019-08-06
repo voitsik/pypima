@@ -308,12 +308,22 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ra_exp.delete_uvfits()
 
 
+class InvalidFileFormat(Exception):
+    """Invalid file format error"""
+    def __init__(self, message, file_name):
+        self.file_name = file_name
+        self.message = message
+
+    def __str__(self):
+        return '{}: {}'.format(self.message, self.file_name)
+
+
 def parser_input_file(file_name, database, data_dir, gvlbi):
     """
     Parse input file.
 
-    The input file is a table with three columns: exper_name, band, and
-    FITS-IDI file name (optional).
+    The input file is a table with minimum two columns: exper_name, band, and
+    FITS-IDI file name(s) (optional).
 
     Returns
     -------
@@ -329,19 +339,23 @@ def parser_input_file(file_name, database, data_dir, gvlbi):
 
             columns = line.split()
 
-            if len(columns) in (2, 3):
-                exper_name = columns[0]
-                band = columns[1]
+            if len(columns) < 2:
+                raise InvalidFileFormat('file should contain at least two '
+                                        'columns',
+                                        file_name)
 
-                if len(columns) == 3:
-                    fits = columns[2]
-                else:
-                    fits = None
+            exper_name = columns[0]
+            band = columns[1]
 
-                exp_list.append(RaExperiment(exper_name, band,
-                                             database, uv_fits=fits,
-                                             data_dir=data_dir,
-                                             gvlbi=gvlbi))
+            if len(columns) >= 3:
+                fits = columns[2:]
+            else:
+                fits = None
+
+            exp_list.append(RaExperiment(exper_name, band,
+                                         database, uv_fits=fits,
+                                         data_dir=data_dir,
+                                         gvlbi=gvlbi))
 
     return exp_list
 
@@ -437,6 +451,9 @@ def main():
                                      args.gvlbi)
     except OSError as err:
         logging.error('OSError: %s', err)
+        return 1
+    except InvalidFileFormat as err:
+        logging.error('InvalidFileFormat: %s', err)
         return 1
 
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
