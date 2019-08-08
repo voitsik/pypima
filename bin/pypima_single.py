@@ -41,6 +41,8 @@ def parse_args():
                         help='external FITS-IDI file(s)')
     parser.add_argument('--scan-length', type=float,
                         help='set scan length in seconds')
+    parser.add_argument('--frequency-group', type=int, default=1,
+                        help='frequency group')
     parser.add_argument('--debug', '-d', action='store_true',
                         help='enable debug output')
 
@@ -147,7 +149,8 @@ def main():
                                         ampl_bandpass=not args.no_ampl_bpas,
                                         bandpass_var=args.bpas_var,
                                         bandpass_use=args.bpas_use,
-                                        reference_station=args.ref_sta)
+                                        reference_station=args.ref_sta,
+                                        frq_grp=args.frequency_group)
             print(fri)
 
             max_scan_len = fri.max_scan_length()

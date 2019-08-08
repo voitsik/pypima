@@ -47,19 +47,21 @@ class ExperInfo:
                 if line.startswith('Correlator_name:'):
                     self._data['correlator_name'] = line.split()[1]
                 elif line.startswith('Number of frequencies:'):
-                    self._data['if_num'] = int(line.split()[3])
+                    self._data['if_num'] = int(line.split(':')[1])
+                elif line.startswith('Number of frequency groups:'):
+                    self._data['frq_grp'] = int(line.split(':')[1])
                 elif line.startswith('Number of spectral channels:'):
-                    self._data['sp_chann_num'] = int(line.split()[4])
+                    self._data['sp_chann_num'] = int(line.split(':')[1])
                 elif line.startswith('Number of time epochs:'):
-                    self._data['time_epochs_num'] = int(line.split()[4])
+                    self._data['time_epochs_num'] = int(line.split(':')[1])
                 elif line.startswith('Number of scans:'):
-                    self._data['scans_num'] = int(line.split()[3])
+                    self._data['scans_num'] = int(line.split(':')[1])
                 elif line.startswith('Number of observations:'):
-                    self._data['obs_num'] = int(line.split()[3])
+                    self._data['obs_num'] = int(line.split(':')[1])
                 elif line.startswith('Total number of UV points:'):
-                    self._data['uv_points_num'] = int(line.split()[5])
+                    self._data['uv_points_num'] = int(line.split(':')[1])
                 elif line.startswith('Total number of used UV points:'):
-                    self._data['uv_points_used_num'] = int(line.split()[6])
+                    self._data['uv_points_used_num'] = int(line.split(':')[1])
                 elif line.startswith('Total number of deselected points:'):
                     self._data['deselected_points_num'] = \
                         int(line.split(':')[1])

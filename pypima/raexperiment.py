@@ -746,7 +746,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True, bandpass_var=0, bandpass_use=None,
-                       reference_station=None):
+                       reference_station=None, frq_grp=1):
         """
         Perform a fringe fitting.
 
@@ -768,6 +768,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         reference_station : str, optional
             Reference station for bandpass calibration. If ``None`` select
             an optimal station for ground-space baselines.
+        frq_grp : int, optinal
+            Frequency group number.
 
         Returns
         -------
@@ -790,6 +792,11 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             self.pima.update_cnt({'FRIB.FINE_SEARCH:': 'LSQ',
                                   'PHASE_ACCEL_MIN:': '0',
                                   'PHASE_ACCEL_MAX:': '0'})
+
+        if frq_grp < 1 or frq_grp > self.pima.exper_info['frq_grp']:
+            self._error('Invalid frequency group {}'.format(frq_grp))
+
+        self.pima.update_cnt({'FRQ_GRP:': frq_grp})
 
         if bandpass_use:
             self.pima.update_cnt({'BANDPASS_USE:': bandpass_use})
@@ -846,9 +853,17 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                     self.bpass_files[polar] = None
 
         self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
-        fri_file = '{}_{}_{}.fri'.format(self.exper, self.band, polar)
+
+        if frq_grp > 1:
+            fri_file = '{}_{}_{}_{}.fri'.format(self.exper, self.band, polar,
+                                                frq_grp)
+            frr_file = '{}_{}_{}_{}.frr'.format(self.exper, self.band, polar,
+                                                frq_grp)
+        else:
+            fri_file = '{}_{}_{}.fri'.format(self.exper, self.band, polar)
+            frr_file = '{}_{}_{}.frr'.format(self.exper, self.band, polar)
+
         fri_file = os.path.join(self.work_dir, fri_file)
-        frr_file = '{}_{}_{}.frr'.format(self.exper, self.band, polar)
         frr_file = os.path.join(self.work_dir, frr_file)
         self.pima.update_cnt({'FRINGE_FILE:': fri_file,
                               'FRIRES_FILE:': frr_file})
