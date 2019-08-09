@@ -84,11 +84,11 @@ class RaExperiment:
         self.scan_part = 0
         self.bad_obs_set = set()  # Set of bad obs (autospec)
 
-        # dict POLAR -> BANDPASS_FILE
-        self.bpass_files = {'RR': None,
-                            'LL': None,
-                            'RL': None,
-                            'LR': None,
+        # dict (POLAR, frq_grp) -> BANDPASS_FILE
+        self.bpass_files = {('RR', 1): '',
+                            ('LL', 1): '',
+                            ('RL', 1): '',
+                            ('LR', 1): '',
                             }
 
         if self.band not in ('p', 'l', 'c', 'k'):
@@ -493,10 +493,14 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                               'SCAN_LEN_USED:': str(scan_length)})
 
         if update_db:
-            self.run_id = \
-                self.db.add_exper_info(self.exper, self.band,
-                                       os.path.basename(self.uv_fits),
-                                       scan_part)
+            if isinstance(self.uv_fits, list):
+                uv_fits = self.uv_fits[0]  # Only first FITS to DB
+            else:
+                uv_fits = self.uv_fits
+
+            self.run_id = self.db.add_exper_info(self.exper, self.band,
+                                                 os.path.basename(uv_fits),
+                                                 scan_part)
 
         self.pima.load()
 
@@ -746,7 +750,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True, bandpass_var=0, bandpass_use=None,
-                       reference_station=None, frq_grp=1):
+                       reference_station=None):
         """
         Perform a fringe fitting.
 
@@ -768,8 +772,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         reference_station : str, optional
             Reference station for bandpass calibration. If ``None`` select
             an optimal station for ground-space baselines.
-        frq_grp : int, optinal
-            Frequency group number.
 
         Returns
         -------
@@ -793,11 +795,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                                   'PHASE_ACCEL_MIN:': '0',
                                   'PHASE_ACCEL_MAX:': '0'})
 
-        if frq_grp < 1 or frq_grp > self.pima.exper_info['frq_grp']:
-            self._error('Invalid frequency group {}'.format(frq_grp))
-
-        self.pima.update_cnt({'FRQ_GRP:': frq_grp})
-
         if bandpass_use:
             self.pima.update_cnt({'BANDPASS_USE:': bandpass_use})
 
@@ -810,6 +807,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             bandpass = False
 
         polar = self.pima.cnt_params['POLAR:']
+        frq_grp = int(self.pima.cnt_params['FRQ_GRP:'])
 
         if bandpass:
             # Update list of obs with bad autospectrum
@@ -820,10 +818,10 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 self.bad_obs_set.clear()
 
             # If bps-file already exists -- use it
-            if self.bpass_files[polar] and \
-                    os.path.isfile(self.bpass_files[polar]):
+            if (polar, frq_grp) in self.bpass_files and \
+                    os.path.isfile(self.bpass_files[polar, frq_grp]):
                 self.pima.update_cnt({'BANDPASS_FILE:':
-                                      self.bpass_files[polar]})
+                                      self.bpass_files[polar, frq_grp]})
             else:
                 self.pima.mk_exclude_obs_file(self.bad_obs_set, 'coarse')
                 fri_file = self.pima.coarse()
@@ -844,13 +842,13 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 if fri and self._select_ref_sta(fri, reference_station):
                     bandpass = self._bandpass(bandpass_mode, ampl_bandpass,
                                               bandpass_var)
-                    self.bpass_files[polar] = \
+                    self.bpass_files[polar, frq_grp] = \
                         self.pima.cnt_params['BANDPASS_FILE:']
                 else:
                     self.logger.info('skip bandpass due to absence of the '
                                      'useful scans')
                     bandpass = False
-                    self.bpass_files[polar] = None
+                    self.bpass_files[polar] = ''
 
         self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
 
@@ -1053,7 +1051,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         """
         # Delete FITS file in `data_dir` only
-        if os.path.isfile(self.uv_fits) and \
+        if isinstance(self.uv_fits, str) and os.path.isfile(self.uv_fits) and \
                 self.uv_fits.startswith(self.data_dir):
             os.remove(self.uv_fits)
 

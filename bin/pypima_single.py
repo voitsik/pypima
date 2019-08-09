@@ -111,6 +111,7 @@ def main():
                 polar = 'LL'
 
         ra_exp.pima.set_polar(polar)
+        ra_exp.pima.set_frq_grp(args.frequency_group)
 
         if args.autospec_only:
             # Define and create directory for auto spectrum plot files
@@ -149,8 +150,7 @@ def main():
                                         ampl_bandpass=not args.no_ampl_bpas,
                                         bandpass_var=args.bpas_var,
                                         bandpass_use=args.bpas_use,
-                                        reference_station=args.ref_sta,
-                                        frq_grp=args.frequency_group)
+                                        reference_station=args.ref_sta)
             print(fri)
 
             max_scan_len = fri.max_scan_length()

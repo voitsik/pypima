@@ -12,7 +12,7 @@ from collections import namedtuple
 import os.path
 import shutil
 
-from .. import Pima, Fri
+from .. import Pima, PimaError, Fri
 from .data import SAMPLE_RA_FITS, SAMPLE_RA_CNT, SAMPLE_SCF, SAMPLE_FRI
 
 
@@ -137,6 +137,22 @@ class TestPima:
         assert pima.station_list(ivs_name=True) == result.station_list_ivs
         assert pima.chan_number == result.sp_chann_num
         assert pima.obs_number == result.obs_number
+
+    @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
+                                                 ('raks16nq', 'c')])
+    def test_pima_set_frq_grp(self, work_dir, exper, band):
+        """
+        Test pima.set_frq_grp
+        """
+        wdir, _ = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
+
+        pima.set_frq_grp(1)
+
+        assert int(pima.cnt_params['FRQ_GRP:']) == 1
+
+        with pytest.raises(PimaError):
+            pima.set_frq_grp(2)
 
     @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
                                                  ('raks16nq', 'c')])

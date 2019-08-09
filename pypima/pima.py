@@ -310,14 +310,21 @@ class Pima:
         else:
             polar = self.cnt_params['POLAR:']
 
-        log_name = '{}_{}_{}_coarse.log'.format(self.exper, self.band, polar)
+        frq_grp = int(self.cnt_params['FRQ_GRP:'])
+
+        if frq_grp > 1:
+            name_base = '{}_{}_{}_{}'.format(self.exper, self.band, polar,
+                                             frq_grp)
+        else:
+            name_base = '{}_{}_{}'.format(self.exper, self.band, polar)
+
+        log_name = '{}_coarse.log'.format(name_base)
         log_name = os.path.join(self.work_dir, log_name)
-        fri_file = '{}_{}_{}_nobps.fri'.format(self.exper, self.band, polar)
+        fri_file = '{}_nobps.fri'.format(name_base)
         fri_file = os.path.join(self.work_dir, fri_file)
-        frr_file = '{}_{}_{}_nobps.frr'.format(self.exper, self.band, polar)
+        frr_file = '{}_nobps.frr'.format(name_base)
         frr_file = os.path.join(self.work_dir, frr_file)
-        exc_obs_file = '{}_{}_{}_coarse_obs.exc'.format(self.exper, self.band,
-                                                        polar)
+        exc_obs_file = '{}_coarse_obs.exc'.format(name_base)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if os.path.isfile(fri_file):
@@ -438,15 +445,22 @@ class Pima:
         if polar in ['I', 'RPL']:
             polar = 'RR'
 
-        fri_file = '{}_{}_{}_nobps.fri'.format(self.exper, self.band, polar)
+        frq_grp = int(self.cnt_params['FRQ_GRP:'])
+
+        if frq_grp > 1:
+            name_base = '{}_{}_{}_{}'.format(self.exper, self.band, polar,
+                                             frq_grp)
+        else:
+            name_base = '{}_{}_{}'.format(self.exper, self.band, polar)
+
+        fri_file = '{}_nobps.fri'.format(name_base)
         fri_file = os.path.join(self.work_dir, fri_file)
-        log_file = '{}_{}_{}_bps.log'.format(self.exper, self.band, polar)
+        log_file = '{}_bps.log'.format(name_base)
         log_file = os.path.join(self.work_dir, log_file)
-        exc_obs_file = '{}_{}_{}_bpas_obs.exc'.format(self.exper, self.band,
-                                                      polar)
+        exc_obs_file = '{}_bpas_obs.exc'.format(name_base)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
-        bps_file = '{}_{}_{}.bps'.format(self.exper, self.band, polar)
+        bps_file = '{}.bps'.format(name_base)
         bps_file = os.path.join(self.work_dir, bps_file)
         self.update_cnt({'BANDPASS_FILE:': bps_file})
 
@@ -590,11 +604,27 @@ class Pima:
         """
         polar = polar.upper()
 
-        if polar not in ['RR', 'RL', 'LR', 'LL', 'I']:
-            self._error('Wrong polarization: ' + polar)
+        if polar not in ('RR', 'RL', 'LR', 'LL', 'I'):
+            self._error('Wrong polarization: {}'.format(polar))
 
-        self._print_info('Set polarization to ' + polar)
+        self.logger.info('Set polarization to %s', polar)
         self.update_cnt({'POLAR:': polar, 'SPLT.POLAR:': polar})
+
+    def set_frq_grp(self, frq_grp):
+        """
+        Set frequency group in control file.
+
+        Parameters
+        ----------
+        frq_grp : int
+            Frequency group number
+
+        """
+        if frq_grp < 1 or frq_grp > self.exper_info['frq_grp']:
+            self._error('Invalid frequency group {}'.format(frq_grp))
+
+        self.logger.info('Set frequency group to %s', frq_grp)
+        self.update_cnt({'FRQ_GRP:': frq_grp})
 
     @property
     def ap_minmax(self):
@@ -844,8 +874,15 @@ class Pima:
         if not polar:
             polar = self.cnt_params['POLAR:']
 
-        exc_obs_file = '{}_{}_{}_{}_obs.exc'.format(self.exper, self.band,
-                                                    polar, suffix)
+        frq_grp = int(self.cnt_params['FRQ_GRP:'])
+
+        if frq_grp > 1:
+            name_base = '{}_{}_{}_{}'.format(self.exper, self.band, polar,
+                                             frq_grp)
+        else:
+            name_base = '{}_{}_{}'.format(self.exper, self.band, polar)
+
+        exc_obs_file = '{}_{}_obs.exc'.format(name_base, suffix)
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if obs_list:

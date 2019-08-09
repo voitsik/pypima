@@ -219,21 +219,27 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         }
 
     scan_len_list = []
-    for polar in ('RR', 'RL', 'LR', 'LL'):
-        ra_exp.pima.set_polar(polar)
-        if scan_part == 1:
-            ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
-                                        db=True)
-        fri = ra_exp.fringe_fitting(**ff_params)
-        print(fri)
-        scan_len_list.append(fri.max_scan_length())
-        ra_exp.fringes2db()
 
-        if ra_exp.pima.chan_number <= 128 and ra_exp.calibration_loaded and \
-                polar in ('RR', 'LL'):
-            for aver in (0, round(scan_len_list[-1])):
-                ra_exp.split(average=aver)
-                ra_exp.copy_uvfits(uv_fits_out_dir)
+    for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+        ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
+
+        for polar in ('RR', 'RL', 'LR', 'LL'):
+            ra_exp.pima.set_polar(polar)
+
+            if scan_part == 1:
+                ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
+                                            db=True)
+            fri = ra_exp.fringe_fitting(**ff_params)
+            print(fri)
+            scan_len_list.append(fri.max_scan_length())
+            ra_exp.fringes2db()
+
+            if ra_exp.pima.chan_number <= 256 and \
+                    ra_exp.calibration_loaded and \
+                    polar in ('RR', 'LL'):
+                for aver in (0, round(scan_len_list[-1])):
+                    ra_exp.split(average=aver)
+                    ra_exp.copy_uvfits(uv_fits_out_dir)
 
     #
     # Second run on a scan half
@@ -246,23 +252,27 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ra_exp.load_antab()
 
     detections = False
-    for polar in ('RR', 'RL', 'LR', 'LL'):
-        ra_exp.pima.set_polar(polar)
-        fri = ra_exp.fringe_fitting(**ff_params)
-        print(fri)
-        if fri.any_detections():
-            detections = True
-        ra_exp.fringes2db()
+    for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+        ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-        if ra_exp.pima.chan_number <= 128 and ra_exp.calibration_loaded and \
-                polar in ('RR', 'LL'):
-            ra_exp.split(average=scan_len)
-            ra_exp.copy_uvfits(uv_fits_out_dir)
+        for polar in ('RR', 'RL', 'LR', 'LL'):
+            ra_exp.pima.set_polar(polar)
+            fri = ra_exp.fringe_fitting(**ff_params)
+            print(fri)
+            if fri.any_detections():
+                detections = True
+            ra_exp.fringes2db()
+
+            if ra_exp.pima.chan_number <= 256 and \
+                    ra_exp.calibration_loaded and \
+                    polar in ('RR', 'LL'):
+                ra_exp.split(average=scan_len)
+                ra_exp.copy_uvfits(uv_fits_out_dir)
 
     #
     # For good experiments more runs
     #
-    if ra_exp.pima.chan_number <= 128:
+    if ra_exp.pima.chan_number <= 256:
         scan_part = scan_part_base + 3
         scan_len = round(max_scan_len / (scan_part-scan_part_base))
 
@@ -272,38 +282,44 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             ra_exp.load_antab()
             detections = False
 
-            for polar in ('RR', 'LL'):
-                ra_exp.pima.set_polar(polar)
-                fri = ra_exp.fringe_fitting(**ff_params)
-                print(fri)
-                if fri.any_detections():
-                    detections = True
-                ra_exp.fringes2db()
+            for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+                ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-                if ra_exp.calibration_loaded:
-                    ra_exp.split(average=scan_len)
-                    ra_exp.copy_uvfits(uv_fits_out_dir)
+                for polar in ('RR', 'LL'):
+                    ra_exp.pima.set_polar(polar)
+                    fri = ra_exp.fringe_fitting(**ff_params)
+                    print(fri)
+                    if fri.any_detections():
+                        detections = True
+                    ra_exp.fringes2db()
+
+                    if ra_exp.calibration_loaded:
+                        ra_exp.split(average=scan_len)
+                        ra_exp.copy_uvfits(uv_fits_out_dir)
 
             scan_part += 1
             scan_len = round(max_scan_len / (scan_part-scan_part_base))
 
     # Special run for ground-ground baselines with 60 s scan length
-    if ra_exp.pima.chan_number <= 128 and detections:
+    if ra_exp.pima.chan_number <= 256 and detections:
         scan_part = scan_part_base + 100
         scan_len = 60
         ra_exp.load(update_db=True, scan_length=scan_len,
                     scan_part=scan_part, force_small=force_small)
         ra_exp.load_antab()
 
-        for polar in ('RR', 'LL'):
-            ra_exp.pima.set_polar(polar)
-            fri = ra_exp.fringe_fitting(**ff_params)
-            print(fri)
-            ra_exp.fringes2db()
+        for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+            ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-            if ra_exp.calibration_loaded:
-                ra_exp.split(average=scan_len)
-                ra_exp.copy_uvfits(uv_fits_out_dir)
+            for polar in ('RR', 'LL'):
+                ra_exp.pima.set_polar(polar)
+                fri = ra_exp.fringe_fitting(**ff_params)
+                print(fri)
+                ra_exp.fringes2db()
+
+                if ra_exp.calibration_loaded:
+                    ra_exp.split(average=scan_len)
+                    ra_exp.copy_uvfits(uv_fits_out_dir)
 
     ra_exp.delete_uvfits()
 
