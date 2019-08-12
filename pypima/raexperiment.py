@@ -875,6 +875,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             if self.pima.exper_info['sp_chann_num'] <= 128:
                 ch_num = 64
+            elif self.pima.exper_info['sp_chann_num'] == 256:
+                ch_num = 256
             else:
                 ch_num = 2048
 
