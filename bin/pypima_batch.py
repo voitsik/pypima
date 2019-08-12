@@ -353,6 +353,9 @@ def parser_input_file(file_name, database, data_dir, gvlbi):
         for line in file:
             line = line.split('#')[0].strip()  # Strip comments out
 
+            if not line:
+                continue
+
             columns = line.split()
 
             if len(columns) < 2:
