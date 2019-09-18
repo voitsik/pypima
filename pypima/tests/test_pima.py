@@ -103,16 +103,35 @@ class TestPima:
 
         fits_file = SAMPLE_RA_FITS[exper, band]
         scf_file = SAMPLE_SCF[exper]
+        pima_dir = os.getenv('PIMA_DIR')
+        source_names = os.path.join(pima_dir, 'share', 'vtd_data',
+                                    'source.names')
+        sta_names = os.path.join(pima_dir, 'share', 'pima',
+                                 'ra_station.names')
+        fft_wis_file = os.path.join(pima_dir, 'share', 'pima',
+                                    'pima_small_measure_1thr.wis')
+        vtd_config = os.path.join(pima_dir, 'share', 'vtd_data',
+                                  'vtd_pima.cnf')
+
         pima.update_cnt({'UV_FITS:': fits_file,
                          'STAGING_DIR:': 'NO',
                          'EXPER_DIR:': str(sdir),
                          'EPHEMERIDES_FILE:': scf_file,
+                         'SOU_NAMES:': source_names,
+                         'STA_NAMES:': sta_names,
+                         'FFT_CONFIG_FILE:': fft_wis_file,
+                         'VTD_CONFIG_FILE:': vtd_config,
+                         'MKDB.VCAT_CONFIG:': 'NO',
                          })
 
         assert pima.cnt_params['UV_FITS:'] == [fits_file]
         assert pima.cnt_params['STAGING_DIR:'] == 'NO'
         assert pima.cnt_params['EXPER_DIR:'] == str(sdir)
         assert pima.cnt_params['EPHEMERIDES_FILE:'] == scf_file
+        assert pima.cnt_params['SOU_NAMES:'] == source_names
+        assert pima.cnt_params['STA_NAMES:'] == sta_names
+        assert pima.cnt_params['FFT_CONFIG_FILE:'] == fft_wis_file
+        assert pima.cnt_params['VTD_CONFIG_FILE:'] == vtd_config
 
     @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
                                                  ('raks16nq', 'c')])
