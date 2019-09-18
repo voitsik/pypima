@@ -39,6 +39,8 @@ def parse_args():
                         help='do SPLIT')
     parser.add_argument('--fits', nargs='+',
                         help='external FITS-IDI file(s)')
+    parser.add_argument('--orbit',
+                        help='reconstructed orbit file')
     parser.add_argument('--scan-length', type=float,
                         help='set scan length in seconds')
     parser.add_argument('--frequency-group', type=int, default=1,
@@ -97,7 +99,8 @@ def main():
 
     try:
         ra_exp = RaExperiment(exper, band, DB(), gvlbi=args.gvlbi,
-                              data_dir=data_dir, uv_fits=args.fits)
+                              data_dir=data_dir, uv_fits=args.fits,
+                              orbit=args.orbit)
         ra_exp.init_workdir()
 
         ra_exp.load(update_db=False, force_small=args.force_small,
