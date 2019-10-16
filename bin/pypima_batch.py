@@ -400,24 +400,26 @@ def parse_args():
     parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
                         choices=[1000 * x for x in range(20)],
                         help='use alternative scan_part_base')
-    parser.add_argument('--ref-sta', metavar='STA',
-                        help='reference station for bandpass calibration')
-    parser.add_argument('--bpas-mode', metavar='MODE',
-                        choices=['INIT', 'ACCUM', 'FINE'],
-                        help='bandpass calibration mode')
-    parser.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
-                        choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
-                        help='BANDPASS_USE PIMA parameter (default is PHS)')
-    parser.add_argument('--no-ampl-bpas', action='store_true',
-                        help='disable amplitude bandpass calibration')
-    parser.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
-                        default=3,
-                        help='predefined bandpass parameters (default is 3)')
-    parser.add_argument('--flag-chann', type=int, default=2, metavar='N',
-                        help='flag N edge spectral channels of the bandpass '
-                        '(default is 2)')
     parser.add_argument('--max-scan-length', type=float, default=1500,
                         help='maximum scan length in seconds')
+
+    group = parser.add_argument_group("bandpass settings")
+    group.add_argument('--ref-sta', metavar='STA',
+                       help='reference station for bandpass calibration')
+    group.add_argument('--bpas-mode', metavar='MODE',
+                       choices=['INIT', 'ACCUM', 'FINE'],
+                       help='bandpass calibration mode')
+    group.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
+                       choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+                       help='BANDPASS_USE PIMA parameter (default is PHS)')
+    group.add_argument('--no-ampl-bpas', action='store_true',
+                       help='disable amplitude bandpass calibration')
+    group.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3],
+                       default=3,
+                       help='predefined bandpass parameters (default is 3)')
+    group.add_argument('--flag-chann', type=int, default=2, metavar='N',
+                       help='flag N edge spectral channels of the bandpass '
+                       '(default is 2)')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--autospec-only', action='store_true',
@@ -511,11 +513,10 @@ def main():
             elif args.individual_ifs:
                 process_ind_ifs(ra_exp, **params)
             else:
-                if ra_exp.gvlbi:
-                    process_gvlbi(ra_exp, **params)
-                else:
-                    process_radioastron(ra_exp, out_dir, spec_out_dir,
-                                        **params)
+#                if ra_exp.gvlbi:
+#                    process_gvlbi(ra_exp, **params)
+#                else:
+                process_radioastron(ra_exp, out_dir, spec_out_dir, **params)
         except PimaError as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
