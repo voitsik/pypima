@@ -334,9 +334,9 @@ class InvalidFileFormat(Exception):
         return '{}: {}'.format(self.message, self.file_name)
 
 
-def parser_input_file(file_name, database, data_dir, gvlbi):
+def parser_input_file(file_name, database, data_dir, gvlbi, orbit=None):
     """
-    Parse input file.
+    Parse input file and create RaExperiment objects.
 
     The input file is a table with minimum two columns: exper_name, band, and
     FITS-IDI file name(s) (optional).
@@ -373,8 +373,8 @@ def parser_input_file(file_name, database, data_dir, gvlbi):
 
             exp_list.append(RaExperiment(exper_name, band,
                                          database, uv_fits=fits,
-                                         data_dir=data_dir,
-                                         gvlbi=gvlbi))
+                                         data_dir=data_dir, gvlbi=gvlbi,
+                                         orbit=orbit))
 
     return exp_list
 
@@ -402,6 +402,8 @@ def parse_args():
                         help='use alternative scan_part_base')
     parser.add_argument('--max-scan-length', type=float, default=1500,
                         help='maximum scan length in seconds')
+    parser.add_argument('--orbit',
+                        help='reconstructed orbit file')
 
     group = parser.add_argument_group("bandpass settings")
     group.add_argument('--ref-sta', metavar='STA',
@@ -469,7 +471,7 @@ def main():
 
     try:
         exp_list = parser_input_file(args.file_name, database, data_dir,
-                                     args.gvlbi)
+                                     args.gvlbi, args.orbit)
     except OSError as err:
         logging.error('OSError: %s', err)
         return 1
@@ -513,9 +515,6 @@ def main():
             elif args.individual_ifs:
                 process_ind_ifs(ra_exp, **params)
             else:
-#                if ra_exp.gvlbi:
-#                    process_gvlbi(ra_exp, **params)
-#                else:
                 process_radioastron(ra_exp, out_dir, spec_out_dir, **params)
         except PimaError as err:
             database.set_error_msg(ra_exp.run_id, str(err))
