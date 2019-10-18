@@ -29,9 +29,9 @@ no_auto_points_num integer                      Количество запис�
                                                 отсутствия автоспектра
 accum_length       real                         Время накопления в корреляторе
 utc_minus_tai      interval                     UTC-TAI в секундах
-nominal_start      timestamp without time zone  Дата и время начала эксперимента
-nominal_end        timestamp without time zone  Дата и время окончания эксперимента
-proc_date          timestamp without time zone  Дата и время обработки
+nominal_start      timestamp without time zone  Дата и время начала эксперимента (TAI)
+nominal_end        timestamp without time zone  Дата и время окончания эксперимента (TAI)
+proc_date          timestamp without time zone  Дата и время обработки (UTC)
 last_error         character varying(256)       Информация об ошибке обработки
 hostname           character varying(64)        Имя хоста на котором проводилась
                                                 обработка
@@ -56,8 +56,8 @@ correlator_name    character varying(8)         Название корреля�
 id           integer                      Уникальный номер записи
 obs          smallint                     Номер "наблюдения" в PIMA
 scan_name    character varying(10)        Код скана (ddd-hhmm)
-start_time   timestamp without time zone  Дата и время начала наблюдения
-stop_time    timestamp without time zone  Дата и время конца наблюдения
+start_time   timestamp without time zone  Дата и время начала наблюдения (TAI)
+stop_time    timestamp without time zone  Дата и время конца наблюдения (TAI)
 source       character varying(20)        Имя источника (IVS)
 polar        polar_type                   Поляризация
 st1          character varying(8)         Станция 1 (IVS Station name)
