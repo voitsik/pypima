@@ -94,11 +94,21 @@ class Fri():
     This class represents PIMA fringe file.
 
     """
-    ver100 = '# PIMA Fringe results  v  1.00  Format version of 2010.04.05'
-    ver101 = '# PIMA Fringe results  v  1.01  Format version of 2014.02.08'
-    ver102 = '# PIMA Fringe results  v  1.02  Format version of 2014.12.24'
+    supported_versions = (
+        '# PIMA Fringe results  v  1.00  Format version of 2010.04.05',
+        '# PIMA Fringe results  v  1.01  Format version of 2014.02.08',
+        '# PIMA Fringe results  v  1.02  Format version of 2014.12.24',
+        '# PIMA Fringe results  v  1.2   Format version of 2019.04.20',
+    )
 
     def __init__(self, file_name=None):
+        """
+        Parameters
+        ----------
+        file_name : str
+            Name of the input file. If `None` create empty object.
+
+        """
         self.records = []
         self.aux = {}  # Auxiliary user defined parameters
 
@@ -116,10 +126,9 @@ class Fri():
 
         with open(file_name, 'r') as fil:
             line = fil.readline()
-            if not (line.startswith(self.ver100) or
-                    line.startswith(self.ver101) or
-                    line.startswith(self.ver102)):
-                raise Exception('{} is not PIMA fri-file'.format(file_name))
+            if not line.startswith(self.supported_versions):
+                raise ValueError('{} is not PIMA fri-file'.format(file_name))
+
             for line in fil:
                 if line.startswith('# PIMA_FRINGE started'):
                     started = True
