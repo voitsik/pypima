@@ -201,11 +201,11 @@ class TestPima:
         assert rec1['sta2'] == rec2['sta2']
         assert rec1['U'] == pytest.approx(rec2['U'])
         assert rec1['V'] == pytest.approx(rec2['V'])
-        assert rec1['SNR'] == pytest.approx(rec2['SNR'], rel=1e-3)
-        assert rec1['ampl_lsq'] == pytest.approx(rec2['ampl_lsq'], rel=1e-3)
-        assert rec1['delay'] == pytest.approx(rec2['delay'], rel=1e-3)
-        assert rec1['rate'] == pytest.approx(rec2['rate'], rel=1e-3)
-        assert rec1['accel'] == pytest.approx(rec2['accel'], rel=1e-3)
+        assert rec1['SNR'] == pytest.approx(rec2['SNR'], rel=1e-2)
+        assert rec1['ampl_lsq'] == pytest.approx(rec2['ampl_lsq'], rel=1e-2)
+        assert rec1['delay'] == pytest.approx(rec2['delay'], abs=5e-9)
+        assert rec1['rate'] == pytest.approx(rec2['rate'], abs=5e-14)
+        assert rec1['accel'] == pytest.approx(rec2['accel'], abs=1e-17)
 
     @pytest.mark.parametrize(('exper', 'band'), [('raes03eo', 'l'),
                                                  ('raks16nq', 'c')])
@@ -280,8 +280,8 @@ class TestPima:
         assert rec1['sta2'] == rec2['sta2']
         assert rec1['U'] == pytest.approx(rec2['U'])
         assert rec1['V'] == pytest.approx(rec2['V'])
-        assert rec1['SNR'] == pytest.approx(rec2['SNR'], rel=1e-3)
-        assert rec1['ampl_lsq'] == pytest.approx(rec2['ampl_lsq'], rel=1e-3)
-        assert rec1['delay'] == pytest.approx(rec2['delay'], rel=1e-3)
-        assert rec1['rate'] == pytest.approx(rec2['rate'], rel=1e-3)
-        assert rec1['accel'] == pytest.approx(rec2['accel'], rel=1e-3)
+        assert rec1['SNR'] == pytest.approx(rec2['SNR'], rel=1e-2)
+        assert rec1['ampl_lsq'] == pytest.approx(rec2['ampl_lsq'], rel=1e-2)
+        assert rec1['delay'] == pytest.approx(rec2['delay'], abs=5e-9)
+        assert rec1['rate'] == pytest.approx(rec2['rate'], abs=5e-14)
+        assert rec1['accel'] == pytest.approx(rec2['accel'], abs=1e-17)
