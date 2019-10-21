@@ -712,7 +712,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 }
         elif bandpass_var == 3:
             mseg = self.pima.chan_number // 2
-            min_snr = 5.2  # Could be tuned
+            min_snr = 5.5  # Could be tuned
 
             bpas_params = {
                 'BPS.MODE:': 'ACCUM',
