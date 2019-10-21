@@ -849,6 +849,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                                      'useful scans')
                     bandpass = False
                     self.bpass_files[polar] = ''
+                    self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
 
         self.pima.mk_exclude_obs_file(self.bad_obs_set, 'fine')
 
