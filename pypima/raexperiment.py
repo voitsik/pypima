@@ -668,8 +668,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         bpas_params = {}
 
         if bandpass_var == 0:
-            if bandpass_mode:
-                bpas_params['BPS.MODE:'] = bandpass_mode
             if not ampl_bandpass:
                 bpas_params['BPS.DEG_AMP:'] = '0'
         elif bandpass_var == 1:
@@ -736,6 +734,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             self._error('Unsupported bandpass_var {}'.
                         format(bandpass_var))
+
+        if bandpass_mode:
+            bpas_params['BPS.MODE:'] = bandpass_mode
 
         self.pima.update_cnt(bpas_params)
 

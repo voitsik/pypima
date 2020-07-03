@@ -5,7 +5,7 @@ Created on Thu Oct 30 14:23:23 2014
 @author: Petr Voytsik
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import os.path
 
 import psycopg2
@@ -348,8 +348,7 @@ VALUES %s;"""
             data.append(row)
 
         with self.connw.cursor() as cursor:
-                # cursor.execute(query, parameters)
-                execute_values(cursor, query, data)
+            execute_values(cursor, query, data)
 
         self.connw.commit()
 
