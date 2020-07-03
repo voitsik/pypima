@@ -668,8 +668,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         bpas_params = {}
 
         if bandpass_var == 0:
-            if not ampl_bandpass:
-                bpas_params['BPS.DEG_AMP:'] = '0'
+            self.logger.warning('using bandpass parameters from TEMPLATE')
         elif bandpass_var == 1:
             bpas_params = {
                 'BPS.MODE:': 'FINE',
@@ -731,12 +730,38 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 'BPS.SEFD_USE:': 'NO',
                 'FRIB.SNR_DETECTION:': min_snr,
                 }
+        elif bandpass_var == 4:
+            mseg = 4
+            min_snr = 5.5  # Could be tuned
+
+            bpas_params = {
+                'BPS.MODE:': 'ACCUM',
+                'BPS.NOBS_ACCUM:': '6',
+                'BPS.MSEG_ACCUM:': mseg,
+                'BPS.NOBS_FINE:': '12',
+                'BPS.MINOBS_FINE:': '8',
+                'BPS.MSEG_FINE:': mseg,
+                'BPS.SNR_MIN_ACCUM:': min_snr,
+                'BPS.SNR_MIN_FINE:': min_snr,
+                'BPS.AMPL_REJECT:': '0.4',
+                'BPS.PHAS_REJECT:': '0.2',
+                'BPS.INTRP_METHOD:': 'LEGENDRE',
+                'BPS.DEG_AMP:': '5',
+                'BPS.DEG_PHS:': '5',
+                'BPS.AMP_MIN:': '0.01',
+                'BPS.NORML:': 'IF',
+                'BPS.SEFD_USE:': 'NO',
+                'FRIB.SNR_DETECTION:': min_snr,
+                }
         else:
             self._error('Unsupported bandpass_var {}'.
                         format(bandpass_var))
 
         if bandpass_mode:
             bpas_params['BPS.MODE:'] = bandpass_mode
+
+        if not ampl_bandpass:
+            bpas_params['BPS.DEG_AMP:'] = '0'
 
         self.pima.update_cnt(bpas_params)
 
