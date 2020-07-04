@@ -424,7 +424,7 @@ class Pima:
 
         return fri_file
 
-    def bpas(self, params=None):
+    def bpas(self, params=None) -> str:
         """
         Do bandpass calibration.
 
@@ -435,6 +435,11 @@ class Pima:
         params : list, optional
             List of the optional pima parameters. Must have even number of
             elements.
+
+        Returns
+        -------
+        log_file : str
+            Path to the bandpass log file.
 
         """
         if params and 'POLAR:' in params:
@@ -483,6 +488,8 @@ class Pima:
             self._error('bpas failed with code {}'.format(ret))
 
         self._print_info('bpas ok')
+
+        return log_file
 
     def split(self, tim_mseg=1, params=None):
         """
