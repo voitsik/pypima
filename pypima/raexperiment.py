@@ -661,7 +661,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         return bad_obs_set
 
-    def _auto_bpas(self):
+    def _auto_bpas(self) -> None:
         """
         Iterate over bandpass parameters and select the best case.
 
@@ -685,18 +685,22 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             if snr_data:
                 log_snr_dict[log_file_deg] = snr_data
 
-        table = pd.DataFrame.from_records(list(log_snr_dict.values()),
-                                          index=list(log_snr_dict.keys()))
+        if not log_snr_dict:
+            self.logger.warning('could not get bpas_accum SNR from logs')
+            self.pima.bpas()
+        else:
+            table = pd.DataFrame.from_records(list(log_snr_dict.values()),
+                                              index=list(log_snr_dict.keys()))
 
-        self.logger.debug(table)
+            self.logger.debug('\n%s', str(table))
 
-        norm_table = table / table.iloc[0]
-        scores = norm_table.sum(axis=1)
+            norm_table = table / table.iloc[0]
+            scores = norm_table.sum(axis=1)
 
-        best_bps_file = log_bps_dict[scores.idxmax()]
-        self.logger.info('Best bps is: %s', best_bps_file)
+            best_bps_file = log_bps_dict[scores.idxmax()]
+            self.logger.info('Best bps is: %s', best_bps_file)
 
-        self.pima.update_cnt({'BANDPASS_FILE:': best_bps_file})
+            self.pima.update_cnt({'BANDPASS_FILE:': best_bps_file})
 
     def _bandpass(self, bandpass_mode=None, ampl_bandpass=True,
                   bandpass_var=0):
