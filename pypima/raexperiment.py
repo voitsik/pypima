@@ -13,12 +13,14 @@ import shutil
 import threading
 
 import numpy as np
+import pandas as pd
 import pycurl
 
 import pypima.pima
 from .fri import Fri
 from .pima import Pima
 from .pima import ActaFile
+from .pima import bpas_log_snr_new
 from .uvfits import UVFits
 from .plot_utils import plot_autospectra
 
@@ -659,6 +661,43 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         return bad_obs_set
 
+    def _auto_bpas(self):
+        """
+        Iterate over bandpass parameters and select the best case.
+
+        """
+        log_bps_dict = {}
+        log_snr_dict = {}
+
+        for deg in range(1, 5):
+            log_file = self.pima.bpas(params=['BPS.DEG_AMP:', str(deg),
+                                              'BPS.DEG_PHS:', str(deg)])
+            log_file_deg = f'{log_file}_{deg}'
+            os.rename(log_file, log_file_deg)
+
+            bps_file = self.pima.cnt_params['BANDPASS_FILE:']
+            bps_file_deg = f'{bps_file}_{deg}'
+            os.rename(bps_file, bps_file_deg)
+
+            log_bps_dict[log_file_deg] = bps_file_deg
+
+            snr_data = bpas_log_snr_new(log_file_deg)
+            if snr_data:
+                log_snr_dict[log_file_deg] = snr_data
+
+        table = pd.DataFrame.from_records(list(log_snr_dict.values()),
+                                          index=list(log_snr_dict.keys()))
+
+        self.logger.debug(table)
+
+        norm_table = table / table.iloc[0]
+        scores = norm_table.sum(axis=1)
+
+        best_bps_file = log_bps_dict[scores.idxmax()]
+        self.logger.info('Best bps is: %s', best_bps_file)
+
+        self.pima.update_cnt({'BANDPASS_FILE:': best_bps_file})
+
     def _bandpass(self, bandpass_mode=None, ampl_bandpass=True,
                   bandpass_var=0):
         """
@@ -766,7 +805,11 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         self.pima.update_cnt(bpas_params)
 
         try:
-            self.pima.bpas()
+            if bandpass_var == 4 and \
+                    self.pima.cnt_params['BPS.MODE:'] == 'ACCUM':
+                self._auto_bpas()
+            else:
+                self.pima.bpas()
         except pypima.pima.Error:
             self.logger.warning('continue without bandpass')
             self.pima.update_cnt({'BANDPASS_FILE:': 'NO'})
