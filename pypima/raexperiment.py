@@ -669,7 +669,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         log_bps_dict = {}
         log_snr_dict = {}
 
-        for deg in range(1, 5):
+        for deg in range(1, 7):
             log_file = self.pima.bpas(params=['BPS.DEG_AMP:', str(deg),
                                               'BPS.DEG_PHS:', str(deg)])
             log_file_deg = f'{log_file}_{deg}'
@@ -807,6 +807,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         try:
             if bandpass_var == 4 and \
                     self.pima.cnt_params['BPS.MODE:'] == 'ACCUM':
+                self.logger.info('starting _auto_bpas')
                 self._auto_bpas()
             else:
                 self.pima.bpas()
