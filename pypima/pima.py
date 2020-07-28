@@ -1018,6 +1018,7 @@ class ActaFile:
     This class represents PIMA ``ACTA`` file.
 
     """
+
     def __init__(self, input_file_name, polar=None, utc_tai=None):
         """
         Parameters
@@ -1125,6 +1126,7 @@ class Text1D:
     This class represents PIMA ``1D text table`` file.
 
     """
+
     def __init__(self, file_name=None):
         """
         Parameters
@@ -1210,3 +1212,45 @@ def acta_plot(input_file, output_file):
     out = subprocess.check_output(cmd_line, universal_newlines=True)
 
     return out
+
+
+def bpas_log_snr_new(file_name: str, mode: str = 'ACCUM'):
+    """
+    Read bandpass log and get 'new' SNR for give `mode` if any.
+
+    Parameters
+    ----------
+    file_name : str
+        Log file name.
+    mode : str, optional
+        Bandpass stage. The default is 'ACCUM'.
+
+    Returns
+    -------
+    res : dict
+        Return dictionary {obs: snr}.
+
+    """
+    res = {}
+    in_bpass = False
+
+    bpas_mode_line = f'PIMA_BPASS_{mode}'
+
+    with open(file_name, 'r') as file:
+        for line in file:
+            if bpas_mode_line in line:
+                in_bpass = True
+                continue
+
+            if in_bpass and line.startswith('Obs:'):
+                cols = line.split()
+
+                obs = int(cols[1])
+                snr_new_ind = cols.index('new:') + 1
+
+                try:
+                    res[obs] = float(cols[snr_new_ind])
+                except ValueError:
+                    res[obs] = 0.0
+
+    return res
