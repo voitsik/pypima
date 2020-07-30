@@ -643,24 +643,6 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         bad_obs_set = set()
 
-#         for key, acta_file in self.acta_files[self.scan_part].items():
-#             if np.median(acta_file.ampl) < 0.5:
-#                 polar, scan_name, sta = key
-#                 # sta = acta_file.header['station']
-#                 scan = acta_file.header['scan']
-#                 # obs = acta_file.header['obs']
-#                 # scan_name = acta_file.header['scan_name']
-
-# #                self.logger.info('sta: %s obs: %s median(ampl) = %s',
-# #                                 sta, obs, np.median(acta_file.ampl))
-
-#                 for obs in self.pima.observations:
-#                     if obs.scan == scan and obs.time_code == scan_name and \
-#                             sta in (obs.sta1, obs.sta2):
-#                         self.logger.warning('Bad autospec for sta: %s obs: %s',
-#                                             sta, obs.obs)
-#                         bad_obs_set.add(obs.obs)
-
         for obs in self.pima.observations:
             for sta in (obs.sta1, obs.sta2):
                 if self.pima.cnt_params['POLAR:'] in ('RR', 'LL'):
