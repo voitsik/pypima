@@ -85,6 +85,7 @@ class RaExperiment:
         self.fri = None  # Result of last fringe fitting
         self.scan_part = 0
         self.bad_obs_set = set()  # Set of bad obs (autospec)
+        self.acta_files = {}  # Store autospectra data
 
         # dict (POLAR, frq_grp) -> BANDPASS_FILE
         self.bpass_files = {('RR', 1): '',
@@ -450,6 +451,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         """
         self.scan_part = scan_part
         self.bad_obs_set.clear()
+        self.acta_files.clear()
 
         # If self.uv_fits is not None assume FITS file already exists
         with self.lock:
@@ -634,30 +636,55 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         Return set of observation numbers with bad autospectrum.
 
         """
-        acta_list = self.generate_autospectra()
+        self.generate_autospectra()
 
-        if not acta_list:
+        if not self.acta_files:
             return
 
         bad_obs_set = set()
 
-        for acta_file in acta_list:
-            if np.median(acta_file.ampl) < 0.5:
-                # exper, band = acta_file.header['experiment'].split('_')
-                sta = acta_file.header['station']
-                scan = acta_file.header['scan']
-                # obs = acta_file.header['obs']
-                scan_name = acta_file.header['scan_name']
+#         for key, acta_file in self.acta_files[self.scan_part].items():
+#             if np.median(acta_file.ampl) < 0.5:
+#                 polar, scan_name, sta = key
+#                 # sta = acta_file.header['station']
+#                 scan = acta_file.header['scan']
+#                 # obs = acta_file.header['obs']
+#                 # scan_name = acta_file.header['scan_name']
 
-#                self.logger.info('sta: %s obs: %s median(ampl) = %s',
-#                                 sta, obs, np.median(acta_file.ampl))
+# #                self.logger.info('sta: %s obs: %s median(ampl) = %s',
+# #                                 sta, obs, np.median(acta_file.ampl))
 
-                for obs in self.pima.observations:
-                    if obs.scan == scan and obs.time_code == scan_name and \
-                            sta in (obs.sta1, obs.sta2):
-                        self.logger.warning('Bad autospec for sta: %s obs: %s',
-                                            sta, obs.obs)
-                        bad_obs_set.add(obs.obs)
+#                 for obs in self.pima.observations:
+#                     if obs.scan == scan and obs.time_code == scan_name and \
+#                             sta in (obs.sta1, obs.sta2):
+#                         self.logger.warning('Bad autospec for sta: %s obs: %s',
+#                                             sta, obs.obs)
+#                         bad_obs_set.add(obs.obs)
+
+        for obs in self.pima.observations:
+            for sta in (obs.sta1, obs.sta2):
+                if self.pima.cnt_params['POLAR:'] in ('RR', 'LL'):
+                    sta_pol = self.pima.cnt_params['POLAR:']
+                elif self.pima.cnt_params['POLAR:'] == 'RL':
+                    if sta == obs.sta1:
+                        sta_pol = 'RR'
+                    else:
+                        sta_pol = 'LL'
+                elif self.pima.cnt_params['POLAR:'] == 'LR':
+                    if sta == obs.sta1:
+                        sta_pol = 'LL'
+                    else:
+                        sta_pol = 'RR'
+                else:
+                    raise RuntimeError('unsupported polar {}'.format(
+                        self.pima.cnt_params['POLAR:']))
+
+                acta_file = self.acta_files[sta_pol, obs.time_code, sta]
+
+                if np.median(acta_file.ampl) < 0.5:
+                    self.logger.warning('Bad autospec for sta: %s obs: %s',
+                                        sta, obs.obs)
+                    bad_obs_set.add(obs.obs)
 
         return bad_obs_set
 
@@ -1143,10 +1170,10 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         if os.path.isdir(staging_dir):
             shutil.rmtree(staging_dir)
 
-    def generate_autospectra(self, plot=False, out_dir=None, db=False):
+    def generate_autospectra(self, plot=False, out_dir=None, db=False) -> None:
         """
         Generate autocorrelation spectrum for each station for each scan
-        using ``acta`` PIMA task.
+        using ``acta`` PIMA task and fill `self.acta_files` dict.
 
         Parameters
         ----------
@@ -1157,35 +1184,39 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         db : bool
             If ``True`` store autospectra to the database.
 
-        Return
-        ------
-        acta_file_list : list
-            List of the ``ActaFile`` instances.
-
         """
-        # Sometimes PIMA crashes on `acta` task
-        try:
-            file_list = self.pima.acta()
-        except pypima.pima.Error:
-            # Remove core dump file.
-            if os.path.isfile('core'):
-                os.remove('core')
-
+        if self.acta_files:
+            self.logger.debug('acta has already been called')
             return
 
-        utc_tai = self.pima.exper_info['utc_minus_tai']
-        polar = self.pima.cnt_params['POLAR:']
-        acta_file_list = [ActaFile(file_name, polar, utc_tai)
-                          for file_name in file_list]
+        for polar in ('RR', 'LL'):
+            # Sometimes PIMA crashes on `acta` task
+            try:
+                file_list = self.pima.acta(params=['POLAR:', polar])
+            except pypima.pima.Error:
+                # Remove core dump file.
+                if os.path.isfile('core'):
+                    os.remove('core')
 
-        if plot:
-            plot_autospectra(acta_file_list, out_dir)
+                return
 
-        if db:
-            for acta_file in acta_file_list:
-                self.db.autospec2db(acta_file)
+            utc_tai = self.pima.exper_info['utc_minus_tai']
 
-        return acta_file_list
+            for file_name in file_list:
+                acta_file = ActaFile(file_name, polar, utc_tai)
+
+                sta = acta_file.header['station']
+                scan_name = acta_file.header['scan_name']
+
+                assert (polar, scan_name, sta) not in self.acta_files
+
+                self.acta_files[polar, scan_name, sta] = acta_file
+
+                if plot:
+                    acta_file.plot(out_dir)
+
+                if db:
+                    self.db.autospec2db(acta_file)
 
 
 def _download_it(url, buffer, max_retries=0, ftp_user=None):
