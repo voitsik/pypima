@@ -13,9 +13,14 @@ import os.path
 import shutil
 import subprocess
 
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
+import numpy as np
+
 
 class Error(Exception):
     """Raised when PIMA error occurs"""
+
     def __init__(self, exper, band, msg):
         self.exper = exper
         self.band = band
@@ -111,6 +116,7 @@ class Pima:
     Pima class is analog of pima_fringe.csh script.
 
     """
+
     def __init__(self, experiment_code, band, work_dir=None):
         # First, set common variables
         self.exper = experiment_code.lower()
@@ -1119,6 +1125,57 @@ class ActaFile:
         Return list of the amplitudes of the autospectrum.
         """
         return self._ampl
+
+    def plot(self, out_dir_base) -> None:
+        """
+        Plot each autocorrelation spectrum in `acta_file_list`.
+
+        Parameters
+        ----------
+        acta_file_list : list of ``ActaFile`` objects
+            List of autospectra in ``ActaFile`` format.
+        out_dir_base : str
+            Base output directory.
+
+        """
+        out_format = 'pdf'
+        fig = Figure()
+        FigureCanvas(fig)
+        ax = fig.add_subplot(111)
+
+        out_dir = os.path.join(out_dir_base, self.header['experiment'])
+        os.makedirs(out_dir, exist_ok=True)
+
+        date = self.header['start_date']
+        date_str = date.strftime('%Y-%m-%d %H:%M:%S')
+
+        ax.cla()
+        ax.set_ymargin(0.05)
+        ax.xaxis.set_ticks(np.arange(-16, 16+1, 4))
+
+        ax.set_title('{} - {} - {}'.format(self.header['station'],
+                                           self.header['experiment'],
+                                           date_str))
+        ax.set_xlabel('Frequency (MHz)')
+        ax.set_ylabel('Amplitude')
+        ax.grid(True)
+        central_freq = np.mean(self.freq)
+        logging.debug('plot_autospectra: central_freq = %s', central_freq)
+        freq = np.asarray(self.freq) - central_freq
+        ax.plot(freq, self.ampl, marker='o', ms=2)
+        ax.set_xlim(-16, 16)
+
+        date_str = date.strftime('%Y%m%dT%H%M')
+        polar = self.header['polar']
+        out_file = \
+            'AUTOSPEC_{}_{}_{}_{}.{}'.format(date_str,
+                                             self.header['experiment'],
+                                             polar,
+                                             self.header['station'],
+                                             out_format)
+
+        out_file = os.path.join(out_dir, out_file)
+        fig.savefig(out_file, format=out_format)
 
 
 class Text1D:
