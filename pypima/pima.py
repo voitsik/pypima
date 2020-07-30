@@ -586,11 +586,17 @@ class Pima:
             List of the names of the generated files.
 
         """
+        if params and 'POLAR:' in params:
+            polar = params[params.index('POLAR:') + 1]
+        else:
+            polar = self.cnt_params['POLAR:']
+
         opts = ['DEBUG_LEVEL:', '2']
+
         if params:
             opts.extend(params)
 
-        log_file = '{}_{}_acta.log'.format(self.exper, self.band)
+        log_file = '{}_{}_{}_acta.log'.format(self.exper, self.band, polar)
         log_file = os.path.join(self.work_dir, log_file)
 
         ret = self._exec('acta', opts, log_file)
