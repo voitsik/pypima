@@ -1132,32 +1132,26 @@ class ActaFile:
         """
         return self._ampl
 
-    def plot(self, out_dir_base) -> None:
+    def plot(self, out_dir_base: str, out_format: str = 'pdf') -> None:
         """
-        Plot each autocorrelation spectrum in `acta_file_list`.
+        Plot autocorrelation spectrum to PDF file.
 
         Parameters
         ----------
-        acta_file_list : list of ``ActaFile`` objects
-            List of autospectra in ``ActaFile`` format.
         out_dir_base : str
             Base output directory.
+        out_format : str, optional
+            Format of the output file. The default is 'pdf'.
 
         """
-        out_format = 'pdf'
         fig = Figure()
         FigureCanvas(fig)
         ax = fig.add_subplot(111)
-
-        out_dir = os.path.join(out_dir_base, self.header['experiment'])
-        os.makedirs(out_dir, exist_ok=True)
+        ax.set_ymargin(0.05)
+        ax.xaxis.set_ticks(np.arange(-16, 16+1, 4))
 
         date = self.header['start_date']
         date_str = date.strftime('%Y-%m-%d %H:%M:%S')
-
-        ax.cla()
-        ax.set_ymargin(0.05)
-        ax.xaxis.set_ticks(np.arange(-16, 16+1, 4))
 
         ax.set_title('{} - {} - {}'.format(self.header['station'],
                                            self.header['experiment'],
@@ -1180,6 +1174,8 @@ class ActaFile:
                                              self.header['station'],
                                              out_format)
 
+        out_dir = os.path.join(out_dir_base, self.header['experiment'])
+        os.makedirs(out_dir, exist_ok=True)
         out_file = os.path.join(out_dir, out_file)
         fig.savefig(out_file, format=out_format)
 
