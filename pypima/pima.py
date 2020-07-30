@@ -1153,9 +1153,10 @@ class ActaFile:
         date = self.header['start_date']
         date_str = date.strftime('%Y-%m-%d %H:%M:%S')
 
-        ax.set_title('{} - {} - {}'.format(self.header['station'],
-                                           self.header['experiment'],
-                                           date_str))
+        ax.set_title('{} - {} - {} - {}'.format(self.header['station'],
+                                                self.header['experiment'],
+                                                self.header['polar'],
+                                                date_str))
         ax.set_xlabel('Frequency (MHz)')
         ax.set_ylabel('Amplitude')
         ax.grid(True)
@@ -1166,11 +1167,10 @@ class ActaFile:
         ax.set_xlim(-16, 16)
 
         date_str = date.strftime('%Y%m%dT%H%M')
-        polar = self.header['polar']
         out_file = \
             'AUTOSPEC_{}_{}_{}_{}.{}'.format(date_str,
                                              self.header['experiment'],
-                                             polar,
+                                             self.header['polar'],
                                              self.header['station'],
                                              out_format)
 
