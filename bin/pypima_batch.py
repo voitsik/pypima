@@ -234,10 +234,11 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             scan_len_list.append(fri.max_scan_length())
             ra_exp.fringes2db()
 
+            # Split good data
             if ra_exp.pima.chan_number <= 256 and \
                     ra_exp.calibration_loaded and \
                     polar in ('RR', 'LL'):
-                for aver in (0, round(scan_len_list[-1])):
+                for aver in (False, True):
                     ra_exp.split(average=aver)
                     ra_exp.copy_uvfits(uv_fits_out_dir)
 
@@ -266,7 +267,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             if ra_exp.pima.chan_number <= 256 and \
                     ra_exp.calibration_loaded and \
                     polar in ('RR', 'LL'):
-                ra_exp.split(average=scan_len)
+                ra_exp.split(average=True)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
     #
@@ -294,7 +295,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                     ra_exp.fringes2db()
 
                     if ra_exp.calibration_loaded:
-                        ra_exp.split(average=scan_len)
+                        ra_exp.split(average=True)
                         ra_exp.copy_uvfits(uv_fits_out_dir)
 
             scan_part += 1
@@ -318,7 +319,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                 ra_exp.fringes2db()
 
                 if ra_exp.calibration_loaded:
-                    ra_exp.split(average=scan_len)
+                    ra_exp.split(average=True)
                     ra_exp.copy_uvfits(uv_fits_out_dir)
 
     ra_exp.delete_uvfits()
@@ -326,6 +327,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
 
 class InvalidFileFormat(Exception):
     """Invalid file format error"""
+
     def __init__(self, message, file_name):
         self.file_name = file_name
         self.message = message
