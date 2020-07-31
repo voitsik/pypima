@@ -562,7 +562,7 @@ class Pima:
         Load Tsys from the `tsys_file`.
 
         """
-        opts = ['vlba_log_file', tsys_file, 'DEBUG_LEVEL:', '1']
+        opts = ['vlba_log_file', tsys_file, 'DEBUG_LEVEL:', '6']
         if params:
             opts.extend(params)
 
@@ -805,7 +805,7 @@ class Pima:
         Return list of observations with some information.
 
         """
-        Obs = namedtuple('Obs', 'obs scan time_code source sta1 sta2')
+        Obs = namedtuple('Obs', 'obs scan time_code source sta1 sta2 ap_num')
         obs_list = []
 
         obs_file = os.path.join(self.cnt_params['EXPER_DIR:'],
@@ -824,7 +824,8 @@ class Pima:
                               time_code=toks[2],
                               source=toks[8],
                               sta1=toks[9],
-                              sta2=toks[10])
+                              sta2=toks[10],
+                              ap_num=int(toks[12]))
 
                     obs_list.append(obs)
 

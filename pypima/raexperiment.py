@@ -997,7 +997,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         if mask_file:
             self.logger.info('Set %s as new mask file', mask_file)
 
-    def split(self, source=None, average=0):
+    def split(self, source=None, average=False):
         """
         Split a multi-source uv data set into single-source data files.
 
@@ -1006,9 +1006,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         source : string, optional
             Do split only for given source. By default split all sources in
             the experiment.
-        average : float, optional
-            Number of seconds to average data when splitting. `average` <= 0
-            disables time averaging.
+        average : bool, optional
+            If ``True`` average data over full scan length.
 
         """
         # Delete old uv-fits remained from previous run
@@ -1049,8 +1048,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             split_params.extend(('SPLT.SOU_NAME:', 'ALL'))
 
         ap = self.pima.ap_minmax[0]
-        if average > 0:
-            time_segments = round(average / ap)
+        if average:
+            time_segments = max([obs.ap_num for obs in self.pima.observations]) + 1
         else:
             time_segments = 1
 

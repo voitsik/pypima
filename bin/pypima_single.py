@@ -159,8 +159,8 @@ def main():
             max_scan_len = fri.max_scan_length()
             logging.debug('DEBUG: max_scan_len = %s', max_scan_len)
             if args.split:
-                for aver_time in (0, round(max_scan_len)):
-                    ra_exp.split(average=aver_time)
+                for aver in (False, True):
+                    ra_exp.split(average=aver)
 
                     # Copy final UV-FITS files to the system tmp directory
                     ra_exp.copy_uvfits(tempfile.gettempdir())
