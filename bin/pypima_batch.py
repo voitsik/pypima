@@ -67,11 +67,7 @@ def generate_autospec(ra_exp, spec_out_dir, force_small=False):
 
     """
     ra_exp.load(update_db=False, scan_part=1, force_small=force_small)
-
-    for polar in ('RR', 'RL', 'LR', 'LL'):
-        ra_exp.pima.set_polar(polar)
-        ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
-
+    ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
     ra_exp.delete_uvfits()
 
 
