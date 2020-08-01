@@ -7,6 +7,7 @@ Created on 18.02.2014
 """
 
 import argparse
+from collections import namedtuple
 import logging
 import os.path
 import shutil
@@ -325,7 +326,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ra_exp.delete_uvfits()
 
 
-class InvalidFileFormat(Exception):
+class InvalidInputFile(Exception):
     """Invalid file format error"""
 
     def __init__(self, message, file_name):
@@ -336,47 +337,56 @@ class InvalidFileFormat(Exception):
         return '{}: {}'.format(self.message, self.file_name)
 
 
-def parser_input_file(file_name, database, data_dir, gvlbi, orbit=None):
+def parser_input_file(file_name):
     """
-    Parse input file and create RaExperiment objects.
+    Parse input file and return list of records.
 
     The input file is a table with minimum two columns: exper_name, band, and
     FITS-IDI file name(s) (optional).
 
+    Parameters
+    ----------
+    file_name : str
+        Input file name.
+
     Returns
     -------
     exp_list : list
-        List of RaExperiment instances.
+        Return list of (exper_name, band, fits) records.
 
     """
+    ExperRec = namedtuple('ExperRec', 'exper_name band fits_list')
     exp_list = []
 
     with open(file_name, 'r') as file:
         for line in file:
             line = line.split('#')[0].strip()  # Strip comments out
 
+            # Skip blank lines
             if not line:
                 continue
 
             columns = line.split()
 
             if len(columns) < 2:
-                raise InvalidFileFormat('file should contain at least two '
-                                        'columns',
-                                        file_name)
+                raise InvalidInputFile('file should contain at least two '
+                                       'columns', file_name)
 
             exper_name = columns[0]
             band = columns[1]
 
             if len(columns) >= 3:
-                fits = columns[2:]
-            else:
-                fits = None
+                fits_list = columns[2:]
 
-            exp_list.append(RaExperiment(exper_name, band,
-                                         database, uv_fits=fits,
-                                         data_dir=data_dir, gvlbi=gvlbi,
-                                         orbit=orbit))
+                # Check FITS file existence
+                for fits_file in fits_list:
+                    if not os.path.exists(fits_file):
+                        raise FileNotFoundError(f'File {fits_file} does not '
+                                                'exist')
+            else:
+                fits_list = None
+
+            exp_list.append(ExperRec(exper_name, band, fits_list))
 
     return exp_list
 
@@ -471,14 +481,20 @@ def main():
                          default=os.path.join(os.getenv('HOME'),
                                               'data', 'pima_data'))
 
+    exp_list = []
+
     try:
-        exp_list = parser_input_file(args.file_name, database, data_dir,
-                                     args.gvlbi, args.orbit)
+        for rec in parser_input_file(args.file_name):
+            exp_list.append(RaExperiment(rec.exper_name, rec.band,
+                                         database, uv_fits=rec.fits_list,
+                                         data_dir=data_dir,
+                                         gvlbi=args.gvlbi,
+                                         orbit=args.orbit))
     except OSError as err:
         logging.error('OSError: %s', err)
         return 1
-    except InvalidFileFormat as err:
-        logging.error('InvalidFileFormat: %s', err)
+    except InvalidInputFile as err:
+        logging.error('InvalidInputFile: %s', err)
         return 1
 
     out_dir = os.getenv('PYPIMA_SPLIT_DIR',
