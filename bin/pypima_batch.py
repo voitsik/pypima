@@ -469,6 +469,7 @@ def main():
 
     if args.flag_chann < 0:
         logging.error('Number of flagged channels must not be negative')
+        return 1
 
     # Connect to database
     try:
