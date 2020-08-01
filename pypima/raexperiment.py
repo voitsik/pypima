@@ -1049,7 +1049,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         ap = self.pima.ap_minmax[0]
         if average:
-            time_segments = max([obs.ap_num for obs in self.pima.observations]) + 1
+            time_segments = max([obs.ap_num for obs in self.pima.observations])
         else:
             time_segments = 1
 
