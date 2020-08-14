@@ -816,7 +816,7 @@ class Pima:
                 for line in file:
                     toks = line.split()
 
-                    if len(toks) < 11:
+                    if len(toks) < 13:
                         continue
 
                     obs = Obs(obs=int(toks[0]),

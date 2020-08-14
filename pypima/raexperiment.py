@@ -22,11 +22,11 @@ from .pima import Pima
 from .pima import ActaFile
 from .pima import bpas_log_snr_new
 from .uvfits import UVFits
-from .plot_utils import plot_autospectra
 
 
 class Error(Exception):
     """Raised when RaExperiment error occurs"""
+
     def __init__(self, exper, band, msg):
         self.exper = exper
         self.band = band
@@ -1040,6 +1040,13 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                     rec['duration'] < 30:
                 obs_list.append(rec['obs'])
 
+        # Exclude very short observations
+        ap_len = self.pima.ap_minmax[0]
+        min_scan_len = float(self.pima.cnt_params['MIN_SCAN_LEN:'])
+        for obs in self.pima.observations:
+            if obs.ap_num * ap_len < min_scan_len:
+                obs_list.append(obs.obs)
+
         self.pima.mk_exclude_obs_file(obs_list, 'splt')
 
         if source:
@@ -1047,13 +1054,12 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         else:
             split_params.extend(('SPLT.SOU_NAME:', 'ALL'))
 
-        ap = self.pima.ap_minmax[0]
         if average:
             time_segments = max([obs.ap_num for obs in self.pima.observations])
         else:
             time_segments = 1
 
-        self.split_time_aver = time_segments * ap
+        self.split_time_aver = time_segments * ap_len
         self.pima.split(tim_mseg=time_segments, params=split_params)
 
     def copy_uvfits(self, out_dir):
