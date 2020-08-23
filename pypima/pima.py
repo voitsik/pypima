@@ -819,13 +819,20 @@ class Pima:
                     if len(toks) < 13:
                         continue
 
+                    try:
+                        ap_num = int(toks[12])
+                    except ValueError as err:
+                        self.logger.warning('could not get ap num for obs %s:'
+                                            ' %s', toks[0], err)
+                        ap_num = 0
+
                     obs = Obs(obs=int(toks[0]),
                               scan=int(toks[1]),
                               time_code=toks[2],
                               source=toks[8],
                               sta1=toks[9],
                               sta2=toks[10],
-                              ap_num=int(toks[12]))
+                              ap_num=ap_num)
 
                     obs_list.append(obs)
 
