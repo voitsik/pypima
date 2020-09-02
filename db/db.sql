@@ -3,6 +3,7 @@
 CREATE TYPE band_type AS ENUM ('p', 'l', 'c', 'k');
 CREATE TYPE polar_type AS ENUM ('RR', 'RL', 'LR', 'LL');
 CREATE TYPE status_type AS ENUM ('n', 'u', 'y');
+CREATE TYPE sync_type AS ENUM ('HM', 'RB', 'CH');
 
 CREATE TABLE vex_files (
     file_name varchar(32),
@@ -48,7 +49,8 @@ CREATE TABLE pima_runs (
   last_error varchar(256),
   hostname varchar(64),
   pima_version varchar(8),
-  correlator_name varchar(8) DEFAULT 'ASCFX'
+  correlator_name varchar(8) DEFAULT 'ASCFX',
+  sync_mode sync_type DEFAULT 'HM'::sync_type
   UNIQUE (exper_name, band, fits_idi, scan_part)
 );
 
