@@ -331,12 +331,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                                     antab_url, err)
 
     def _fix_antab(self, antab):
-        """
-        Fix antab.
-
-        """
+        """Fix antab."""
         if not antab or not os.path.isfile(antab):
-            return None
+            return
 
         new_antab = antab.replace('.orig', '')
 
@@ -350,6 +347,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         # Should we fix frequency setup?
         fix_freq = False
         if self.band != 'p' and freq_setup[0].side_band != -1:
+            self.logger.warning('enable sideband fix for ANTAB')
             fix_freq = True
 
         sta_list = self.pima.station_list(ivs_name=False)
@@ -392,6 +390,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
                 # Fix EF C-band channels table
                 if len(toks) == 10 and toks[0] == '!' and toks[1].isdigit():
+                    self.logger.warning('fix EF C-band channels table')
                     toks.insert(2, "6cm")
 
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
@@ -403,6 +402,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 if toks[0] == 'TSYS' and len(toks) > 4:
                     toks[4] = toks[4].upper()
                     if toks[4] not in sta_list:
+                        self.logger.warning('deselect %s from ANTAB', toks[4])
                         toks.insert(0, '!')
                 elif toks[0] == 'GAIN':
                     # EF, L-band GAINs
@@ -419,6 +419,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                             fr1 = float(fr1)  # Lower limit
                             fr2 = float(fr2)  # Upper limit
                             if min(freq_list) < fr1 or max(freq_list) > fr2:
+                                self.logger.warning('deselect GAIN due to '
+                                                    '%s is out of freq range',
+                                                    tok)
                                 toks.insert(0, '!')
                                 break
 
