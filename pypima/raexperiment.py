@@ -10,6 +10,7 @@ from io import BytesIO
 import logging
 import os.path
 import shutil
+import subprocess
 import threading
 
 import numpy as np
@@ -1066,10 +1067,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         self.pima.split(tim_mseg=time_segments, params=split_params)
 
     def copy_uvfits(self, out_dir):
-        """
-        Copy calibrated uv-fits files from pima scratch dir to out_dir.
-
-        """
+        """Copy calibrated uv-fits files from pima scratch dir to `out_dir`."""
         exper_dir = self.pima.cnt_params['EXPER_DIR:']
         sess_code = self.pima.cnt_params['SESS_CODE:']
         band = self.pima.cnt_params['BAND:']
@@ -1125,7 +1123,10 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
             # Run `fits_to_radplot` only for averaged uv-fits
             if self.split_time_aver > 2:
-                pypima.pima.fits_to_txt(out_fits_path)
+                try:
+                    pypima.pima.fits_to_txt(out_fits_path)
+                except subprocess.SubprocessError:
+                    self._error('fits_to_radplot failed')
 
                 if self.run_id > 0:
                     with UVFits(out_fits_path) as uvfits_file:
