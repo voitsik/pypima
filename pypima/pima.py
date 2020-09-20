@@ -1281,16 +1281,16 @@ def acta_plot(input_file, output_file):
     return out
 
 
-def bpas_log_snr_new(file_name: str, mode: str = 'ACCUM'):
+def bpas_log_snr_new(file_name: str, mode: str = 'INIT'):
     """
-    Read bandpass log and get 'new' SNR for give `mode` if any.
+    Retrieve ``new`` SNR values from bandpass log file.
 
     Parameters
     ----------
     file_name : str
         Log file name.
     mode : str, optional
-        Bandpass stage. The default is 'ACCUM'.
+        Bandpass stage. The default is 'INIT' that is all stages.
 
     Returns
     -------
