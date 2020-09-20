@@ -675,10 +675,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         return bad_obs_set
 
     def _auto_bpas(self) -> None:
-        """
-        Iterate over bandpass parameters and select the best case.
-
-        """
+        """Iterate over bandpass parameters and select the best case."""
         log_bps_dict = {}
         log_snr_dict = {}
 
@@ -694,7 +691,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
             log_bps_dict[log_file_deg] = bps_file_deg
 
-            snr_data = bpas_log_snr_new(log_file_deg)
+            snr_data = bpas_log_snr_new(log_file_deg, mode='INIT')
             if snr_data:
                 log_snr_dict[log_file_deg] = snr_data
 
