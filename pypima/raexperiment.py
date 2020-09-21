@@ -692,7 +692,15 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             # log_bps_dict[log_file_deg] = bps_file_deg
 
             if fringe_fit:
-                pass
+                fri = Fri(self.pima.fine(params=['PHASE_ACCEL_MIN:', '0',
+                                                 'PHASE_ACCEL_MAX:', '0',
+                                                 'FRIB.FINE_SEARCH:', 'LSQ']))
+                if not fri:
+                    self._error('fringe fitting fails in _auto_bpas')
+                snr_data = {}
+                for rec in fri:
+                    if rec['status'] == 'y':
+                        snr_data[rec['obs']] = rec['SNR']
             else:
                 snr_data = bpas_log_snr_new(log_file_deg, mode='INIT')
 
@@ -824,10 +832,13 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         self.pima.update_cnt(bpas_params)
 
         try:
-            if bandpass_var == 4 and \
+            if bandpass_var in (4, 5) and \
                     self.pima.cnt_params['BPS.MODE:'] == 'ACCUM':
                 self.logger.info('starting _auto_bpas')
-                self._auto_bpas()
+                if bandpass_var == 4:
+                    self._auto_bpas(fringe_fit=False)
+                else:
+                    self._auto_bpas(fringe_fit=True)
             else:
                 self.pima.bpas()
         except pypima.pima.Error:
