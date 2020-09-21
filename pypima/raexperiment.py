@@ -699,6 +699,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                             'BANDPASS_FILE:', bps_file_deg]))
                 if not fri:
                     self._error('fringe fitting fails in _auto_bpas')
+                fri.update_status(64)
                 snr_data = {}
                 for rec in fri:
                     if rec['status'] == 'y':
