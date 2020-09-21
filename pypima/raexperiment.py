@@ -692,9 +692,11 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             # log_bps_dict[log_file_deg] = bps_file_deg
 
             if fringe_fit:
-                fri = Fri(self.pima.fine(params=['PHASE_ACCEL_MIN:', '0',
-                                                 'PHASE_ACCEL_MAX:', '0',
-                                                 'FRIB.FINE_SEARCH:', 'LSQ']))
+                fri = Fri(self.pima.fine(
+                    params=['PHASE_ACCEL_MIN:', '0',
+                            'PHASE_ACCEL_MAX:', '0',
+                            'FRIB.FINE_SEARCH:', 'LSQ',
+                            'BANDPASS_FILE:', bps_file_deg]))
                 if not fri:
                     self._error('fringe fitting fails in _auto_bpas')
                 snr_data = {}
