@@ -796,7 +796,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 'BPS.SEFD_USE:': 'NO',
                 'FRIB.SNR_DETECTION:': min_snr,
                 }
-        elif bandpass_var == 4:
+        elif bandpass_var in (4, 5):
             mseg = 4
             min_snr = 5.5  # Could be tuned
 
