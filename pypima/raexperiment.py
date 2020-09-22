@@ -700,10 +700,19 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 if not fri:
                     self._error('fringe fitting fails in _auto_bpas')
                 fri.update_status(64)
-                snr_data = {}
-                for rec in fri:
-                    if rec['status'] == 'y':
-                        snr_data[rec['obs']] = rec['SNR']
+                # snr_data = {}
+                # for rec in fri:
+                #     if rec['status'] == 'y':
+                #         snr_data[rec['obs']] = rec['SNR']
+                if fri.any_detections('RADIO-AS'):
+                    snr_data = {rec['obs']: rec['SNR']
+                                for rec in fri
+                                if rec['status'] == 'y'
+                                if rec['sta1'] == 'RADIO-AS'}
+                else:
+                    snr_data = {rec['obs']: rec['SNR']
+                                for rec in fri
+                                if rec['status'] == 'y'}
             else:
                 snr_data = bpas_log_snr_new(log_file_deg, mode='INIT')
 
