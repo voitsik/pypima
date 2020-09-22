@@ -359,12 +359,25 @@ class Fri():
 
         return result
 
-    def any_detections(self):
+    def any_detections(self, station=None):
         """
         Return ``True`` if there is at least one observation with status 'y'.
 
+        Parameters
+        ----------
+        station : str, optional
+            If station name is provided select observations with this station
+            only.
+
         """
-        return 'y' in [rec['status'] for rec in self.records]
+        # Select observations with `station`
+        if station:
+            records = [rec for rec in self.records if station in (rec['sta1'],
+                                                                  rec['sta2'])]
+        else:
+            records = self.records
+
+        return 'y' in [rec['status'] for rec in records]
 
     def non_detections(self):
         """
