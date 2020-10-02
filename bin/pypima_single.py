@@ -61,7 +61,7 @@ def parse_args():
                        help='set BANDPASS_USE PIMA parameter')
     group.add_argument('--no-ampl-bpas', action='store_true',
                        help='disable amplitude bandpass calibration')
-    group.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3, 4],
+    group.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3, 4, 5],
                        default=3,
                        help='predefined bandpass parameters')
     group.add_argument('--flag-chann', type=int, default=2, metavar='N',

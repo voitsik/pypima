@@ -674,10 +674,10 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         return bad_obs_set
 
-    def _auto_bpas(self) -> None:
+    def _auto_bpas(self, fringe_fit: bool = False) -> None:
         """Iterate over bandpass parameters and select the best case."""
-        log_bps_dict = {}
-        log_snr_dict = {}
+        # log_bps_dict = {}
+        snr_dict = {}
 
         for deg in range(1, 7):
             log_file = self.pima.bpas(params=['BPS.DEG_AMP:', str(deg),
@@ -689,25 +689,50 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             bps_file_deg = f'{bps_file}_{deg}'
             os.rename(bps_file, bps_file_deg)
 
-            log_bps_dict[log_file_deg] = bps_file_deg
+            # log_bps_dict[log_file_deg] = bps_file_deg
 
-            snr_data = bpas_log_snr_new(log_file_deg, mode='INIT')
+            if fringe_fit:
+                fri = Fri(self.pima.fine(
+                    params=['PHASE_ACCEL_MIN:', '0',
+                            'PHASE_ACCEL_MAX:', '0',
+                            'FRIB.FINE_SEARCH:', 'LSQ',
+                            'BANDPASS_FILE:', bps_file_deg]))
+                if not fri:
+                    self._error('fringe fitting fails in _auto_bpas')
+                fri.update_status(64)
+                # snr_data = {}
+                # for rec in fri:
+                #     if rec['status'] == 'y':
+                #         snr_data[rec['obs']] = rec['SNR']
+                if fri.any_detections('RADIO-AS'):
+                    snr_data = {rec['obs']: rec['SNR']
+                                for rec in fri
+                                if rec['status'] == 'y'
+                                if rec['sta1'] == 'RADIO-AS'}
+                else:
+                    snr_data = {rec['obs']: rec['SNR']
+                                for rec in fri
+                                if rec['status'] == 'y'}
+            else:
+                snr_data = bpas_log_snr_new(log_file_deg, mode='INIT')
+
             if snr_data:
-                log_snr_dict[log_file_deg] = snr_data
+                snr_dict[bps_file_deg] = snr_data
 
-        if not log_snr_dict:
+        if not snr_dict:
             self.logger.warning('could not get bpas_accum SNR from logs')
             self.pima.bpas()
         else:
-            table = pd.DataFrame.from_records(list(log_snr_dict.values()),
-                                              index=list(log_snr_dict.keys()))
+            table = pd.DataFrame.from_records(list(snr_dict.values()),
+                                              index=list(snr_dict.keys()))
 
             self.logger.debug('\n%s', str(table))
 
             norm_table = table / table.iloc[0]
             scores = norm_table.sum(axis=1)
 
-            best_bps_file = log_bps_dict[scores.idxmax()]
+            # best_bps_file = log_bps_dict[scores.idxmax()]
+            best_bps_file = scores.idxmax()
             self.logger.info('Best bps is: %s', best_bps_file)
 
             self.pima.update_cnt({'BANDPASS_FILE:': best_bps_file})
@@ -783,7 +808,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 'BPS.SEFD_USE:': 'NO',
                 'FRIB.SNR_DETECTION:': min_snr,
                 }
-        elif bandpass_var == 4:
+        elif bandpass_var in (4, 5):
             mseg = 4
             min_snr = 5.5  # Could be tuned
 
@@ -819,10 +844,13 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         self.pima.update_cnt(bpas_params)
 
         try:
-            if bandpass_var == 4 and \
+            if bandpass_var in (4, 5) and \
                     self.pima.cnt_params['BPS.MODE:'] == 'ACCUM':
                 self.logger.info('starting _auto_bpas')
-                self._auto_bpas()
+                if bandpass_var == 4:
+                    self._auto_bpas(fringe_fit=False)
+                else:
+                    self._auto_bpas(fringe_fit=True)
             else:
                 self.pima.bpas()
         except pypima.pima.Error:
