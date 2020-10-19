@@ -862,7 +862,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True, bandpass_var=0, bandpass_use=None,
-                       reference_station=None):
+                       bandpass_renorm=True, reference_station=None):
         """
         Perform a fringe fitting.
 
@@ -881,6 +881,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             Select predefined bandpass parameters.
         bandpass_use : str, optional
             Set ``BANDPASS_USE`` **PIMA** parameter.
+        bandpass_renorm: bool, optional
+            If ``True``, apply the bandpass renormalization factors for given
+            intermediate frequencies using only a part of the bandwidth.
         reference_station : str, optional
             Reference station for bandpass calibration. If ``None`` select
             an optimal station for ground-space baselines.
@@ -922,6 +925,11 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         frq_grp = int(self.pima.cnt_params['FRQ_GRP:'])
 
         if bandpass:
+            if bandpass_renorm:
+                self.pima.update_cnt({'SPLT.BPASS_NRML_METHOD:': 'WEIGHTED'})
+            else:
+                self.pima.update_cnt({'SPLT.BPASS_NRML_METHOD:': 'NO'})
+
             # Update list of obs with bad autospectrum
             bad_obs = self._check_bad_autospec_obs()
             if bad_obs:
