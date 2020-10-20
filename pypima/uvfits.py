@@ -12,6 +12,7 @@ import numpy as np
 
 class UVFitsError(Exception):
     """Base class for exceptions in this module."""
+
     def __init__(self, message, file_name):
         self.file_name = file_name
         self.message = message
@@ -21,8 +22,7 @@ class UVFitsError(Exception):
 
 
 def baseline_decode(baseline):
-    """
-    """
+    """Decode `baseline` index and return subarray and antennas numbers."""
     ant1 = np.asarray(baseline, dtype=int) // 256
     ant2 = np.mod(np.asarray(baseline, dtype=int), 256)
     subarr = np.asarray(np.round(100 * (baseline - np.round(baseline))),
@@ -89,10 +89,7 @@ class UVFits:
         self.close()
 
     def _read_header(self):
-        """
-        Read FITS file head.
-
-        """
+        """Read FITS file head."""
         header = self.hdulist[0].header
 
         if not header['groups'] or \
@@ -133,10 +130,7 @@ class UVFits:
                 self.stokes = self.NUM2STOKES[val]
 
     def _read_an_table(self):
-        """
-        Read antenna table.
-
-        """
+        """Read antenna table."""
         subarray = 0
         for hdu in self.hdulist:
             if hdu.name == 'AIPS AN':
@@ -151,26 +145,31 @@ class UVFits:
             raise UVFitsError('Could not find AN table', self.file_name)
 
     def _read_fq_table(self):
-        """
-        Read frequency table.
-
-        """
+        """Read frequency table."""
         self.no_if = self.hdulist['AIPS FQ'].header['NO_IF']
 
         # Assume we have only one frequency setup
         freq_data = self.hdulist['AIPS FQ'].data[0]
 
-        for if_num in range(self.no_if):
-            self.freq_table.append({})
-            self.freq_table[if_num]['if_freq'] = freq_data['IF FREQ'][if_num]
-            self.freq_table[if_num]['ch_width'] = freq_data['CH WIDTH'][if_num]
-            self.freq_table[if_num]['sideband'] = freq_data['SIDEBAND'][if_num]
+        if self.no_if == 1:
+            self.freq_table.append({
+                    'if_freq': freq_data['IF FREQ'],
+                    'ch_width': freq_data['CH WIDTH'],
+                    'sideband': freq_data['SIDEBAND'],
+                })
+        elif self.no_if >= 2:
+            for if_num in range(self.no_if):
+                self.freq_table.append({
+                        'if_freq': freq_data['IF FREQ'][if_num],
+                        'ch_width': freq_data['CH WIDTH'][if_num],
+                        'sideband': freq_data['SIDEBAND'][if_num],
+                    })
+        else:
+            raise UVFitsError('Invalid NO_IF value: {}'.format(self.no_if),
+                              self.file_name)
 
     def _read_uv_data(self):
-        """
-        Read UV data.
-
-        """
+        """Read UV data."""
         data = self.hdulist[0].data
         self.u_raw = data.par('UU')
         self.v_raw = data.par('VV')
@@ -190,10 +189,7 @@ class UVFits:
         self.weights = data.data[:, 0, 0, :, 0, 0, 2]
 
     def get_ant_by_ind(self, ind):
-        """
-        Return antenna names for given baseline.
-
-        """
+        """Return antenna names for given baseline."""
         subarr = self.subarrays[ind]
         ant1 = self.ant1_inds[ind]
         ant2 = self.ant2_inds[ind]
@@ -203,15 +199,11 @@ class UVFits:
         return ant1_name, ant2_name
 
     def print_info(self):
-        """Print FITS file info to the standard output.
-
-        """
+        """Print FITS file info to the standard output."""
         self.hdulist.info()
 
     def print_uv(self):
-        """Print UV data to the standard output.
-
-        """
+        """Print UV data to the standard output."""
         for ind in range(self.gcount):
             ant1_name, ant2_name = self.get_ant_by_ind(ind)
 
@@ -231,10 +223,7 @@ class UVFits:
                       '{:15.1f} {:15.1f}'.format(uu, vv))
 
     def useful_antennas(self):
-        """
-        Return set of antenna names.
-
-        """
+        """Return set of antenna names."""
         antennas = set()
 
         for ind in range(self.gcount):
@@ -248,8 +237,5 @@ class UVFits:
         return antennas
 
     def close(self):
-        """
-        Close HDU list.
-
-        """
+        """Close HDU list."""
         self.hdulist.close()
