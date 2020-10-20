@@ -66,6 +66,9 @@ def parse_args():
                        help='predefined bandpass parameters')
     group.add_argument('--flag-chann', type=int, default=2, metavar='N',
                        help='flag N edge spectral channels of the bandpass')
+    group.add_argument('--bpas-norm', choices=['NO', 'IF', 'BAND'],
+                       default='IF',
+                       help='the way how the bandpass normalization is made')
     group.add_argument('--no-bpas-renorm', action='store_true',
                        help='disable bandpass renormalization')
 
@@ -155,6 +158,7 @@ def main():
                                         ampl_bandpass=not args.no_ampl_bpas,
                                         bandpass_var=args.bpas_var,
                                         bandpass_use=args.bpas_use,
+                                        bandpass_norm=args.bpas_norm,
                                         bandpass_renorm=not args.no_bpas_renorm,
                                         reference_station=args.ref_sta)
             print(fri)

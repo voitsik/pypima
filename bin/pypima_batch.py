@@ -195,6 +195,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ampl_bandpass = kwargs.pop('ampl_bandpass', True)
     bandpass_var = kwargs.pop('bandpass_var', 0)
     bandpass_use = kwargs.pop('bandpass_use', None)
+    bandpass_norm = kwargs.pop('bandpass_norm', 'IF')
+    bandpass_renorm = kwargs.pop('bandpass_renorm', True)
     flag_chann = kwargs.pop('flag_chann', 0)
     scan_len = kwargs.pop('max_scan_length', 1500)
 
@@ -213,6 +215,8 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         'ampl_bandpass': ampl_bandpass,
         'bandpass_var': bandpass_var,
         'bandpass_use': bandpass_use,
+        'bandpass_norm': bandpass_norm,
+        'bandpass_renorm': bandpass_renorm,
         }
 
     scan_len_list = []
@@ -416,17 +420,22 @@ def parse_args():
     group = parser.add_argument_group("bandpass settings")
     group.add_argument('--ref-sta', metavar='STA',
                        help='reference station for bandpass calibration')
-    group.add_argument('--bpas-mode', metavar='MODE',
+    group.add_argument('--bpas-mode', metavar='MODE', type=str.upper,
                        choices=['INIT', 'ACCUM', 'FINE'],
                        help='bandpass calibration mode')
-    group.add_argument('--bpas-use', metavar='BANDPASS_USE', default='PHS',
-                       choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
+    group.add_argument('--bpas-use', metavar='BANDPASS_USE', type=str.upper,
+                       default='PHS', choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
                        help='BANDPASS_USE PIMA parameter (default is PHS)')
     group.add_argument('--no-ampl-bpas', action='store_true',
                        help='disable amplitude bandpass calibration')
     group.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3, 4, 5],
                        default=3,
                        help='predefined bandpass parameters (default is 3)')
+    group.add_argument('--bpas-norm', type=str.upper,
+                       choices=['NO', 'IF', 'BAND'], default='IF',
+                       help='the way how the bandpass normalization is made')
+    group.add_argument('--no-bpas-renorm', action='store_true',
+                       help='disable bandpass renormalization')
     group.add_argument('--flag-chann', type=int, default=2, metavar='N',
                        help='flag N edge spectral channels of the bandpass '
                        '(default is 2)')
@@ -517,6 +526,8 @@ def main():
         'ampl_bandpass': not args.no_ampl_bpas,
         'bandpass_var': args.bpas_var,
         'bandpass_use': args.bpas_use,
+        'bandpass_norm': args.bpas_norm,
+        'bandpass_renorm': not args.no_bpas_renorm,
         'flag_chann': args.flag_chann,
         'max_scan_length': args.max_scan_length,
         }

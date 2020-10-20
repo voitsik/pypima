@@ -738,7 +738,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             self.pima.update_cnt({'BANDPASS_FILE:': best_bps_file})
 
     def _bandpass(self, bandpass_mode=None, ampl_bandpass=True,
-                  bandpass_var=0):
+                  bandpass_var=0, bandpass_norm='IF'):
         """
         Setup **PIMA** bandpass parameters and run ``bpas`` task.
 
@@ -841,6 +841,10 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
         if not ampl_bandpass:
             bpas_params['BPS.DEG_AMP:'] = '0'
 
+        if bandpass_norm:
+            bpas_params['BPS.NORML:'] = bandpass_norm
+            bpas_params['BPS.MODE:'] = 'INIT'
+
         self.pima.update_cnt(bpas_params)
 
         try:
@@ -862,7 +866,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
     def fringe_fitting(self, bandpass=False, accel=False, bandpass_mode=None,
                        ampl_bandpass=True, bandpass_var=0, bandpass_use=None,
-                       bandpass_renorm=True, reference_station=None):
+                       bandpass_norm='IF', bandpass_renorm=True,
+                       reference_station=None):
         """
         Perform a fringe fitting.
 
@@ -881,6 +886,9 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
             Select predefined bandpass parameters.
         bandpass_use : str, optional
             Set ``BANDPASS_USE`` **PIMA** parameter.
+        bandpass_norm : str, optional
+            Set ``BPS.NORML`` **PIMA** parameter. This keywords specifies the
+            way how the bandpass normalization is made.
         bandpass_renorm: bool, optional
             If ``True``, apply the bandpass renormalization factors for given
             intermediate frequencies using only a part of the bandwidth.
@@ -961,7 +969,7 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
                 # Now auto select reference station
                 if fri and self._select_ref_sta(fri, reference_station):
                     bandpass = self._bandpass(bandpass_mode, ampl_bandpass,
-                                              bandpass_var)
+                                              bandpass_var, bandpass_norm)
                     self.bpass_files[polar, frq_grp] = \
                         self.pima.cnt_params['BANDPASS_FILE:']
                 else:
