@@ -843,7 +843,8 @@ bytes'.format(pypima.pima.UVFILE_NAME_LEN-1))
 
         if bandpass_norm:
             bpas_params['BPS.NORML:'] = bandpass_norm
-            bpas_params['BPS.MODE:'] = 'INIT'
+            if bandpass_norm == 'NO':
+                bpas_params['BPS.MODE:'] = 'INIT'
 
         self.pima.update_cnt(bpas_params)
 
