@@ -1057,13 +1057,16 @@ def fits_to_txt(fits_file: str) -> str:
         Returns the stdout of the ``fits_to_radplot`` utility.
 
     """
-    if not os.path.isfile(fits_file):
-        raise FileNotFoundError(f"file {fits_file} does not exist")
+    fits_file_path = Path(fits_file)
 
-    txt_file = fits_file.replace(".fits", ".txt")
+    if not fits_file_path.is_file():
+        raise FileNotFoundError(f"file {fits_file_path} does not exist")
 
-    # If fits_file has extention other than .fits
-    if txt_file == fits_file:
+    suffix = fits_file_path.suffix
+
+    if suffix:
+        txt_file = fits_file.replace(suffix, ".txt")
+    else:
         txt_file = fits_file + ".txt"
 
     cmd_line = ["fits_to_radplot", "-o", txt_file, fits_file]
