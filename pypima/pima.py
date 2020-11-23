@@ -12,6 +12,7 @@ import shutil
 import subprocess
 from collections import namedtuple
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -1038,11 +1039,11 @@ experiment {}".format(
         return mask_gen_file
 
 
-def fits_to_txt(fits_file):
+def fits_to_txt(fits_file: str) -> str:
     """
     Dump visibilites from the uvf file using the fits_to_radplot utility.
 
-    fits_to_radplot reads visibility data from the input file and write
+    ``fits_to_radplot`` reads visibility data from the input file and write
     amplitude, phase, and weight for each baseline to the text file.
 
     Parameters
@@ -1056,9 +1057,8 @@ def fits_to_txt(fits_file):
         Returns the stdout of the ``fits_to_radplot`` utility.
 
     """
-
     if not os.path.isfile(fits_file):
-        raise IOError(2, "No such file: {}".format(fits_file))
+        raise FileNotFoundError(f"file {fits_file} does not exist")
 
     txt_file = fits_file.replace(".fits", ".txt")
 
@@ -1311,13 +1311,10 @@ class Text1D:
         return self._ax2
 
 
-def acta_plot(input_file, output_file):
-    """
-    Run ``acta_plot`` program.
-
-    """
+def acta_plot(input_file: str, output_file: str) -> str:
+    """Run ``acta_plot``."""
     if not os.path.isfile(input_file):
-        raise IOError(2, "No such file: {}".format(input_file))
+        raise FileNotFoundError(f"file {input_file} does not exist")
 
     cmd_line = ["acta_plot", input_file, output_file]
     out = subprocess.check_output(cmd_line, universal_newlines=True)
