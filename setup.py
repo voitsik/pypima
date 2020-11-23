@@ -13,5 +13,10 @@ setup(
     author_email="voitsik@asc.rssi.ru",
     url="https://github.com/voitsik/pypima",
     packages=["pypima"],
-    scripts=["bin/pima_auto.py", "bin/pima_coher.py", "bin/pima_plot_fringe3d.py"],
+    scripts=[
+        "bin/pima_coher.py",
+        "bin/pima_plot_fringe3d.py",
+        "bin/pypima_batch.py",
+        "bin/pypima_single.py",
+    ],
 )
