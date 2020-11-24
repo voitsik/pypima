@@ -307,7 +307,7 @@ bytes".format(
                 elif line.startswith("STOP_TIME") and len(line) < 20:
                     for back_line in reversed(orb_data):
                         cols = back_line.split()
-                        if len(cols):
+                        if cols:
                             break
                     line = line.strip() + " " + cols[0]
 
@@ -706,7 +706,7 @@ bytes".format(
 
         for deg in range(1, 7):
             log_file = self.pima.bpas(
-                params=["BPS.DEG_AMP:", str(deg), "BPS.DEG_PHS:", str(deg)]
+                params={"BPS.DEG_AMP:": str(deg), "BPS.DEG_PHS:": str(deg)}
             )
             log_file_deg = f"{log_file}_{deg}"
             os.rename(log_file, log_file_deg)
@@ -720,16 +720,12 @@ bytes".format(
             if fringe_fit:
                 fri = Fri(
                     self.pima.fine(
-                        params=[
-                            "PHASE_ACCEL_MIN:",
-                            "0",
-                            "PHASE_ACCEL_MAX:",
-                            "0",
-                            "FRIB.FINE_SEARCH:",
-                            "LSQ",
-                            "BANDPASS_FILE:",
-                            bps_file_deg,
-                        ]
+                        params={
+                            "PHASE_ACCEL_MIN:": "0",
+                            "PHASE_ACCEL_MAX:": "0",
+                            "FRIB.FINE_SEARCH:": "LSQ",
+                            "BANDPASS_FILE:": bps_file_deg,
+                        }
                     )
                 )
                 if not fri:

@@ -5,7 +5,6 @@ Created on Tue Dec 10 17:21:29 2013
 @author: Petr Voytsik
 """
 
-import glob
 import logging
 import os.path
 import shutil
@@ -181,10 +180,7 @@ class Pima:
                     self.cnt_params[key] = val
 
     def update_cnt(self, opts):
-        """
-        Update pima cnt-file according to `opts` dictionary.
-
-        """
+        """Update pima control file according to `opts` dictionary."""
         if not opts:
             return
 
@@ -227,11 +223,31 @@ class Pima:
 
         self._update_cnt_params()
 
-    def _exec(self, operation, options=None, log_name=None):
-        """Execute PIMA binary."""
+    def _exec(self, operation, options=None, log_name=None) -> int:
+        """
+        Execute PIMA binary.
+
+        Parameters
+        ----------
+        operation : str
+            ``PIMA`` task to execute.
+        options : dict, optional
+            Additional ``PIMA`` parameters.
+        log_name : str, optional
+            Name of the log file.
+
+        Returns
+        -------
+        ret : int
+            Return ``pima`` process exit code.
+
+        """
         cmd_line = [self.pima_exec, self.cnt_file_name, operation]
         if options:
-            cmd_line.extend(options)
+            opt_list = [
+                item for key in options for item in (str(key), str(options[key]))
+            ]
+            cmd_line.extend(opt_list)
 
         if not log_name:
             log_name = os.path.join(
@@ -257,7 +273,7 @@ class Pima:
         return ret
 
     def _error(self, msg):
-        """Raise pima.Error exception"""
+        """Raise pima.Error exception."""
         self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
@@ -265,27 +281,27 @@ class Pima:
         """
         Run pima load.
 
+        This function removes all existing index files of the current session and
+        the runs ``load`` task.
+
         """
+        exper_dir_path = Path(self.cnt_params["EXPER_DIR:"])
+
         # Delete existing PIMA auxiliary files
-        auxiliary_files = os.path.join(
-            self.cnt_params["EXPER_DIR:"], self.cnt_params["SESS_CODE:"]
-        )
-        auxiliary_files = glob.glob(auxiliary_files + "*")
+        auxiliary_files = exper_dir_path.glob(self.cnt_params["SESS_CODE:"] + "*")
 
         for aux_file in auxiliary_files:
-            if os.path.isfile(aux_file):
-                os.remove(aux_file)
-            elif os.path.isdir(aux_file):
+            if aux_file.is_file():
+                aux_file.unlink()
+            elif aux_file.is_dir():
                 shutil.rmtree(aux_file)
 
-        opts = ["BANDPASS_FILE:", "NO", "POLARCAL_FILE:", "NO"]
+        opts = {"BANDPASS_FILE:": "NO", "POLARCAL_FILE:": "NO"}
         ret = self._exec("load", options=opts)
         if ret:
-            self._error("load failed with code {}".format(ret))
+            self._error(f"load failed with code {ret}")
 
-        stt_file = os.path.join(
-            self.cnt_params["EXPER_DIR:"], self.cnt_params["SESS_CODE:"] + ".stt"
-        )
+        stt_file = exper_dir_path / self.cnt_params["SESS_CODE:"] + ".stt"
         self.exper_info.update(stt_file)
 
         self.logger.info("load ok")
@@ -304,9 +320,8 @@ class Pima:
 
         Parameters
         ----------
-        params : list, optional
-            List of the optional pima parameters. Must have even number of
-            the elements
+        params : dict, optional
+            Dictionary with optional pima parameters.
 
         Returns
         -------
@@ -315,7 +330,7 @@ class Pima:
 
         """
         if params and "POLAR:" in params:
-            polar = params[params.index("POLAR:") + 1]
+            polar = params["POLAR:"]
         else:
             polar = self.cnt_params["POLAR:"]
 
@@ -341,41 +356,30 @@ class Pima:
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
-        opts = [
-            "FRINGE_FILE:",
-            fri_file,
-            "FRIRES_FILE:",
-            frr_file,
-            "BANDPASS_USE:",
-            "NO",
-            "BANDPASS_FILE:",
-            "NO",
-            "POLARCAL_FILE:",
-            "NO",
-            "FRIB.OVERSAMPLE_MD:",
-            "4",
-            "FRIB.OVERSAMPLE_RT:",
-            "4",
-            "FRIB.FINE_SEARCH:",
-            "PAR",
-            "MKDB.FRINGE_ALGORITHM:",
-            "DRF",
-            "PHASE_ACCEL_MIN:",
-            "0",
-            "PHASE_ACCEL_MAX:",
-            "0",
-        ]
+        opts = {
+            "FRINGE_FILE:": fri_file,
+            "FRIRES_FILE:": frr_file,
+            "BANDPASS_USE:": "NO",
+            "BANDPASS_FILE:": "NO",
+            "POLARCAL_FILE:": "NO",
+            "FRIB.OVERSAMPLE_MD:": "4",
+            "FRIB.OVERSAMPLE_RT:": "4",
+            "FRIB.FINE_SEARCH:": "PAR",
+            "MKDB.FRINGE_ALGORITHM:": "DRF",
+            "PHASE_ACCEL_MIN:": "0",
+            "PHASE_ACCEL_MAX:": "0",
+        }
 
         if os.path.isfile(exc_obs_file):
-            opts.extend(["EXCLUDE_OBS_FILE:", exc_obs_file])
+            opts["EXCLUDE_OBS_FILE:"] = exc_obs_file
 
         if params:
-            opts.extend(params)
+            opts.update(params)
 
         ret = self._exec("frib", opts, log_name)
 
         if ret:
-            self._error("coarse failed with code {}".format(ret))
+            self._error(f"coarse failed with code {ret}")
 
         self.logger.info("coarse ok")
 
@@ -390,9 +394,8 @@ class Pima:
 
         Parameters
         ----------
-        params : list, optional
-            List of the optional pima parameters. Must have even number of
-            elements.
+        params : dict, optional
+            Dictionary with optional pima parameters.
 
         Returns
         -------
@@ -401,7 +404,7 @@ class Pima:
 
         """
         if params and "POLAR:" in params:
-            polar = params[params.index("POLAR:") + 1]
+            polar = params["POLAR:"]
         else:
             polar = self.cnt_params["POLAR:"]
 
@@ -411,12 +414,12 @@ class Pima:
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if params and "FRINGE_FILE:" in params:
-            fri_file = params[params.index("FRINGE_FILE:") + 1]
+            fri_file = params["FRINGE_FILE:"]
         else:
             fri_file = self.cnt_params["FRINGE_FILE:"]
 
         if params and "FRIRES_FILE:" in params:
-            frr_file = params[params.index("FRIRES_FILE:") + 1]
+            frr_file = params["FRIRES_FILE:"]
         else:
             frr_file = self.cnt_params["FRIRES_FILE:"]
 
@@ -426,18 +429,18 @@ class Pima:
         if os.path.isfile(frr_file):
             os.remove(frr_file)
 
-        opts = []
+        opts = {}
 
         if os.path.isfile(exc_obs_file):
-            opts.extend(["EXCLUDE_OBS_FILE:", exc_obs_file])
+            opts["EXCLUDE_OBS_FILE:"] = exc_obs_file
 
         if params:
-            opts.extend(params)
+            opts.update(params)
 
         ret = self._exec("frib", opts, log_name=log_name)
 
         if ret:
-            self._error("fine failed with code {}".format(ret))
+            self._error(f"fine failed with code {ret}")
 
         self.logger.info("fine ok")
 
@@ -451,9 +454,8 @@ class Pima:
 
         Parameters
         ----------
-        params : list, optional
-            List of the optional pima parameters. Must have even number of
-            elements.
+        params : dict, optional
+            Dictionary with optional pima parameters.
 
         Returns
         -------
@@ -462,7 +464,7 @@ class Pima:
 
         """
         if params and "POLAR:" in params:
-            polar = params[params.index("POLAR:") + 1]
+            polar = params["POLAR:"]
         else:
             polar = self.cnt_params["POLAR:"]
 
@@ -487,30 +489,24 @@ class Pima:
         bps_file = os.path.join(self.work_dir, bps_file)
         self.update_cnt({"BANDPASS_FILE:": bps_file})
 
-        opts = [
-            "FRINGE_FILE:",
-            fri_file,
-            "DEBUG_LEVEL:",
-            "3",
-            "PHASE_ACCEL_MIN:",
-            "0",
-            "PHASE_ACCEL_MAX:",
-            "0",
-            "FRIB.FINE_SEARCH:",
-            "LSQ",
-            "POLAR:",
-            polar,
-        ]
+        opts = {
+            "FRINGE_FILE:": fri_file,
+            "DEBUG_LEVEL:": "3",
+            "PHASE_ACCEL_MIN:": "0",
+            "PHASE_ACCEL_MAX:": "0",
+            "FRIB.FINE_SEARCH:": "LSQ",
+            "POLAR:": polar,
+        }
 
         if os.path.isfile(exc_obs_file):
-            opts.extend(["EXCLUDE_OBS_FILE:", exc_obs_file])
+            opts["EXCLUDE_OBS_FILE:"] = exc_obs_file
 
         if params:
-            opts.extend(params)
+            opts.update(params)
 
         ret = self._exec("bpas", opts, log_file)
         if ret:
-            self._error("bpas failed with code {}".format(ret))
+            self._error(f"bpas failed with code {ret}")
 
         self.logger.info("bpas ok")
 
@@ -524,16 +520,15 @@ class Pima:
 
         Parameters
         ----------
-        tim_mseg : int
+        tim_mseg : int, optional
             Number of time segments to integrate.
 
-        params : list, optional
-            List of the optional pima parameters. Must have even number of
-            elements.
+        params : dict, optional
+            Dictionary with optional pima parameters.
 
         """
         if params and "POLAR:" in params:
-            polar = params[params.index("POLAR:") + 1]
+            polar = params["POLAR:"]
         else:
             polar = self.cnt_params["POLAR:"]
 
@@ -542,28 +537,38 @@ class Pima:
         log_file = "{}_{}_{}_splt.log".format(self.exper, self.band, polar)
         log_file = os.path.join(self.work_dir, log_file)
 
-        opts = ["SPLT.TIM_MSEG:", str(tim_mseg)]
+        opts = {"SPLT.TIM_MSEG:": str(tim_mseg)}
 
         if os.path.isfile(exc_obs_file):
-            opts.extend(["EXCLUDE_OBS_FILE:", exc_obs_file])
+            opts["EXCLUDE_OBS_FILE:"] = exc_obs_file
 
         if params:
-            opts.extend(params)
+            opts.update(params)
+
         ret = self._exec("splt", opts, log_file)
 
         if ret:
-            self._error("splt failed with code {}".format(ret))
+            self._error(f"splt failed with code {ret}")
 
         self.logger.info("split ok")
 
-    def load_gains(self, gain_file, params=None):
+    def load_gains(self, gain_file, params=None) -> None:
         """
         Load antenna gains from the `gain_file`.
 
+        Parameters
+        ----------
+        gain_file : str
+            Name of the AIPS ANTAB file with gain information.
+
+        params : dict, optional
+            Dictionary with optional pima parameters.
+
         """
-        opts = ["evn_gain", gain_file, "DEBUG_LEVEL:", "6"]
+        opts = {"evn_gain": gain_file, "DEBUG_LEVEL:": "6"}
+
         if params:
-            opts.extend(params)
+            opts.update(params)
 
         log_file = "{}_{}_gain.log".format(self.exper, self.band)
         log_file = os.path.join(self.work_dir, log_file)
@@ -571,18 +576,27 @@ class Pima:
         ret = self._exec("gean", opts, log_file)
 
         if ret:
-            self._error("evn_gain failed with code {}".format(ret))
+            self._error(f"evn_gain failed with code {ret}")
 
         self.logger.info("evn_gain ok")
 
-    def load_tsys(self, tsys_file, params=None):
+    def load_tsys(self, tsys_file, params=None) -> None:
         """
         Load Tsys from the `tsys_file`.
 
+        Parameters
+        ----------
+        tsys_file : str
+            Name of the AIPS ANTAB file with Tsys data.
+
+        params : dict, optional
+            Dictionary with optional pima parameters.
+
         """
-        opts = ["vlba_log_file", tsys_file, "DEBUG_LEVEL:", "6"]
+        opts = {"vlba_log_file": tsys_file, "DEBUG_LEVEL:": "6"}
+
         if params:
-            opts.extend(params)
+            opts.update(params)
 
         log_file = "{}_{}_tsys.log".format(self.exper, self.band)
         log_file = os.path.join(self.work_dir, log_file)
@@ -590,13 +604,18 @@ class Pima:
         ret = self._exec("gean", opts, log_file)
 
         if ret:
-            self._error("vlba_log_file failed with code {}".format(ret))
+            self._error(f"vlba_log_file failed with code {ret}")
 
         self.logger.info("vlba_log_file ok")
 
     def acta(self, params=None):
         """
         Run `acta` pima task for autocorrelation spectrum generation.
+
+        Parameters
+        ----------
+        params : dict, optional
+            Dictionary with optional pima parameters.
 
         Returns
         -------
@@ -605,14 +624,14 @@ class Pima:
 
         """
         if params and "POLAR:" in params:
-            polar = params[params.index("POLAR:") + 1]
+            polar = params["POLAR:"]
         else:
             polar = self.cnt_params["POLAR:"]
 
-        opts = ["DEBUG_LEVEL:", "2"]
+        opts = {"DEBUG_LEVEL:": "2"}
 
         if params:
-            opts.extend(params)
+            opts.update(params)
 
         log_file = "{}_{}_{}_acta.log".format(self.exper, self.band, polar)
         log_file = os.path.join(self.work_dir, log_file)
@@ -638,6 +657,11 @@ class Pima:
         """
         Set polarization in control file.
 
+        Parameters
+        ----------
+        polar : str
+            Polarization code.
+
         """
         polar = polar.upper()
 
@@ -654,7 +678,7 @@ class Pima:
         Parameters
         ----------
         frq_grp : int
-            Frequency group number
+            Frequency group number.
 
         """
         if frq_grp < 1 or frq_grp > self.exper_info["frq_grp"]:
