@@ -256,10 +256,6 @@ class Pima:
 
         return ret
 
-    def _print_info(self, msg):
-        """Print some information"""
-        self.logger.info(msg)
-
     def _error(self, msg):
         """Raise pima.Error exception"""
         self.logger.error(msg)
@@ -292,7 +288,7 @@ class Pima:
         )
         self.exper_info.update(stt_file)
 
-        self._print_info("load ok")
+        self.logger.info("load ok")
 
     def coarse(self, params=None):
         """
@@ -381,7 +377,7 @@ class Pima:
         if ret:
             self._error("coarse failed with code {}".format(ret))
 
-        self._print_info("coarse ok")
+        self.logger.info("coarse ok")
 
         return fri_file
 
@@ -443,7 +439,7 @@ class Pima:
         if ret:
             self._error("fine failed with code {}".format(ret))
 
-        self._print_info("fine ok")
+        self.logger.info("fine ok")
 
         return fri_file
 
@@ -516,7 +512,7 @@ class Pima:
         if ret:
             self._error("bpas failed with code {}".format(ret))
 
-        self._print_info("bpas ok")
+        self.logger.info("bpas ok")
 
         return log_file
 
@@ -558,7 +554,7 @@ class Pima:
         if ret:
             self._error("splt failed with code {}".format(ret))
 
-        self._print_info("split ok")
+        self.logger.info("split ok")
 
     def load_gains(self, gain_file, params=None):
         """
@@ -577,7 +573,7 @@ class Pima:
         if ret:
             self._error("evn_gain failed with code {}".format(ret))
 
-        self._print_info("evn_gain ok")
+        self.logger.info("evn_gain ok")
 
     def load_tsys(self, tsys_file, params=None):
         """
@@ -596,7 +592,7 @@ class Pima:
         if ret:
             self._error("vlba_log_file failed with code {}".format(ret))
 
-        self._print_info("vlba_log_file ok")
+        self.logger.info("vlba_log_file ok")
 
     def acta(self, params=None):
         """
@@ -626,7 +622,7 @@ class Pima:
         if ret:
             self._error("acta failed with code {}".format(ret))
         else:
-            self._print_info("acta ok")
+            self.logger.info("acta ok")
 
         file_list = []
         with open(log_file, "r") as fil:
