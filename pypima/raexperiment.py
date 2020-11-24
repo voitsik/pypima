@@ -1129,12 +1129,10 @@ bytes".format(
 
         snr_detection = round(min(7.0, self.fri.min_detected_snr() - 0.05), 2)
         self.logger.info("Set FRIB.SNR_DETECTION to %s", snr_detection)
-        split_params = [
-            "FRIB.SNR_DETECTION:",
-            "{:.2f}".format(snr_detection),
-            "DEBUG_LEVEL:",
-            "6",
-        ]
+        split_params = {
+            "FRIB.SNR_DETECTION:": "{:.2f}".format(snr_detection),
+            "DEBUG_LEVEL:": "6",
+        }
 
         # Exclude suspicious observations
         obs_list = self.fri.non_detections()
@@ -1156,9 +1154,9 @@ bytes".format(
         self.pima.mk_exclude_obs_file(obs_list, "splt")
 
         if source:
-            split_params.extend(("SPLT.SOU_NAME:", source))
+            split_params["SPLT.SOU_NAME:"] = source
         else:
-            split_params.extend(("SPLT.SOU_NAME:", "ALL"))
+            split_params["SPLT.SOU_NAME:"] = "ALL"
 
         if average:
             time_segments = max([obs.ap_num for obs in self.pima.observations])
@@ -1271,8 +1269,10 @@ bytes".format(
 
     def generate_autospectra(self, plot=False, out_dir=None, db=False) -> None:
         """
-        Generate autocorrelation spectrum for each station for each scan
-        using ``acta`` PIMA task and fill `self.acta_files` dict.
+        Generate autocorrelation spectrum.
+
+        Thist function generates autocorrelation spectrum for each station for each
+        scan using ``acta`` **PIMA** task and fill `self.acta_files` dict.
 
         Parameters
         ----------
@@ -1291,7 +1291,7 @@ bytes".format(
         for polar in ("RR", "LL"):
             # Sometimes PIMA crashes on `acta` task
             try:
-                file_list = self.pima.acta(params=["POLAR:", polar])
+                file_list = self.pima.acta(params={"POLAR:": polar})
             except pypima.pima.Error:
                 # Remove core dump file.
                 if os.path.isfile("core"):
