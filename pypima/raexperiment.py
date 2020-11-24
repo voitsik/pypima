@@ -274,7 +274,7 @@ bytes".format(
         self.uv_fits = uv_fits
 
     def _get_orbit(self):
-        """Download reconstructed orbit file from FTP"""
+        """Download reconstructed orbit file from FTP server."""
         orbit_url = self.db.get_orbit_url(self.exper)
 
         if not orbit_url:
@@ -290,7 +290,7 @@ bytes".format(
         except pycurl.error as err:
             self._error("Could not download file {}: {}".format(orbit_url, err))
 
-        orb_data = buffer.getvalue().decode().replace("\r\n", "\n").split("\n")
+        orb_data = buffer.getvalue().decode().splitlines()
 
         with open(self.orbit, "w") as orb_file:
             if not orb_data[0].startswith("CCSDS_OEM_VERS"):
