@@ -301,7 +301,7 @@ class Pima:
         if ret:
             self._error(f"load failed with code {ret}")
 
-        stt_file = exper_dir_path / self.cnt_params["SESS_CODE:"] + ".stt"
+        stt_file = exper_dir_path / (self.cnt_params["SESS_CODE:"] + ".stt")
         self.exper_info.update(stt_file)
 
         self.logger.info("load ok")
