@@ -1005,7 +1005,7 @@ class Pima:
 
             self.update_cnt({"BANDPASS_MASK_FILE:": mask_file})
 
-            options = ["mask_gen", mask_gen_file]
+            options = {"mask_gen": mask_gen_file}
             self._exec("bmge", options)
         else:
             self.update_cnt({"BANDPASS_MASK_FILE:": "NO"})
