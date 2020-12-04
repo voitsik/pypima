@@ -636,7 +636,7 @@ bytes".format(
                 if obs["SNR"] < snr_detecton:
                     self.logger.debug("SNR is too low for bandpass: %s", obs["SNR"])
                 else:
-                    good_stations = ["ARECIBO", "GBT-VLBA", "EFLSBERG"]
+                    good_stations = ["ARECIBO", "GBT-VLBA", "EFLSBERG", "ATCA-104"]
                     for sta in good_stations:
                         if sta in (obs["sta1"], obs["sta2"]):
                             self.sta_ref = sta
