@@ -19,7 +19,7 @@ from matplotlib.figure import Figure
 
 
 class Error(Exception):
-    """Raised when PIMA error occurs"""
+    """Raised when PIMA error occurs."""
 
     def __init__(self, exper, band, msg):
         self.exper = exper
@@ -31,7 +31,7 @@ class Error(Exception):
 
 
 class ExperInfo:
-    """Some experiment information"""
+    """Some experiment information."""
 
     def __init__(self, exper_name, band, stt_file=None):
         self.exper = exper_name

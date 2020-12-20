@@ -658,10 +658,7 @@ bytes".format(
             return False
 
     def _check_bad_autospec_obs(self):
-        """
-        Return set of observation numbers with bad autospectrum.
-
-        """
+        """Return set of observation numbers with bad autospectrum."""
         self.generate_autospectra()
 
         if not self.acta_files:
@@ -688,7 +685,11 @@ bytes".format(
                         "unsupported polar {}".format(self.pima.cnt_params["POLAR:"])
                     )
 
-                acta_file = self.acta_files[sta_pol, obs.time_code, sta]
+                try:
+                    acta_file = self.acta_files[sta_pol, obs.time_code, sta]
+                except KeyError as err:
+                    self.logger.warning("no ACTA file for %s", err)
+                    continue
 
                 if np.median(acta_file.ampl) < 0.5:
                     self.logger.warning(
