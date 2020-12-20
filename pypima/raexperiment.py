@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Sun Dec 29 04:02:35 2013
 
@@ -34,7 +33,7 @@ class Error(Exception):
         # self.time = str(datetime.now())
 
     def __str__(self):
-        return "{}({}): {}".format(self.exper, self.band, self.msg)
+        return f"{self.exper}({self.band}): {self.msg}"
 
 
 class RaExperiment:
@@ -82,7 +81,7 @@ class RaExperiment:
         self.sta_ref = "RADIO-AS"
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
-        self.logger = logging.getLogger("{}({})".format(self.exper, self.band))
+        self.logger = logging.getLogger(f"{self.exper}({self.band})")
         self.antab = None
         self.antab_downloaded = False
         self.calibration_loaded = False
@@ -104,7 +103,7 @@ class RaExperiment:
         }
 
         if self.band not in ("p", "l", "c", "k"):
-            self._error("unknown band {}".format(band))
+            self._error(f"unknown band {band}")
 
         self.pima_dir = os.getenv("PIMA_DIR")
         self.exp_dir = os.getenv("pima_exp_dir")
@@ -134,7 +133,7 @@ bytes".format(
 
         # PIMA control file path
         self.cnt_file_name = os.path.join(
-            self.work_dir, "{}_{}_pima.cnt".format(self.exper, self.band)
+            self.work_dir, f"{self.exper}_{self.band}_pima.cnt"
         )
 
     def init_workdir(self):
@@ -175,7 +174,7 @@ bytes".format(
         # Select the best fftw wisdom file
         for thread_num in (8, 4, 2, 1):
             for size in ("huge", "big", "small"):
-                wis_file = "pima_{}_measure_{:d}thr.wis".format(size, thread_num)
+                wis_file = f"pima_{size}_measure_{thread_num:d}thr.wis"
                 wis_file = os.path.join(self.pima_dir, "share", "pima", wis_file)
 
                 if os.path.isfile(wis_file):
@@ -200,7 +199,7 @@ bytes".format(
             self.pima_dir, "share", "pima", "TEMPLATE_pima.cnt"
         )
 
-        sess_code = "{}_{}".format(self.exper, self.band)
+        sess_code = f"{self.exper}_{self.band}"
         fringe_file = os.path.join(self.work_dir, sess_code + ".fri")
         frires_file = os.path.join(self.work_dir, sess_code + ".frr")
 
@@ -209,7 +208,7 @@ bytes".format(
         else:
             polar = "LL"
 
-        with open(cnt_templ_name, "r") as cnt_templ, open(
+        with open(cnt_templ_name) as cnt_templ, open(
             self.cnt_file_name, "w"
         ) as cnt_file:
             for line in cnt_templ:
@@ -265,7 +264,7 @@ bytes".format(
                 with open(uv_fits, "wb") as fil:
                     _download_it(fits_url, fil, max_retries=2)
             except pycurl.error as err:
-                self._error("Could not download file {}: {}".format(fits_url, err))
+                self._error(f"Could not download file {fits_url}: {err}")
 
             self.logger.info("FITS-file downloading is complete")
 
@@ -288,7 +287,7 @@ bytes".format(
         try:
             _download_it(orbit_url, buffer)
         except pycurl.error as err:
-            self._error("Could not download file {}: {}".format(orbit_url, err))
+            self._error(f"Could not download file {orbit_url}: {err}")
 
         orb_data = buffer.getvalue().decode().splitlines()
 
@@ -364,7 +363,7 @@ bytes".format(
 
         sta_list = self.pima.station_list(ivs_name=False)
 
-        with open(antab, "r") as inp, open(new_antab, "w") as out:
+        with open(antab) as inp, open(new_antab, "w") as out:
             magic = inp.readline()
             if not magic.startswith("! Produced by: TSM"):
                 self.logger.warning(
@@ -543,7 +542,7 @@ bytes".format(
         sou_dist = self.pima.source_dist()
         for source, distance in sou_dist.items():
             if distance > 1.0:
-                self._error("Dist = {} arcsec for source {}".format(distance, source))
+                self._error(f"Dist = {distance} arcsec for source {source}")
 
         if "RADIO-AS" not in self.pima.station_list():
             self.logger.warning("RADIO-AS is not in station list")
@@ -603,7 +602,7 @@ bytes".format(
 
         """
         if ref_sta and ref_sta not in self.pima.station_list():
-            self._error("Station {} is not in station list".format(ref_sta))
+            self._error(f"Station {ref_sta} is not in station list")
         else:
             self.sta_ref = ref_sta
 
@@ -867,7 +866,7 @@ bytes".format(
                 "FRIB.SNR_DETECTION:": min_snr,
             }
         else:
-            self._error("Unsupported bandpass_var {}".format(bandpass_var))
+            self._error(f"Unsupported bandpass_var {bandpass_var}")
 
         if bandpass_mode:
             bpas_params["BPS.MODE:"] = bandpass_mode
@@ -1037,11 +1036,11 @@ bytes".format(
         self.pima.mk_exclude_obs_file(self.bad_obs_set, "fine")
 
         if frq_grp > 1:
-            fri_file = "{}_{}_{}_{}.fri".format(self.exper, self.band, polar, frq_grp)
-            frr_file = "{}_{}_{}_{}.frr".format(self.exper, self.band, polar, frq_grp)
+            fri_file = f"{self.exper}_{self.band}_{polar}_{frq_grp}.fri"
+            frr_file = f"{self.exper}_{self.band}_{polar}_{frq_grp}.frr"
         else:
-            fri_file = "{}_{}_{}.fri".format(self.exper, self.band, polar)
-            frr_file = "{}_{}_{}.frr".format(self.exper, self.band, polar)
+            fri_file = f"{self.exper}_{self.band}_{polar}.fri"
+            frr_file = f"{self.exper}_{self.band}_{polar}.frr"
 
         fri_file = os.path.join(self.work_dir, fri_file)
         frr_file = os.path.join(self.work_dir, frr_file)
@@ -1079,10 +1078,10 @@ bytes".format(
         mask = []
 
         if number < 0 or number >= chann_num / 2:
-            self._error("invald number of channels to flag: {}".format(number))
+            self._error(f"invald number of channels to flag: {number}")
         elif number > 0:
             ind_frq = "1-{}".format(self.pima.exper_info["if_num"])
-            ind_chn1 = "1-{}".format(number)
+            ind_chn1 = f"1-{number}"
             ind_chn2 = "{}-{}".format(chann_num - number + 1, chann_num)
 
             mask = [
@@ -1130,7 +1129,7 @@ bytes".format(
         snr_detection = round(min(7.0, self.fri.min_detected_snr() - 0.05), 2)
         self.logger.info("Set FRIB.SNR_DETECTION to %s", snr_detection)
         split_params = {
-            "FRIB.SNR_DETECTION:": "{:.2f}".format(snr_detection),
+            "FRIB.SNR_DETECTION:": f"{snr_detection:.2f}",
             "DEBUG_LEVEL:": "6",
         }
 
@@ -1216,7 +1215,7 @@ bytes".format(
             if self.scan_part >= 1000:
                 scan_part_base = (self.scan_part // 1000) * 1000
                 out_fits_name = out_fits_name.replace(
-                    "_uva", "_ALT{}_uva".format(scan_part_base)
+                    "_uva", f"_ALT{scan_part_base}_uva"
                 )
 
             out_fits_path = os.path.join(out_fits_dir, out_fits_name)
