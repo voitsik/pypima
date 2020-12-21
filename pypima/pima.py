@@ -69,11 +69,11 @@ class ExperInfo:
                 elif line.startswith("Total number of deselected points:"):
                     self._data["deselected_points_num"] = int(line.split(":")[1])
                 elif line.startswith(
-                    "Number of cross-correl NO_AUTO_1 " "deselected points:"
+                    "Number of cross-correl NO_AUTO_1 deselected points:"
                 ):
                     no_auto1 = int(line.split(":")[1])
                 elif line.startswith(
-                    "Number of cross-correl NO_AUTO_2 " "deselected points:"
+                    "Number of cross-correl NO_AUTO_2 deselected points:"
                 ):
                     no_auto2 = int(line.split(":")[1])
                 elif line.startswith("Accummulation period length_min:"):
@@ -141,9 +141,7 @@ class Pima:
         self.pima_exec = os.path.join(self.pima_dir, "bin", "pima")
 
         if not os.path.isfile(self.pima_exec):
-            self._error(
-                "Could not find pima executable. Check your PIMA " "installation!"
-            )
+            self._error("Could not find pima executable. Check your PIMA installation!")
 
         # PIMA control file path
         self.cnt_file_name = f"{self.exper}_{self.band}_pima.cnt"
@@ -207,9 +205,7 @@ class Pima:
 
                     # In case of many FITS-files
                     if key == "UV_FITS:" and isinstance(val, list):
-                        line = "".join(
-                            [f"{key:<10} {item}\n" for item in val]
-                        )
+                        line = "".join([f"{key:<10} {item}\n" for item in val])
                     else:
                         line = f"{key:<20} {val}\n"
                 elif line.startswith("# Last update on"):
@@ -872,7 +868,7 @@ class Pima:
                         ap_num = int(toks[12])
                     except ValueError as err:
                         self.logger.warning(
-                            "could not get ap num for obs %s:" " %s", toks[0], err
+                            "could not get ap num for obs %s: %s", toks[0], err
                         )
                         ap_num = 0
 
@@ -996,9 +992,7 @@ class Pima:
         mask_file = None
 
         if mask_gen_file and os.path.isfile(mask_gen_file):
-            mask_file = os.path.join(
-                self.work_dir, f"{self.exper}_{self.band}.mask"
-            )
+            mask_file = os.path.join(self.work_dir, f"{self.exper}_{self.band}.mask")
             if os.path.exists(mask_file):
                 os.remove(mask_file)
 
