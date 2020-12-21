@@ -7,24 +7,23 @@ Created on Fri Aug 24 16:09:11 2018
 
 import os.path
 import shutil
-from collections import namedtuple
+import re
+from typing import NamedTuple, List, Tuple
 
 import pytest
 
 from .. import Fri, Pima, PimaError
 from .data import SAMPLE_FRI, SAMPLE_RA_CNT, SAMPLE_RA_FITS, SAMPLE_SCF
 
-LoadResult = namedtuple(
-    "LoadResult",
-    [
-        "sp_chann_num",
-        "ap_minmax",
-        "number_of_deselected_points",
-        "station_list_ivs",
-        "station_list_corr",
-        "obs_number",
-    ],
-)
+
+class LoadResult(NamedTuple):
+    sp_chann_num: int
+    ap_minmax: float
+    number_of_deselected_points: int
+    station_list_ivs: List[str]
+    station_list_corr: List[str]
+    source_names: Tuple[str]
+    obs_number: int
 
 
 @pytest.fixture(scope="module")
@@ -62,6 +61,7 @@ class TestPima:
             0,
             ["RADIO-AS", "ZELENCHK"],
             ["RA", "ZC"],
+            ("0529+483", "J0533+4822", "0529+483"),
             1,
         ),
         ("raks16nq", "c"): LoadResult(
@@ -70,6 +70,7 @@ class TestPima:
             0,
             ["EFLSBERG", "IRBENE16", "RADIO-AS", "TORUN"],
             ["EF", "IB", "RA", "TR"],
+            ("0716+714", "J0721+7120", "0716+714"),
             14,
         ),
     }
@@ -147,11 +148,27 @@ class TestPima:
         pima = Pima(exper, band, work_dir=wdir)
 
         pima.load()
+
+    @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
+    def test_pima_exper_info(self, work_dir, exper, band):
+        """
+        Test pima.exper_info and Pima properties
+        """
+        wdir, _ = work_dir
+        pima = Pima(exper, band, work_dir=wdir)
+
         result = self.load_results[exper, band]
 
         assert pima.exper_info.exper == exper
         assert pima.exper_info.band == band
         assert pima.exper_info["sp_chann_num"] == result.sp_chann_num
+        assert (
+            pima.exper_info["deselected_points_num"]
+            == result.number_of_deselected_points
+        )
+
+        # Check PIMA version format
+        assert re.fullmatch(r"\d+\.\d+\w*", pima.exper_info["pima_version"], re.ASCII)
 
         assert pima.ap_minmax == result.ap_minmax
         assert pima.number_of_deselected_points == result.number_of_deselected_points
@@ -159,6 +176,7 @@ class TestPima:
         assert pima.station_list(ivs_name=True) == result.station_list_ivs
         assert pima.chan_number == result.sp_chann_num
         assert pima.obs_number == result.obs_number
+        assert pima.source_list[0] == result.source_names
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_set_frq_grp(self, work_dir, exper, band):
