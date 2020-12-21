@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Apr 18 01:05:23 MSK 2014
 
@@ -8,7 +7,7 @@ Created on Fri Apr 18 01:05:23 MSK 2014
 import array
 
 
-class TextTable1D(object):
+class TextTable1D:
     """
     Read 1D PIMA graphics in TXT format.
 
@@ -32,10 +31,10 @@ class TextTable1D(object):
         self.axis1_data = array.array("d")
         self.axis2_data = array.array("d")
 
-        with open(file_name, "r") as fil:
+        with open(file_name) as fil:
             magic = fil.readline().strip()
             if magic != self.FORMAT_STRING:
-                raise Exception('Bad format string in file "{}"'.format(file_name))
+                raise Exception(f'Bad format string in file "{file_name}"')
             for line in fil:
                 if line.startswith("#"):
                     continue

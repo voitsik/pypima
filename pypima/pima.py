@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Tue Dec 10 17:21:29 2013
 
@@ -27,7 +26,7 @@ class Error(Exception):
         self.msg = msg
 
     def __str__(self):
-        return "{}({}): {}".format(self.exper, self.band, self.msg)
+        return f"{self.exper}({self.band}): {self.msg}"
 
 
 class ExperInfo:
@@ -47,7 +46,7 @@ class ExperInfo:
         Fill ExperInfo with info from PIMA stt-file
         """
 
-        with open(stt_file, "r") as fil:
+        with open(stt_file) as fil:
             for line in fil:
                 if line.startswith("Correlator_name:"):
                     self._data["correlator_name"] = line.split()[1]
@@ -124,7 +123,7 @@ class Pima:
         self.exper = experiment_code.lower()
         self.band = band.lower()
 
-        self.logger = logging.getLogger("{}({})".format(self.exper, self.band))
+        self.logger = logging.getLogger(f"{self.exper}({self.band})")
 
         if not work_dir:
             self.work_dir = os.getcwd()
@@ -147,7 +146,7 @@ class Pima:
             )
 
         # PIMA control file path
-        self.cnt_file_name = "{}_{}_pima.cnt".format(self.exper, self.band)
+        self.cnt_file_name = f"{self.exper}_{self.band}_pima.cnt"
         self.cnt_file_name = os.path.join(self.work_dir, self.cnt_file_name)
 
         # Dictionary with all parameters from cnt-file
@@ -166,7 +165,7 @@ class Pima:
         self.cnt_params.clear()
         self.cnt_params["UV_FITS:"] = list()
 
-        with open(self.cnt_file_name, "r") as cnt_file:
+        with open(self.cnt_file_name) as cnt_file:
             for line in cnt_file:
                 line = line.split("#")[0].strip()
                 if len(line) < 8:
@@ -188,7 +187,7 @@ class Pima:
 
         lines = []
 
-        with open(self.cnt_file_name, "r") as file:
+        with open(self.cnt_file_name) as file:
             for line in file:
                 key = line.split()[0].strip()
 
@@ -209,10 +208,10 @@ class Pima:
                     # In case of many FITS-files
                     if key == "UV_FITS:" and isinstance(val, list):
                         line = "".join(
-                            ["{:<10} {}\n".format(key, item) for item in val]
+                            [f"{key:<10} {item}\n" for item in val]
                         )
                     else:
-                        line = "{:<20} {}\n".format(key, val)
+                        line = f"{key:<20} {val}\n"
                 elif line.startswith("# Last update on"):
                     line = "# Last update on  {}\n".format(str(datetime.now()))
 
@@ -251,7 +250,7 @@ class Pima:
 
         if not log_name:
             log_name = os.path.join(
-                self.work_dir, "{}_{}_{}.log".format(self.exper, self.band, operation)
+                self.work_dir, f"{self.exper}_{self.band}_{operation}.log"
             )
 
         with open(log_name, "w") as log:
@@ -337,17 +336,17 @@ class Pima:
         frq_grp = int(self.cnt_params["FRQ_GRP:"])
 
         if frq_grp > 1:
-            name_base = "{}_{}_{}_{}".format(self.exper, self.band, polar, frq_grp)
+            name_base = f"{self.exper}_{self.band}_{polar}_{frq_grp}"
         else:
-            name_base = "{}_{}_{}".format(self.exper, self.band, polar)
+            name_base = f"{self.exper}_{self.band}_{polar}"
 
-        log_name = "{}_coarse.log".format(name_base)
+        log_name = f"{name_base}_coarse.log"
         log_name = os.path.join(self.work_dir, log_name)
-        fri_file = "{}_nobps.fri".format(name_base)
+        fri_file = f"{name_base}_nobps.fri"
         fri_file = os.path.join(self.work_dir, fri_file)
-        frr_file = "{}_nobps.frr".format(name_base)
+        frr_file = f"{name_base}_nobps.frr"
         frr_file = os.path.join(self.work_dir, frr_file)
-        exc_obs_file = "{}_coarse_obs.exc".format(name_base)
+        exc_obs_file = f"{name_base}_coarse_obs.exc"
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if os.path.isfile(fri_file):
@@ -408,9 +407,9 @@ class Pima:
         else:
             polar = self.cnt_params["POLAR:"]
 
-        log_name = "{}_{}_{}_fine.log".format(self.exper, self.band, polar)
+        log_name = f"{self.exper}_{self.band}_{polar}_fine.log"
         log_name = os.path.join(self.work_dir, log_name)
-        exc_obs_file = "{}_{}_{}_fine_obs.exc".format(self.exper, self.band, polar)
+        exc_obs_file = f"{self.exper}_{self.band}_{polar}_fine_obs.exc"
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if params and "FRINGE_FILE:" in params:
@@ -474,18 +473,18 @@ class Pima:
         frq_grp = int(self.cnt_params["FRQ_GRP:"])
 
         if frq_grp > 1:
-            name_base = "{}_{}_{}_{}".format(self.exper, self.band, polar, frq_grp)
+            name_base = f"{self.exper}_{self.band}_{polar}_{frq_grp}"
         else:
-            name_base = "{}_{}_{}".format(self.exper, self.band, polar)
+            name_base = f"{self.exper}_{self.band}_{polar}"
 
-        fri_file = "{}_nobps.fri".format(name_base)
+        fri_file = f"{name_base}_nobps.fri"
         fri_file = os.path.join(self.work_dir, fri_file)
-        log_file = "{}_bps.log".format(name_base)
+        log_file = f"{name_base}_bps.log"
         log_file = os.path.join(self.work_dir, log_file)
-        exc_obs_file = "{}_bpas_obs.exc".format(name_base)
+        exc_obs_file = f"{name_base}_bpas_obs.exc"
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
-        bps_file = "{}.bps".format(name_base)
+        bps_file = f"{name_base}.bps"
         bps_file = os.path.join(self.work_dir, bps_file)
         self.update_cnt({"BANDPASS_FILE:": bps_file})
 
@@ -532,9 +531,9 @@ class Pima:
         else:
             polar = self.cnt_params["POLAR:"]
 
-        exc_obs_file = "{}_{}_{}_splt_obs.exc".format(self.exper, self.band, polar)
+        exc_obs_file = f"{self.exper}_{self.band}_{polar}_splt_obs.exc"
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
-        log_file = "{}_{}_{}_splt.log".format(self.exper, self.band, polar)
+        log_file = f"{self.exper}_{self.band}_{polar}_splt.log"
         log_file = os.path.join(self.work_dir, log_file)
 
         opts = {"SPLT.TIM_MSEG:": str(tim_mseg)}
@@ -570,7 +569,7 @@ class Pima:
         if params:
             opts.update(params)
 
-        log_file = "{}_{}_gain.log".format(self.exper, self.band)
+        log_file = f"{self.exper}_{self.band}_gain.log"
         log_file = os.path.join(self.work_dir, log_file)
 
         ret = self._exec("gean", opts, log_file)
@@ -598,7 +597,7 @@ class Pima:
         if params:
             opts.update(params)
 
-        log_file = "{}_{}_tsys.log".format(self.exper, self.band)
+        log_file = f"{self.exper}_{self.band}_tsys.log"
         log_file = os.path.join(self.work_dir, log_file)
 
         ret = self._exec("gean", opts, log_file)
@@ -633,18 +632,18 @@ class Pima:
         if params:
             opts.update(params)
 
-        log_file = "{}_{}_{}_acta.log".format(self.exper, self.band, polar)
+        log_file = f"{self.exper}_{self.band}_{polar}_acta.log"
         log_file = os.path.join(self.work_dir, log_file)
 
         ret = self._exec("acta", opts, log_file)
 
         if ret:
-            self._error("acta failed with code {}".format(ret))
+            self._error(f"acta failed with code {ret}")
         else:
             self.logger.info("acta ok")
 
         file_list = []
-        with open(log_file, "r") as fil:
+        with open(log_file) as fil:
             for line in fil:
                 if line.startswith("PIMA_ACTA created file:"):
                     file_name = line.split(":")[1].strip()
@@ -666,7 +665,7 @@ class Pima:
         polar = polar.upper()
 
         if polar not in ("RR", "RL", "LR", "LL", "I"):
-            self._error("Wrong polarization: {}".format(polar))
+            self._error(f"Wrong polarization: {polar}")
 
         self.logger.info("Set polarization to %s", polar)
         self.update_cnt({"POLAR:": polar, "SPLT.POLAR:": polar})
@@ -682,7 +681,7 @@ class Pima:
 
         """
         if frq_grp < 1 or frq_grp > self.exper_info["frq_grp"]:
-            self._error("Invalid frequency group {}".format(frq_grp))
+            self._error(f"Invalid frequency group {frq_grp}")
 
         self.logger.info("Set frequency group to %s", frq_grp)
         self.update_cnt({"FRQ_GRP:": frq_grp})
@@ -699,7 +698,7 @@ class Pima:
         )
 
         if os.path.isfile(stt_file):
-            with open(stt_file, "r") as fil:
+            with open(stt_file) as fil:
                 for line in fil:
                     if line.startswith("Accummulation period length_min"):
                         ap_min = float(line.split()[3])
@@ -741,7 +740,7 @@ class Pima:
         )
 
         if os.path.isfile(sta_file):
-            with open(sta_file, "r") as fil:
+            with open(sta_file) as fil:
                 for line in fil:
                     toks = line.split()
                     if ivs_name:
@@ -908,7 +907,7 @@ class Pima:
         )
 
         if os.path.isfile(mdc_file):
-            with open(mdc_file, "r") as fil:
+            with open(mdc_file) as fil:
                 for line in fil:
                     if not line.startswith("CLOCK_MODEL"):
                         continue
@@ -959,11 +958,11 @@ class Pima:
         frq_grp = int(self.cnt_params["FRQ_GRP:"])
 
         if frq_grp > 1:
-            name_base = "{}_{}_{}_{}".format(self.exper, self.band, polar, frq_grp)
+            name_base = f"{self.exper}_{self.band}_{polar}_{frq_grp}"
         else:
-            name_base = "{}_{}_{}".format(self.exper, self.band, polar)
+            name_base = f"{self.exper}_{self.band}_{polar}"
 
-        exc_obs_file = "{}_{}_obs.exc".format(name_base, suffix)
+        exc_obs_file = f"{name_base}_{suffix}_obs.exc"
         exc_obs_file = os.path.join(self.work_dir, exc_obs_file)
 
         if obs_list:
@@ -998,7 +997,7 @@ class Pima:
 
         if mask_gen_file and os.path.isfile(mask_gen_file):
             mask_file = os.path.join(
-                self.work_dir, "{}_{}.mask".format(self.exper, self.band)
+                self.work_dir, f"{self.exper}_{self.band}.mask"
             )
             if os.path.exists(mask_file):
                 os.remove(mask_file)
@@ -1025,7 +1024,7 @@ class Pima:
 
         """
         mask_gen_file = os.path.join(
-            self.work_dir, "{}_{}_mask.gen".format(self.exper, self.band)
+            self.work_dir, f"{self.exper}_{self.band}_mask.gen"
         )
 
         if params:
@@ -1040,7 +1039,7 @@ experiment {}".format(
                     file=file,
                 )
                 print("#", file=file)
-                print("#  Created on {}".format(datetime.now()), file=file)
+                print(f"#  Created on {datetime.now()}", file=file)
                 print("#", file=file)
                 print("BOTH   ALL:   ON", file=file)
                 print("#", file=file)
@@ -1290,7 +1289,7 @@ class Text1D:
         self._ax1.clear()
         self._ax2.clear()
 
-        with open(file_name, "r") as file:
+        with open(file_name) as file:
             magic = file.readline().strip()
 
             if magic != "# 1D text table.  Format version of 2012.12.30":
@@ -1367,7 +1366,7 @@ def bpas_log_snr_new(file_name: str, mode: str = "INIT"):
 
     bpas_mode_line = f"PIMA_BPASS_{mode}"
 
-    with open(file_name, "r") as file:
+    with open(file_name) as file:
         for line in file:
             if bpas_mode_line in line:
                 in_bpass = True

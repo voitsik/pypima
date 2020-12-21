@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Jan 15 19:52:28 2014
 
@@ -117,10 +116,10 @@ class Fri:
         header = {}
         self.records.clear()
 
-        with open(file_name, "r") as fil:
+        with open(file_name) as fil:
             line = fil.readline()
             if not line.startswith(self.supported_versions):
-                raise ValueError("{} is not PIMA fri-file".format(file_name))
+                raise ValueError(f"{file_name} is not PIMA fri-file")
 
             for line in fil:
                 if line.startswith("# PIMA_FRINGE started"):

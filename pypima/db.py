@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Oct 30 14:23:23 2014
 
@@ -85,7 +84,7 @@ class DB:
             path = reply[0]
             size = reply[1]
             ftp_user = reply[2]
-            url = "ftp://{}{}".format(ftp_user, path)
+            url = f"ftp://{ftp_user}{path}"
 
         return url, size
 

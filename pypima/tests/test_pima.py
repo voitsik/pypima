@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Aug 24 16:09:11 2018
 
@@ -254,9 +253,9 @@ class TestPima:
         pima = Pima(exper, band, work_dir=wdir)
 
         polar = pima.cnt_params["POLAR:"]
-        fri_file = "{}_{}_{}.fri".format(exper, band, polar)
+        fri_file = f"{exper}_{band}_{polar}.fri"
         fri_file = os.path.join(wdir, fri_file)
-        frr_file = "{}_{}_{}.frr".format(exper, band, polar)
+        frr_file = f"{exper}_{band}_{polar}.frr"
         frr_file = os.path.join(wdir, frr_file)
         pima.update_cnt({"FRINGE_FILE:": fri_file, "FRIRES_FILE:": frr_file})
 

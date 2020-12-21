@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Sep 30 14:01:07 2016
 
@@ -34,7 +33,7 @@ def plot_autospectra(acta_file_list, out_dir_base):
 
     for acta_file in acta_file_list:
         exper, band = acta_file.header["experiment"].split("_")
-        out_dir = os.path.join(out_dir_base, "{}_{}".format(exper, band))
+        out_dir = os.path.join(out_dir_base, f"{exper}_{band}")
         os.makedirs(out_dir, exist_ok=True)
 
         date = acta_file.header["start_date"]

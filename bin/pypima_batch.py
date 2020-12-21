@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on 18.02.2014
 
@@ -353,7 +352,7 @@ class InvalidInputFile(Exception):
         self.message = message
 
     def __str__(self):
-        return "{}: {}".format(self.message, self.file_name)
+        return f"{self.message}: {self.file_name}"
 
 
 def parser_input_file(file_name):
@@ -377,7 +376,7 @@ def parser_input_file(file_name):
     ExperRec = namedtuple("ExperRec", "exper_name band fits_list")
     exp_list = []
 
-    with open(file_name, "r") as file:
+    with open(file_name) as file:
         for line in file:
             line = line.split("#")[0].strip()  # Strip comments out
 

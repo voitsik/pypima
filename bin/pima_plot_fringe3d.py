@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import argparse
 # import os.path
@@ -45,7 +44,7 @@ def plot(file_name, fri, format, title=False):
     exper, band = fri["session_code"].split("_")
     obs = fri["obs"]
 
-    with open(file_name, "r") as fil:
+    with open(file_name) as fil:
         for line in fil:
             key, sep, val = line.partition(":")
             if key == "PLOT_TITLE":
@@ -85,9 +84,9 @@ def plot(file_name, fri, format, title=False):
     std = np.std(Z)
     mean_corr = np.mean(Z[Z < mean + 2 * std])
 
-    print("Mean = {:.3e}".format(mean))
-    print("Std = {:.3e}".format(std))
-    print("Peak = {:.3e}".format(Z.max()))
+    print(f"Mean = {mean:.3e}")
+    print(f"Std = {std:.3e}")
+    print(f"Peak = {Z.max():.3e}")
     print("Peak/mean = {:.1f}".format(Z.max() / mean_corr))
 
     plt.style.use("seaborn-paper")
@@ -120,7 +119,7 @@ def plot(file_name, fri, format, title=False):
     if title:
         date = fri["start_time"].strftime("%d.%m.%Y")
         band2wl = {"k": 1.35, "c": 6, "l": 18}
-        title = "{} ({})\n".format(exper, date)
+        title = f"{exper} ({date})\n"
         title += "{}, {} cm, {}-{}".format(
             source, band2wl[band], sta2sta(fri["sta1"]), sta2sta(fri["sta2"])
         )
@@ -129,8 +128,8 @@ def plot(file_name, fri, format, title=False):
         # fig.suptitle(suptitle)
         ax.set_title(title)
 
-    file_name = "{}_{}_{}_{:02d}_fringe3D".format(source, exper, band, obs)
-    file_name = "{}.{}".format(file_name, format)
+    file_name = f"{source}_{exper}_{band}_{obs:02d}_fringe3D"
+    file_name = f"{file_name}.{format}"
 
     if format == "eps":
         ax.w_yaxis.set_pane_color((1, 1, 1, 0))
@@ -178,8 +177,8 @@ def main(args):
     else:
         rate_window = 8e-12
 
-    delay_str = "{:E}".format(delay_window)
-    rate_str = "{:E}".format(rate_window)
+    delay_str = f"{delay_window:E}"
+    rate_str = f"{rate_window:E}"
 
     params.extend(
         [

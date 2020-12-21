@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Feb 11 14:00:15 2016
 
@@ -18,7 +17,7 @@ class UVFitsError(Exception):
         self.message = message
 
     def __str__(self):
-        return "{}: {}".format(self.message, self.file_name)
+        return f"{self.message}: {self.file_name}"
 
 
 def baseline_decode(baseline):
@@ -107,11 +106,11 @@ class UVFits:
         self.gcount = header["GCOUNT"]
         # Go through the array axis
         for ind in range(2, 1 + header["NAXIS"]):
-            naxis = header["NAXIS{}".format(ind)]
-            ctype = header["CTYPE{}".format(ind)]
-            crval = header["CRVAL{}".format(ind)]
-            crpix = header["CRPIX{}".format(ind)]
-            cdelt = header["CDELT{}".format(ind)]
+            naxis = header[f"NAXIS{ind}"]
+            ctype = header[f"CTYPE{ind}"]
+            crval = header[f"CRVAL{ind}"]
+            crpix = header[f"CRPIX{ind}"]
+            cdelt = header[f"CDELT{ind}"]
 
             if ctype == "FREQ":
                 if naxis != 1:
@@ -169,7 +168,7 @@ class UVFits:
                 )
         else:
             raise UVFitsError(
-                "Invalid NO_IF value: {}".format(self.no_if), self.file_name
+                f"Invalid NO_IF value: {self.no_if}", self.file_name
             )
 
     def _read_uv_data(self):
@@ -222,8 +221,8 @@ class UVFits:
                     ant1_name,
                     ant2_name,
                     self.dates[ind],
-                    "{:10.6f} {:8.5f} {:10.1f}".format(amp, pha, weight),
-                    "{:15.1f} {:15.1f}".format(uu, vv),
+                    f"{amp:10.6f} {pha:8.5f} {weight:10.1f}",
+                    f"{uu:15.1f} {vv:15.1f}",
                 )
 
     def useful_antennas(self):

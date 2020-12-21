@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Sample files"""
 
 # Use private names to avoid inclusion in the sphinx documentation.

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Fri Apr  4 18:22:19 2014
 
@@ -96,7 +95,7 @@ def plot(obs_info, dur_arr, ampl_arr, snr_arr, out_format="pdf"):
     ax2.text(
         0.95,
         0.01,
-        "Generated at {:%Y-%m-%d %H:%M}".format(datetime.now()),
+        f"Generated at {datetime.now():%Y-%m-%d %H:%M}",
         color="gray",
         size="xx-small",
         ha="right",
@@ -258,7 +257,7 @@ def valid_obs_list(string):
     try:
         return [int(obs) for obs in string.split(",")]
     except ValueError:
-        msg = "Not a valid comma-separated list of integers: '{0}'.".format(string)
+        msg = f"Not a valid comma-separated list of integers: '{string}'."
         raise argparse.ArgumentTypeError(msg)
 
 
