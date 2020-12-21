@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 Created on Thu Oct 30 14:23:23 2014
 
 @author: Petr Voytsik
 """
 
-from datetime import datetime
 import os.path
+from datetime import datetime
 
 import psycopg2
 from psycopg2.extras import execute_values
@@ -17,16 +16,15 @@ class DB:
     Interface to the "ra_results" database.
 
     """
+
     def __init__(self):
         """
         Connect to the database.
 
         """
-        self.conn = psycopg2.connect(database='ra_results', user='guest',
-                                     host='odin')
+        self.conn = psycopg2.connect(database="ra_results", user="guest", host="odin")
         self.conn.autocommit = True
-        self.connw = psycopg2.connect(database='ra_results', user='editor',
-                                      host='odin')
+        self.connw = psycopg2.connect(database="ra_results", user="editor", host="odin")
 
     def get_uvfits_url(self, exper, band, gvlbi=False, small=False):
         """
@@ -65,18 +63,18 @@ class DB:
         split_part(basename, '_', 1) = %(base)s #EXT#
         ORDER BY corr_date DESC, path DESC;"""
 
-        params = {'exper': exper, 'band': band, 'frb': '%FRB%'}
+        params = {"exper": exper, "band": band, "frb": "%FRB%"}
 
         if gvlbi:
-            params['base'] = 'GVLBI'
+            params["base"] = "GVLBI"
         else:
-            params['base'] = 'RADIOASTRON'
+            params["base"] = "RADIOASTRON"
 
         if small:
-            query = query.replace('#EXT#', 'AND ch_num = %(ch_num)s')
-            params['ch_num'] = 64
+            query = query.replace("#EXT#", "AND ch_num = %(ch_num)s")
+            params["ch_num"] = 64
         else:
-            query = query.replace('#EXT#', '')
+            query = query.replace("#EXT#", "")
 
         with self.conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -86,7 +84,7 @@ class DB:
             path = reply[0]
             size = reply[1]
             ftp_user = reply[2]
-            url = 'ftp://{}{}'.format(ftp_user, path)
+            url = f"ftp://{ftp_user}{path}"
 
         return url, size
 
@@ -106,7 +104,7 @@ class DB:
 
         """
         url = None
-        url_base = 'ftp://webinet.asc.rssi.ru/radioastron/oddata/reconstr/'
+        url_base = "ftp://webinet.asc.rssi.ru/radioastron/oddata/reconstr/"
 
         query = """
         SELECT scf_files.file_name FROM scf_files, vex_files
@@ -145,7 +143,7 @@ class DB:
 
         """
         url = None
-        url_base = 'ftp://webinet.asc.rssi.ru/radioastron/ampcal'
+        url_base = "ftp://webinet.asc.rssi.ru/radioastron/ampcal"
 
         query = "SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
                  FROM vex_files WHERE exper_name = %s;"
@@ -157,8 +155,9 @@ class DB:
         if reply:
             date = reply[0]
             date1 = date[0:7]
-            url = '{0}/{1}/{2}_{3}/{3}{4}.antab'.format(url_base, date1, date,
-                                                        exper, band)
+            url = "{0}/{1}/{2}_{3}/{3}{4}.antab".format(
+                url_base, date1, date, exper, band
+            )
 
         return url
 
@@ -181,7 +180,7 @@ class DB:
 
         exper = exper_info.exper
         band = exper_info.band
-        polar = fri.records[0]['polar']
+        polar = fri.records[0]["polar"]
 
         query = """INSERT INTO pima_obs (obs, start_time, stop_time,
 exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
@@ -190,42 +189,46 @@ bandpass) VALUES %s;"""
 
         rec_list = []
         for rec in fri.records:
-            if rec['FRIB.FINE_SEARCH'] == 'ACC':
-                accel = rec['ph_acc']
+            if rec["FRIB.FINE_SEARCH"] == "ACC":
+                accel = rec["ph_acc"]
             else:
-                accel = rec['accel']
+                accel = rec["accel"]
 
             # Set IF id to 0 if fringe fitting done over multiple IFs
-            if rec['beg_ifrq'] != rec['end_ifrq']:
+            if rec["beg_ifrq"] != rec["end_ifrq"]:
                 if_id = 0
             else:
-                if_id = rec['beg_ifrq']
+                if_id = rec["beg_ifrq"]
 
-            rec_list.append((rec['obs'],
-                             rec['start_time'],
-                             rec['stop_time'],
-                             exper,
-                             band,
-                             rec['source'],
-                             polar,
-                             rec['sta1'],
-                             rec['sta2'],
-                             rec['delay'],
-                             rec['rate'],
-                             accel,
-                             rec['SNR'],
-                             rec['ampl_lsq'],
-                             rec['duration'],
-                             rec['U'],
-                             rec['V'],
-                             rec['uv_rad_ed'],
-                             rec['ref_freq'],
-                             rec['time_code'],
-                             run_id,
-                             if_id,
-                             rec['status'],
-                             rec['elevation'],
-                             fri.aux['bandpass']))
+            rec_list.append(
+                (
+                    rec["obs"],
+                    rec["start_time"],
+                    rec["stop_time"],
+                    exper,
+                    band,
+                    rec["source"],
+                    polar,
+                    rec["sta1"],
+                    rec["sta2"],
+                    rec["delay"],
+                    rec["rate"],
+                    accel,
+                    rec["SNR"],
+                    rec["ampl_lsq"],
+                    rec["duration"],
+                    rec["U"],
+                    rec["V"],
+                    rec["uv_rad_ed"],
+                    rec["ref_freq"],
+                    rec["time_code"],
+                    run_id,
+                    if_id,
+                    rec["status"],
+                    rec["elevation"],
+                    fri.aux["bandpass"],
+                )
+            )
 
         with self.connw.cursor() as cursor:
             execute_values(cursor, query, rec_list)
@@ -250,19 +253,18 @@ bandpass) VALUES %s;"""
             # Delete old before add new
             query = """DELETE FROM pima_runs WHERE \
 exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;"""
-            uv_fits_toks = uv_fits.split('_')
-            fits_name_base = uv_fits_toks[0] + '%'
+            uv_fits_toks = uv_fits.split("_")
+            fits_name_base = uv_fits_toks[0] + "%"
 
             if len(uv_fits_toks) >= 5:
                 correlator = uv_fits_toks[4]
-                fits_name_base += correlator + '%'
+                fits_name_base += correlator + "%"
 
             cursor.execute(query, (exper, band, fits_name_base, scan_part))
 
-            query = 'INSERT INTO pima_runs (exper_name, band, \
-proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
-            cursor.execute(query, (exper, band, datetime.now(), uv_fits,
-                                   scan_part))
+            query = "INSERT INTO pima_runs (exper_name, band, \
+proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
+            cursor.execute(query, (exper, band, datetime.now(), uv_fits, scan_part))
             run_id = cursor.fetchone()[0]
 
         self.connw.commit()
@@ -274,7 +276,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         Add extended experiment information to the DB.
 
         """
-        query = '''UPDATE pima_runs SET
+        query = """UPDATE pima_runs SET
         sp_chann_num = %s,
         time_epochs_num = %s,
         scans_num = %s,
@@ -291,25 +293,30 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         pima_version = %s,
         correlator_name = %s
         WHERE id = %s
-        '''
+        """
 
         with self.connw.cursor() as cursor:
-            cursor.execute(query, (exper_info['sp_chann_num'],
-                                   exper_info['time_epochs_num'],
-                                   exper_info['scans_num'],
-                                   exper_info['obs_num'],
-                                   exper_info['uv_points_num'],
-                                   exper_info['uv_points_used_num'],
-                                   exper_info['deselected_points_num'],
-                                   exper_info['no_auto_points_num'],
-                                   exper_info['accum_length'],
-                                   exper_info['utc_minus_tai'],
-                                   exper_info['nominal_start'],
-                                   exper_info['nominal_end'],
-                                   exper_info['hostname'],
-                                   exper_info['pima_version'],
-                                   exper_info['correlator_name'],
-                                   run_id))
+            cursor.execute(
+                query,
+                (
+                    exper_info["sp_chann_num"],
+                    exper_info["time_epochs_num"],
+                    exper_info["scans_num"],
+                    exper_info["obs_num"],
+                    exper_info["uv_points_num"],
+                    exper_info["uv_points_used_num"],
+                    exper_info["deselected_points_num"],
+                    exper_info["no_auto_points_num"],
+                    exper_info["accum_length"],
+                    exper_info["utc_minus_tai"],
+                    exper_info["nominal_start"],
+                    exper_info["nominal_end"],
+                    exper_info["hostname"],
+                    exper_info["pima_version"],
+                    exper_info["correlator_name"],
+                    run_id,
+                ),
+            )
 
         self.connw.commit()
 
@@ -318,7 +325,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;'
         Put error comment into DB.
 
         """
-        query = 'UPDATE pima_runs SET last_error = %s WHERE id = %s'
+        query = "UPDATE pima_runs SET last_error = %s WHERE id = %s"
 
         with self.connw.cursor() as cursor:
             cursor.execute(query, (msg, run_id))
@@ -379,14 +386,29 @@ VALUES %s;"""
                 if weight <= 0:
                     continue
 
-                freq = float(fits_file.freq +
-                             fits_file.freq_table[if_ind]['if_freq'])
+                freq = float(fits_file.freq + fits_file.freq_table[if_ind]["if_freq"])
                 uu = float(fits_file.u_raw[ind])
                 vv = float(fits_file.v_raw[ind])
 
-                row = (ind+1, time, if_ind+1, b1950_name, fits_file.exper_name,
-                       fits_file.band, fits_file.stokes, ant1_name, ant2_name,
-                       uu, vv, freq, flux, weight, inttime, file_name, run_id)
+                row = (
+                    ind + 1,
+                    time,
+                    if_ind + 1,
+                    b1950_name,
+                    fits_file.exper_name,
+                    fits_file.band,
+                    fits_file.stokes,
+                    ant1_name,
+                    ant2_name,
+                    uu,
+                    vv,
+                    freq,
+                    flux,
+                    weight,
+                    inttime,
+                    file_name,
+                    run_id,
+                )
                 data.append(row)
 
         query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
@@ -406,13 +428,13 @@ VALUES %s;"""
         Store autocorrelation spectrum to the database.
 
         """
-        exper, band = acta_file.header['experiment'].split('_')
-        polar = acta_file.header['polar']
-        sta = acta_file.header['station']
-        start_date = acta_file.header['start_date']
-        stop_date = acta_file.header['stop_date']
-        obs = acta_file.header['obs']
-        scan_name = acta_file.header['scan_name']
+        exper, band = acta_file.header["experiment"].split("_")
+        polar = acta_file.header["polar"]
+        sta = acta_file.header["station"]
+        start_date = acta_file.header["start_date"]
+        stop_date = acta_file.header["stop_date"]
+        obs = acta_file.header["obs"]
+        scan_name = acta_file.header["scan_name"]
 
         delete_query = """DELETE FROM autospec_info
 WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
@@ -426,13 +448,20 @@ VALUES %s RETURNING id;"""
 
         with self.connw.cursor() as cursor:
             cursor.execute(delete_query, (exper, band, polar, sta, scan_name))
-            cursor.execute(query_info, [(exper, band, polar, sta, start_date,
-                                        stop_date, obs, scan_name)])
+            cursor.execute(
+                query_info,
+                [(exper, band, polar, sta, start_date, stop_date, obs, scan_name)],
+            )
             info_id = cursor.fetchone()[0]
 
-            for ind in range(acta_file.header['num_of_points']):
-                row = (acta_file.if_num[ind], acta_file.channel[ind],
-                       acta_file.freq[ind], acta_file.ampl[ind], info_id)
+            for ind in range(acta_file.header["num_of_points"]):
+                row = (
+                    acta_file.if_num[ind],
+                    acta_file.channel[ind],
+                    acta_file.freq[ind],
+                    acta_file.ampl[ind],
+                    info_id,
+                )
                 data.append(row)
             execute_values(cursor, query_data, data, page_size=2048)
 

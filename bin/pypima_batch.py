@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on 18.02.2014
 
@@ -7,12 +6,12 @@ Created on 18.02.2014
 """
 
 import argparse
-from collections import namedtuple
 import logging
 import os.path
 import shutil
 import sys
 import threading
+from collections import namedtuple
 
 import psycopg2
 
@@ -24,9 +23,9 @@ def download_it(ra_exps, force_small):
     Download FITS files for the list of the experiments.
 
     """
-    logger = logging.getLogger('download_thread')
+    logger = logging.getLogger("download_thread")
 
-    logger.info('started')
+    logger.info("started")
 
     for exp in ra_exps:
         # Hack: make data directory for shutil.disk_usage
@@ -34,7 +33,7 @@ def download_it(ra_exps, force_small):
         disk_usage = shutil.disk_usage(exp.data_dir)
 
         if disk_usage.free / disk_usage.total < 0.1:
-            logger.warning('less then 10% of free space left on disk')
+            logger.warning("less then 10% of free space left on disk")
             return
 
         try:
@@ -44,10 +43,10 @@ def download_it(ra_exps, force_small):
         except RaExperimentError:
             continue
         except KeyboardInterrupt:
-            logger.warning('KeyboardInterrupt')
+            logger.warning("KeyboardInterrupt")
             return
         except Exception:
-            logger.error('Unexpected error: %s', sys.exc_info()[0])
+            logger.error("Unexpected error: %s", sys.exc_info()[0])
             raise
 
 
@@ -76,32 +75,33 @@ def process_gvlbi(ra_exp, **kwargs):
     Process ground-only part of the experiment.
 
     """
-    accel = kwargs.pop('accel', False)
-    force_small = kwargs.pop('force_small', False)
+    accel = kwargs.pop("accel", False)
+    force_small = kwargs.pop("force_small", False)
     # scan_part_base = kwargs.pop('scan_part_base', 0)
-    reference_station = kwargs.pop('ref_sta', None)
-    bandpass_mode = kwargs.pop('bandpass_mode', None)
-    ampl_bandpass = kwargs.pop('ampl_bandpass', True)
-    bandpass_var = kwargs.pop('bandpass_var', 0)
-    bandpass_use = kwargs.pop('bandpass_use', None)
-    flag_chann = kwargs.pop('flag_chann', 0)
-    scan_len = kwargs.pop('max_scan_length', 1500)
+    reference_station = kwargs.pop("ref_sta", None)
+    bandpass_mode = kwargs.pop("bandpass_mode", None)
+    ampl_bandpass = kwargs.pop("ampl_bandpass", True)
+    bandpass_var = kwargs.pop("bandpass_var", 0)
+    bandpass_use = kwargs.pop("bandpass_use", None)
+    flag_chann = kwargs.pop("flag_chann", 0)
+    scan_len = kwargs.pop("max_scan_length", 1500)
 
     ff_params = {
-        'bandpass': True,
-        'accel': accel,
-        'reference_station': reference_station,
-        'bandpass_mode': bandpass_mode,
-        'ampl_bandpass': ampl_bandpass,
-        'bandpass_var': bandpass_var,
-        'bandpass_use': bandpass_use,
-        }
+        "bandpass": True,
+        "accel": accel,
+        "reference_station": reference_station,
+        "bandpass_mode": bandpass_mode,
+        "ampl_bandpass": ampl_bandpass,
+        "bandpass_var": bandpass_var,
+        "bandpass_use": bandpass_use,
+    }
 
-    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=1,
-                force_small=force_small)
+    ra_exp.load(
+        update_db=True, scan_length=scan_len, scan_part=1, force_small=force_small
+    )
     ra_exp.flag_edge_chann(flag_chann)
 
-    for polar in ('RR', 'RL', 'LR', 'LL'):
+    for polar in ("RR", "RL", "LR", "LL"):
         ra_exp.pima.set_polar(polar)
         print(ra_exp.fringe_fitting(**ff_params))
         ra_exp.fringes2db()
@@ -114,46 +114,45 @@ def process_ind_ifs(ra_exp, **kwargs):
     Do fringe fitting for each IF separatly.
 
     """
-    accel = kwargs.pop('accel', True)
-    force_small = kwargs.pop('force_small', False)
+    accel = kwargs.pop("accel", True)
+    force_small = kwargs.pop("force_small", False)
     # scan_part_base = kwargs.pop('scan_part_base', 0)
-    reference_station = kwargs.pop('ref_sta', None)
-    bandpass_mode = kwargs.pop('bandpass_mode', None)
-    ampl_bandpass = kwargs.pop('ampl_bandpass', True)
-    bandpass_var = kwargs.pop('bandpass_var', 0)
-    bandpass_use = kwargs.pop('bandpass_use', None)
-    flag_chann = kwargs.pop('flag_chann', 0)
-    scan_len = kwargs.pop('max_scan_length', 1500)
+    reference_station = kwargs.pop("ref_sta", None)
+    bandpass_mode = kwargs.pop("bandpass_mode", None)
+    ampl_bandpass = kwargs.pop("ampl_bandpass", True)
+    bandpass_var = kwargs.pop("bandpass_var", 0)
+    bandpass_use = kwargs.pop("bandpass_use", None)
+    flag_chann = kwargs.pop("flag_chann", 0)
+    scan_len = kwargs.pop("max_scan_length", 1500)
 
     ff_params = {
-        'bandpass': True,
-        'accel': accel,
-        'reference_station': reference_station,
-        'bandpass_mode': bandpass_mode,
-        'ampl_bandpass': ampl_bandpass,
-        'bandpass_var': bandpass_var,
-        'bandpass_use': bandpass_use,
-        }
+        "bandpass": True,
+        "accel": accel,
+        "reference_station": reference_station,
+        "bandpass_mode": bandpass_mode,
+        "ampl_bandpass": ampl_bandpass,
+        "bandpass_var": bandpass_var,
+        "bandpass_use": bandpass_use,
+    }
 
-    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=-1,
-                force_small=force_small)
+    ra_exp.load(
+        update_db=True, scan_length=scan_len, scan_part=-1, force_small=force_small
+    )
     ra_exp.flag_edge_chann(flag_chann)
 
-    for polar in ('RR', 'RL', 'LR', 'LL'):
+    for polar in ("RR", "RL", "LR", "LL"):
         ra_exp.pima.set_polar(polar)
-        if_num = ra_exp.pima.exper_info['if_num']
+        if_num = ra_exp.pima.exper_info["if_num"]
 
         for ind in range(if_num):
-            ra_exp.pima.update_cnt({'BEG_FRQ:': str(ind+1),
-                                    'END_FRQ:': str(ind+1)})
+            ra_exp.pima.update_cnt({"BEG_FRQ:": str(ind + 1), "END_FRQ:": str(ind + 1)})
             fri = ra_exp.fringe_fitting(**ff_params)
-            print('IF #{}'.format(ind+1))
+            print("IF #{}".format(ind + 1))
             print(fri)
             ra_exp.fringes2db()
 
         # Restore IFs
-        ra_exp.pima.update_cnt({'BEG_FRQ:': str(1),
-                                'END_FRQ:': str(if_num)})
+        ra_exp.pima.update_cnt({"BEG_FRQ:": str(1), "END_FRQ:": str(if_num)})
 
     ra_exp.delete_uvfits()
 
@@ -187,58 +186,63 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         Reference station for bandpass calibration. Default value is ``None``.
 
     """
-    accel = kwargs.pop('accel', True)
-    force_small = kwargs.pop('force_small', False)
-    scan_part_base = kwargs.pop('scan_part_base', 0)
-    reference_station = kwargs.pop('ref_sta', None)
-    bandpass_mode = kwargs.pop('bandpass_mode', None)
-    ampl_bandpass = kwargs.pop('ampl_bandpass', True)
-    bandpass_var = kwargs.pop('bandpass_var', 0)
-    bandpass_use = kwargs.pop('bandpass_use', None)
-    bandpass_norm = kwargs.pop('bandpass_norm', 'IF')
-    bandpass_renorm = kwargs.pop('bandpass_renorm', True)
-    flag_chann = kwargs.pop('flag_chann', 0)
-    scan_len = kwargs.pop('max_scan_length', 1500)
+    accel = kwargs.pop("accel", True)
+    force_small = kwargs.pop("force_small", False)
+    scan_part_base = kwargs.pop("scan_part_base", 0)
+    reference_station = kwargs.pop("ref_sta", None)
+    bandpass_mode = kwargs.pop("bandpass_mode", None)
+    ampl_bandpass = kwargs.pop("ampl_bandpass", True)
+    bandpass_var = kwargs.pop("bandpass_var", 0)
+    bandpass_use = kwargs.pop("bandpass_use", None)
+    bandpass_norm = kwargs.pop("bandpass_norm", "IF")
+    bandpass_renorm = kwargs.pop("bandpass_renorm", True)
+    flag_chann = kwargs.pop("flag_chann", 0)
+    scan_len = kwargs.pop("max_scan_length", 1500)
 
     # First run on full scan
     scan_part = scan_part_base + 1
-    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=scan_part,
-                force_small=force_small)
+    ra_exp.load(
+        update_db=True,
+        scan_length=scan_len,
+        scan_part=scan_part,
+        force_small=force_small,
+    )
     ra_exp.flag_edge_chann(flag_chann)
     ra_exp.load_antab()
 
     ff_params = {
-        'bandpass': True,
-        'accel': accel,
-        'reference_station': reference_station,
-        'bandpass_mode': bandpass_mode,
-        'ampl_bandpass': ampl_bandpass,
-        'bandpass_var': bandpass_var,
-        'bandpass_use': bandpass_use,
-        'bandpass_norm': bandpass_norm,
-        'bandpass_renorm': bandpass_renorm,
-        }
+        "bandpass": True,
+        "accel": accel,
+        "reference_station": reference_station,
+        "bandpass_mode": bandpass_mode,
+        "ampl_bandpass": ampl_bandpass,
+        "bandpass_var": bandpass_var,
+        "bandpass_use": bandpass_use,
+        "bandpass_norm": bandpass_norm,
+        "bandpass_renorm": bandpass_renorm,
+    }
 
     scan_len_list = []
 
-    for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+    for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
         ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-        for polar in ('RR', 'RL', 'LR', 'LL'):
+        for polar in ("RR", "RL", "LR", "LL"):
             ra_exp.pima.set_polar(polar)
 
             if scan_part == 1:
-                ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir,
-                                            db=True)
+                ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
             fri = ra_exp.fringe_fitting(**ff_params)
             print(fri)
             scan_len_list.append(fri.max_scan_length())
             ra_exp.fringes2db()
 
             # Split good data
-            if ra_exp.pima.chan_number <= 256 and \
-                    ra_exp.calibration_loaded and \
-                    polar in ('RR', 'LL'):
+            if (
+                ra_exp.pima.chan_number <= 256
+                and ra_exp.calibration_loaded
+                and polar in ("RR", "LL")
+            ):
                 for aver in (False, True):
                     ra_exp.split(average=aver)
                     ra_exp.copy_uvfits(uv_fits_out_dir)
@@ -249,15 +253,19 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     max_scan_len = max(scan_len_list)
     scan_len = round(max_scan_len / 2)
     scan_part = scan_part_base + 2
-    ra_exp.load(update_db=True, scan_length=scan_len, scan_part=scan_part,
-                force_small=force_small)
+    ra_exp.load(
+        update_db=True,
+        scan_length=scan_len,
+        scan_part=scan_part,
+        force_small=force_small,
+    )
     ra_exp.load_antab()
 
     detections = False
-    for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+    for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
         ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-        for polar in ('RR', 'RL', 'LR', 'LL'):
+        for polar in ("RR", "RL", "LR", "LL"):
             ra_exp.pima.set_polar(polar)
             fri = ra_exp.fringe_fitting(**ff_params)
             print(fri)
@@ -265,9 +273,11 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                 detections = True
             ra_exp.fringes2db()
 
-            if ra_exp.pima.chan_number <= 256 and \
-                    ra_exp.calibration_loaded and \
-                    polar in ('RR', 'LL'):
+            if (
+                ra_exp.pima.chan_number <= 256
+                and ra_exp.calibration_loaded
+                and polar in ("RR", "LL")
+            ):
                 ra_exp.split(average=True)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
 
@@ -276,18 +286,22 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     #
     if ra_exp.pima.chan_number <= 256:
         scan_part = scan_part_base + 3
-        scan_len = round(max_scan_len / (scan_part-scan_part_base))
+        scan_len = round(max_scan_len / (scan_part - scan_part_base))
 
         while scan_len > 100 and detections:
-            ra_exp.load(update_db=True, scan_length=scan_len,
-                        scan_part=scan_part, force_small=force_small)
+            ra_exp.load(
+                update_db=True,
+                scan_length=scan_len,
+                scan_part=scan_part,
+                force_small=force_small,
+            )
             ra_exp.load_antab()
             detections = False
 
-            for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+            for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
                 ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-                for polar in ('RR', 'LL'):
+                for polar in ("RR", "LL"):
                     ra_exp.pima.set_polar(polar)
                     fri = ra_exp.fringe_fitting(**ff_params)
                     print(fri)
@@ -300,20 +314,24 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                         ra_exp.copy_uvfits(uv_fits_out_dir)
 
             scan_part += 1
-            scan_len = round(max_scan_len / (scan_part-scan_part_base))
+            scan_len = round(max_scan_len / (scan_part - scan_part_base))
 
     # Special run for ground-ground baselines with 60 s scan length
     if ra_exp.pima.chan_number <= 256 and detections:
         scan_part = scan_part_base + 100
         scan_len = 60
-        ra_exp.load(update_db=True, scan_length=scan_len,
-                    scan_part=scan_part, force_small=force_small)
+        ra_exp.load(
+            update_db=True,
+            scan_length=scan_len,
+            scan_part=scan_part,
+            force_small=force_small,
+        )
         ra_exp.load_antab()
 
-        for frq_grp_ind in range(ra_exp.pima.exper_info['frq_grp']):
+        for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
             ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-            for polar in ('RR', 'LL'):
+            for polar in ("RR", "LL"):
                 ra_exp.pima.set_polar(polar)
                 fri = ra_exp.fringe_fitting(**ff_params)
                 print(fri)
@@ -334,7 +352,7 @@ class InvalidInputFile(Exception):
         self.message = message
 
     def __str__(self):
-        return '{}: {}'.format(self.message, self.file_name)
+        return f"{self.message}: {self.file_name}"
 
 
 def parser_input_file(file_name):
@@ -355,12 +373,12 @@ def parser_input_file(file_name):
         Return list of (exper_name, band, fits) records.
 
     """
-    ExperRec = namedtuple('ExperRec', 'exper_name band fits_list')
+    ExperRec = namedtuple("ExperRec", "exper_name band fits_list")
     exp_list = []
 
-    with open(file_name, 'r') as file:
+    with open(file_name) as file:
         for line in file:
-            line = line.split('#')[0].strip()  # Strip comments out
+            line = line.split("#")[0].strip()  # Strip comments out
 
             # Skip blank lines
             if not line:
@@ -369,8 +387,9 @@ def parser_input_file(file_name):
             columns = line.split()
 
             if len(columns) < 2:
-                raise InvalidInputFile('file should contain at least two '
-                                       'columns', file_name)
+                raise InvalidInputFile(
+                    "file should contain at least two " "columns", file_name
+                )
 
             exper_name = columns[0]
             band = columns[1]
@@ -381,8 +400,7 @@ def parser_input_file(file_name):
                 # Check FITS file existence
                 for fits_file in fits_list:
                     if not os.path.exists(fits_file):
-                        raise FileNotFoundError(f'File {fits_file} does not '
-                                                'exist')
+                        raise FileNotFoundError(f"File {fits_file} does not " "exist")
             else:
                 fits_list = None
 
@@ -397,57 +415,104 @@ def parse_args():
 
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('file_name', metavar='FILE',
-                        help='File with list of experiments and bands')
+    parser.add_argument(
+        "file_name", metavar="FILE", help="File with list of experiments and bands"
+    )
 
     # Optional arguments
-    parser.add_argument('-l', '--log-file', metavar='LOG',
-                        help='log file')
-    parser.add_argument('--gvlbi', '-g', action='store_true',
-                        help='process ground-only part of the experiments')
-    parser.add_argument('--no-accel', action='store_true',
-                        help='disable parabolic term fitting')
-    parser.add_argument('--force-small', action='store_true',
-                        help='force to use 64-channel FITS file')
-    parser.add_argument('--scan-part-base', type=int, default=0, metavar='ALT',
-                        choices=[1000 * x for x in range(20)],
-                        help='use alternative scan_part_base')
-    parser.add_argument('--max-scan-length', type=float, default=1500,
-                        help='maximum scan length in seconds')
-    parser.add_argument('--orbit',
-                        help='reconstructed orbit file')
+    parser.add_argument("-l", "--log-file", metavar="LOG", help="log file")
+    parser.add_argument(
+        "--gvlbi",
+        "-g",
+        action="store_true",
+        help="process ground-only part of the experiments",
+    )
+    parser.add_argument(
+        "--no-accel", action="store_true", help="disable parabolic term fitting"
+    )
+    parser.add_argument(
+        "--force-small", action="store_true", help="force to use 64-channel FITS file"
+    )
+    parser.add_argument(
+        "--scan-part-base",
+        type=int,
+        default=0,
+        metavar="ALT",
+        choices=[1000 * x for x in range(20)],
+        help="use alternative scan_part_base",
+    )
+    parser.add_argument(
+        "--max-scan-length",
+        type=float,
+        default=1500,
+        help="maximum scan length in seconds",
+    )
+    parser.add_argument("--orbit", help="reconstructed orbit file")
 
     group = parser.add_argument_group("bandpass settings")
-    group.add_argument('--ref-sta', metavar='STA',
-                       help='reference station for bandpass calibration')
-    group.add_argument('--bpas-mode', metavar='MODE', type=str.upper,
-                       choices=['INIT', 'ACCUM', 'FINE'],
-                       help='bandpass calibration mode')
-    group.add_argument('--bpas-use', metavar='BANDPASS_USE', type=str.upper,
-                       default='PHS', choices=['AMP', 'PHS', 'AMP_PHS', 'NO'],
-                       help='BANDPASS_USE PIMA parameter (default is PHS)')
-    group.add_argument('--no-ampl-bpas', action='store_true',
-                       help='disable amplitude bandpass calibration')
-    group.add_argument('--bpas-var', type=int, choices=[0, 1, 2, 3, 4, 5],
-                       default=3,
-                       help='predefined bandpass parameters (default is 3)')
-    group.add_argument('--bpas-norm', type=str.upper,
-                       choices=['NO', 'IF', 'BAND'], default='IF',
-                       help='the way how the bandpass normalization is made')
-    group.add_argument('--no-bpas-renorm', action='store_true',
-                       help='disable bandpass renormalization')
-    group.add_argument('--flag-chann', type=int, default=2, metavar='N',
-                       help='flag N edge spectral channels of the bandpass '
-                       '(default is 2)')
+    group.add_argument(
+        "--ref-sta", metavar="STA", help="reference station for bandpass calibration"
+    )
+    group.add_argument(
+        "--bpas-mode",
+        metavar="MODE",
+        type=str.upper,
+        choices=["INIT", "ACCUM", "FINE"],
+        help="bandpass calibration mode",
+    )
+    group.add_argument(
+        "--bpas-use",
+        metavar="BANDPASS_USE",
+        type=str.upper,
+        default="PHS",
+        choices=["AMP", "PHS", "AMP_PHS", "NO"],
+        help="BANDPASS_USE PIMA parameter (default is PHS)",
+    )
+    group.add_argument(
+        "--no-ampl-bpas",
+        action="store_true",
+        help="disable amplitude bandpass calibration",
+    )
+    group.add_argument(
+        "--bpas-var",
+        type=int,
+        choices=[0, 1, 2, 3, 4, 5],
+        default=3,
+        help="predefined bandpass parameters (default is 3)",
+    )
+    group.add_argument(
+        "--bpas-norm",
+        type=str.upper,
+        choices=["NO", "IF", "BAND"],
+        default="IF",
+        help="the way how the bandpass normalization is made",
+    )
+    group.add_argument(
+        "--no-bpas-renorm", action="store_true", help="disable bandpass renormalization"
+    )
+    group.add_argument(
+        "--flag-chann",
+        type=int,
+        default=2,
+        metavar="N",
+        help="flag N edge spectral channels of the bandpass " "(default is 2)",
+    )
 
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('--autospec-only', action='store_true',
-                       help='generate autocorrelation spectra only')
-    group.add_argument('--individual-ifs', action='store_true',
-                       help='do fringe fittig for individual IFs')
+    group.add_argument(
+        "--autospec-only",
+        action="store_true",
+        help="generate autocorrelation spectra only",
+    )
+    group.add_argument(
+        "--individual-ifs",
+        action="store_true",
+        help="do fringe fittig for individual IFs",
+    )
 
-    parser.add_argument('--debug', '-d', action='store_true',
-                        help='enable debug output')
+    parser.add_argument(
+        "--debug", "-d", action="store_true", help="enable debug output"
+    )
 
     return parser.parse_args()
 
@@ -457,80 +522,86 @@ def main():
     args = parse_args()
 
     if not args.log_file:
-        log_file = args.file_name.rsplit('.', 1)[0] + '.log'
+        log_file = args.file_name.rsplit(".", 1)[0] + ".log"
     else:
         log_file = args.log_file
 
-    log_format = '%(asctime)s %(levelname)s: %(name)s: %(message)s'
-    logging.basicConfig(format=log_format,
-                        level=logging.INFO, filename=log_file)
+    log_format = "%(asctime)s %(levelname)s: %(name)s: %(message)s"
+    logging.basicConfig(format=log_format, level=logging.INFO, filename=log_file)
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Check input parameters
     if args.max_scan_length <= 0:
-        logging.error('Max scan length must be positive')
+        logging.error("Max scan length must be positive")
         return 1
 
     if args.flag_chann < 0:
-        logging.error('Number of flagged channels must not be negative')
+        logging.error("Number of flagged channels must not be negative")
         return 1
 
     # Connect to database
     try:
         database = DB()
     except psycopg2.Error as err:
-        logging.error('DBError: %s', err)
+        logging.error("DBError: %s", err)
         return 1
 
-    data_dir = os.getenv('PYPIMA_DATA_DIR',
-                         default=os.path.join(os.getenv('HOME'),
-                                              'data', 'pima_data'))
+    data_dir = os.getenv(
+        "PYPIMA_DATA_DIR", default=os.path.join(os.getenv("HOME"), "data", "pima_data")
+    )
 
     exp_list = []
 
     try:
         for rec in parser_input_file(args.file_name):
-            exp_list.append(RaExperiment(rec.exper_name, rec.band,
-                                         database, uv_fits=rec.fits_list,
-                                         data_dir=data_dir,
-                                         gvlbi=args.gvlbi,
-                                         orbit=args.orbit))
+            exp_list.append(
+                RaExperiment(
+                    rec.exper_name,
+                    rec.band,
+                    database,
+                    uv_fits=rec.fits_list,
+                    data_dir=data_dir,
+                    gvlbi=args.gvlbi,
+                    orbit=args.orbit,
+                )
+            )
     except OSError as err:
-        logging.error('OSError: %s', err)
+        logging.error("OSError: %s", err)
         return 1
     except InvalidInputFile as err:
-        logging.error('InvalidInputFile: %s', err)
+        logging.error("InvalidInputFile: %s", err)
         return 1
 
-    out_dir = os.getenv('PYPIMA_SPLIT_DIR',
-                        default=os.path.join(os.getenv('HOME'),
-                                             'pima_auto_split'))
+    out_dir = os.getenv(
+        "PYPIMA_SPLIT_DIR", default=os.path.join(os.getenv("HOME"), "pima_auto_split")
+    )
 
     # Define and create directory for auto spectrum plot files
-    spec_out_dir = os.getenv('PYPIMA_AUTOSPEC_DIR',
-                             default=os.path.join(os.getenv('HOME'),
-                                                  'pima_autospec'))
+    spec_out_dir = os.getenv(
+        "PYPIMA_AUTOSPEC_DIR", default=os.path.join(os.getenv("HOME"), "pima_autospec")
+    )
 
-    load_thread = threading.Thread(target=download_it, args=(exp_list,
-                                                             args.force_small))
+    load_thread = threading.Thread(
+        target=download_it, args=(exp_list, args.force_small)
+    )
     load_thread.daemon = True
     load_thread.start()
 
     params = {
-        'scan_part_base': args.scan_part_base,
-        'force_small': args.force_small,
-        'accel': not args.no_accel,
-        'ref_sta': args.ref_sta,
-        'bandpass_mode': args.bpas_mode,
-        'ampl_bandpass': not args.no_ampl_bpas,
-        'bandpass_var': args.bpas_var,
-        'bandpass_use': args.bpas_use,
-        'bandpass_norm': args.bpas_norm,
-        'bandpass_renorm': not args.no_bpas_renorm,
-        'flag_chann': args.flag_chann,
-        'max_scan_length': args.max_scan_length,
-        }
+        "scan_part_base": args.scan_part_base,
+        "force_small": args.force_small,
+        "accel": not args.no_accel,
+        "ref_sta": args.ref_sta,
+        "bandpass_mode": args.bpas_mode,
+        "ampl_bandpass": not args.no_ampl_bpas,
+        "bandpass_var": args.bpas_var,
+        "bandpass_use": args.bpas_use,
+        "bandpass_norm": args.bpas_norm,
+        "bandpass_renorm": not args.no_bpas_renorm,
+        "flag_chann": args.flag_chann,
+        "max_scan_length": args.max_scan_length,
+    }
 
     for ra_exp in exp_list:
         try:
@@ -549,13 +620,13 @@ def main():
         except RaExperimentError as err:
             continue
         except psycopg2.Error as err:
-            logging.error('DBError: %s', err)
+            logging.error("DBError: %s", err)
             return 1
         except OSError as err:
-            logging.error('OSError: %s', err)
+            logging.error("OSError: %s", err)
             return 1
         except KeyboardInterrupt:
-            logging.warning('KeyboardInterrupt')
+            logging.warning("KeyboardInterrupt")
             return 1
         except Exception:
             logging.error("Unexpected error: %s", sys.exc_info()[0])
@@ -568,5 +639,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
