@@ -99,7 +99,10 @@ class ExperInfo:
                     else:
                         self._data["hostname"] = ""
                 elif line.startswith("#                 by PIMA"):
-                    self._data["pima_version"] = line.split()[4]
+                    if "version" in line:
+                        self._data["pima_version"] = line.split()[5]
+                    else:
+                        self._data["pima_version"] = line.split()[4]
 
         self._data["accum_length"] = (acc_min + acc_max) / 2.0
         self._data["no_auto_points_num"] = no_auto1 + no_auto2
