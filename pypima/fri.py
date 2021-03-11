@@ -198,7 +198,7 @@ class Fri:
                         self.records[-1]["uv_rad"] * wave_len / ED
                     )
 
-    def update_status(self, ch_num):
+    def update_status(self, ch_num, snr_det_limits=None):
         """
         Update observations statuses acording to PFD.
 
@@ -206,6 +206,8 @@ class Fri:
         ----------
         ch_num : int
             Number of spectral channels.
+        snr_det_limits : list
+            List of SNR values corresponding to PDF 1e-2, 1e-3, 1e-4, 1e-5.
 
         Notes
         -----
@@ -233,10 +235,11 @@ class Fri:
         else:
             scan_length = 1170
 
-        try:
-            snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
-        except KeyError:
-            snr_det_limits = SNR_LIMITS[band, ch_num]
+        if not snr_det_limits:
+            try:
+                snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
+            except KeyError:
+                snr_det_limits = SNR_LIMITS[band, ch_num]
 
         for rec in self.records:
             if ch_num <= 256 and abs(rec["delay"]) < 5e-7 and abs(rec["rate"]) < 1e-12:
