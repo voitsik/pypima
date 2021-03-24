@@ -71,10 +71,7 @@ def generate_autospec(ra_exp, spec_out_dir, force_small=False):
 
 
 def process_gvlbi(ra_exp, **kwargs):
-    """
-    Process ground-only part of the experiment.
-
-    """
+    """Process ground-only part of the experiment."""
     accel = kwargs.pop("accel", False)
     force_small = kwargs.pop("force_small", False)
     # scan_part_base = kwargs.pop('scan_part_base', 0)
@@ -428,6 +425,11 @@ def parse_args():
         help="process ground-only part of the experiments",
     )
     parser.add_argument(
+        "--gvlbi-split",
+        action="store_true",
+        help="do full processing for ground-only files",
+    )
+    parser.add_argument(
         "--no-accel", action="store_true", help="disable parabolic term fitting"
     )
     parser.add_argument(
@@ -611,6 +613,8 @@ def main():
                 generate_autospec(ra_exp, spec_out_dir, args.force_small)
             elif args.individual_ifs:
                 process_ind_ifs(ra_exp, **params)
+            elif args.gvlbi and not args.gvlbi_split:
+                process_gvlbi(ra_exp, **params)
             else:
                 process_radioastron(ra_exp, out_dir, spec_out_dir, **params)
         except PimaError as err:
