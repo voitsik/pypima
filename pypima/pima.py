@@ -360,12 +360,6 @@ class Pima:
             "BANDPASS_USE:": "NO",
             "BANDPASS_FILE:": "NO",
             "POLARCAL_FILE:": "NO",
-            # "FRIB.OVERSAMPLE_MD:": "4",
-            # "FRIB.OVERSAMPLE_RT:": "4",
-            # "FRIB.FINE_SEARCH:": "PAR",
-            # "MKDB.FRINGE_ALGORITHM:": "DRF",
-            # "PHASE_ACCEL_MIN:": "0",
-            # "PHASE_ACCEL_MAX:": "0",
         }
 
         if os.path.isfile(exc_obs_file):

@@ -890,7 +890,17 @@ bytes".format(
                 else:
                     self._auto_bpas(fringe_fit=True)
             else:
-                self.pima.bpas()
+                if self.gvlbi:
+                    bpas_params = {
+                        "FRIB.FINE_SEARCH:": "PAR",
+                        "MKDB.FRINGE_ALGORITHM:": "DRF",
+                        "PHASE_ACCEL_MIN:": "0",
+                        "PHASE_ACCEL_MAX:": "0",
+                    }
+                else:
+                    bpas_params = {}
+
+                self.pima.bpas(bpas_params)
         except pypima.pima.Error:
             self.logger.warning("continue without bandpass")
             self.pima.update_cnt({"BANDPASS_FILE:": "NO"})
@@ -1004,7 +1014,18 @@ bytes".format(
                 )
             else:
                 self.pima.mk_exclude_obs_file(self.bad_obs_set, "coarse")
-                fri_file = self.pima.coarse()
+
+                if self.gvlbi:
+                    coarse_params = {
+                        "FRIB.FINE_SEARCH:": "PAR",
+                        "MKDB.FRINGE_ALGORITHM:": "DRF",
+                        "PHASE_ACCEL_MIN:": "0",
+                        "PHASE_ACCEL_MAX:": "0",
+                    }
+                else:
+                    coarse_params = {}
+
+                fri_file = self.pima.coarse(coarse_params)
                 fri = Fri(fri_file)
 
                 # Exclude suspicious observations
