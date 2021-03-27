@@ -915,9 +915,21 @@ class Pima:
                         clock_offset = float(cols[8].replace("D", "e"))
                     except ValueError:
                         clock_offset = 0.0
-                    clock_rate = float(cols[10].replace("D", "e"))
-                    group_delay = float(cols[16].replace("D", "e"))
-                    delay_rate = float(cols[18].replace("D", "e"))
+
+                    try:
+                        clock_rate = float(cols[10].replace("D", "e"))
+                    except ValueError:
+                        clock_rate = 0.0
+
+                    try:
+                        group_delay = float(cols[16].replace("D", "e"))
+                    except ValueError:
+                        group_delay = 0.0
+
+                    try:
+                        delay_rate = float(cols[18].replace("D", "e"))
+                    except ValueError:
+                        delay_rate = 0.0
 
                     clock_model.append(
                         (sta, time, clock_offset, clock_rate, group_delay, delay_rate)
