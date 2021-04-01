@@ -345,10 +345,7 @@ class Fri:
             scan_length = 1170
 
         if not snr_det_limits:
-            try:
-                snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
-            except KeyError:
-                snr_det_limits = SNR_LIMITS[band, ch_num]
+            snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
 
         my_dist = pfd_dist(name="my_dist")
 
