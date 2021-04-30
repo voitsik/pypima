@@ -185,7 +185,7 @@ class DB:
         query = """INSERT INTO pima_obs (obs, start_time, stop_time,
 exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
 solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation,
-bandpass) VALUES %s;"""
+bandpass, pfd) VALUES %s;"""
 
         rec_list = []
         for rec in fri.records:
@@ -227,6 +227,7 @@ bandpass) VALUES %s;"""
                     rec["status"],
                     rec["elevation"],
                     fri.aux["bandpass"],
+                    rec["pfd"],
                 )
             )
 
