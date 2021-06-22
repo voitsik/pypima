@@ -306,7 +306,7 @@ class Fri:
                     elif toks[1] == "FRIB.END_IFRQ:":
                         header["end_ifrq"] = int(toks[2])
                 elif toks[6] != "FAILURE":
-                    self.records.append({"status": "u", "pfd": 0.0})
+                    self.records.append({"status": "u", "pfd": -1.0})
                     self.records[-1].update(header)
                     self.records[-1]["obs"] = int(toks[0])
                     self.records[-1]["scan"] = int(toks[1])
@@ -388,7 +388,10 @@ class Fri:
             scan_length = 1170
 
         if not snr_det_limits:
-            snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
+            try:
+                snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
+            except KeyError:
+                return
 
         my_dist = pfd_dist(name="my_dist")
 
