@@ -137,10 +137,7 @@ bytes".format(
         )
 
     def init_workdir(self):
-        """
-        Create working directory and PIMA control file.
-
-        """
+        """Create working directory and PIMA control file."""
         # Create work directory
         os.makedirs(self.work_dir, exist_ok=True)
 
@@ -186,15 +183,12 @@ bytes".format(
                     return
 
     def _error(self, msg):
-        """Raise pima.Error exception"""
+        """Raise pima.Error exception."""
         self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
     def _mk_cnt(self):
-        """
-        Make new cnt-file from template.
-
-        """
+        """Make new cnt-file from template."""
         cnt_templ_name = os.path.join(
             self.pima_dir, "share", "pima", "TEMPLATE_pima.cnt"
         )
@@ -544,6 +538,9 @@ bytes".format(
             if distance > 1.0:
                 self._error(f"Dist = {distance} arcsec for source {source}")
 
+        # Set actual number of IFs
+        self.pima.update_cnt({"END_FRQ:": self.pima.exper_info["if_num"]})
+
         if "RADIO-AS" not in self.pima.station_list():
             self.logger.warning("RADIO-AS is not in station list")
             self.sta_ref = self.pima.station_list()[0]
@@ -822,7 +819,7 @@ bytes".format(
             }
         elif bandpass_var == 3:
             mseg = self.pima.chan_number // 2
-            min_snr = 5.5  # Could be tuned
+            min_snr = 5.1  # Could be tuned
 
             bpas_params = {
                 "BPS.MODE:": "ACCUM",
@@ -845,7 +842,7 @@ bytes".format(
             }
         elif bandpass_var in (4, 5):
             mseg = 4
-            min_snr = 5.5  # Could be tuned
+            min_snr = 5.1  # Could be tuned
 
             bpas_params = {
                 "BPS.MODE:": "ACCUM",
