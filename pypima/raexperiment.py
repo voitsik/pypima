@@ -559,7 +559,7 @@ bytes".format(
 
         if end_frq:
             if (
-                end_frq < self.pima.cnt_params["BEG_FRQ:"]
+                end_frq < int(self.pima.cnt_params["BEG_FRQ:"])
                 or end_frq > self.pima.exper_info["if_num"]
             ):
                 self._error(
