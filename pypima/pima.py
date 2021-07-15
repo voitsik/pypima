@@ -164,7 +164,7 @@ class Pima:
     def _update_cnt_params(self):
         """Read cnt-file and fill cnt_params dictionary."""
         self.cnt_params.clear()
-        self.cnt_params["UV_FITS:"] = list()
+        self.cnt_params["UV_FITS:"] = []
 
         with open(self.cnt_file_name) as cnt_file:
             for line in cnt_file:

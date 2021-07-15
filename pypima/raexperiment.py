@@ -446,6 +446,8 @@ bytes".format(
         scan_length=1200,
         scan_part=1,
         force_small=False,
+        beg_frq=None,
+        end_frq=None,
     ):
         """
         Download data, run pima load, and do some checks.
@@ -463,6 +465,10 @@ bytes".format(
             used as run index.
         force_small : bool, optional
             Force laod 64-channels FITS_IDI files.
+        beg_frq : int, optional
+            Start IF index.
+        end_frq : int, optional
+            End IF index.
 
         """
         self.scan_part = scan_part
@@ -538,8 +544,34 @@ bytes".format(
             if distance > 1.0:
                 self._error(f"Dist = {distance} arcsec for source {source}")
 
-        # Set actual number of IFs
-        self.pima.update_cnt({"END_FRQ:": self.pima.exper_info["if_num"]})
+        # Set number of IFs
+        if beg_frq:
+            if beg_frq < 1 or beg_frq > self.pima.exper_info["if_num"]:
+                self._error(
+                    "beg_frq must be in range [1, {}]".format(
+                        self.pima.exper_info["if_num"]
+                    )
+                )
+            else:
+                self.pima.update_cnt({"BEG_FRQ:": beg_frq})
+        else:
+            self.pima.update_cnt({"BEG_FRQ:": 1})
+
+        if end_frq:
+            if (
+                end_frq < self.pima.cnt_params["BEG_FRQ:"]
+                or end_frq > self.pima.exper_info["if_num"]
+            ):
+                self._error(
+                    "end_frq must be in range [{}, {}]".format(
+                        self.pima.cnt_params["BEG_FRQ:"],
+                        self.pima.exper_info["if_num"]
+                    )
+                )
+            else:
+                self.pima.update_cnt({"END_FRQ:": end_frq})
+        else:
+            self.pima.update_cnt({"END_FRQ:": self.pima.exper_info["if_num"]})
 
         if "RADIO-AS" not in self.pima.station_list():
             self.logger.warning("RADIO-AS is not in station list")

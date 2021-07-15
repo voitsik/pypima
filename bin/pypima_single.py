@@ -50,6 +50,12 @@ def parse_args():
     parser.add_argument("--orbit", help="reconstructed orbit file")
     parser.add_argument("--scan-length", type=float, help="set scan length in seconds")
     parser.add_argument(
+        "--beg-frq", type=int, help="start intermediate frequency (IF) index"
+    )
+    parser.add_argument(
+        "--end-frq", type=int, help="end intermediate frequency (IF) index"
+    )
+    parser.add_argument(
         "--frequency-group", type=int, default=1, help="frequency group"
     )
     parser.add_argument(
@@ -133,6 +139,14 @@ def main():
     else:
         scan_length = 1500
 
+    if args.beg_frq is not None and args.beg_frq <= 0:
+        logging.error("beg_frq must be positive")
+        return 1
+
+    if args.end_frq is not None and args.end_frq <= 0:
+        logging.error("beg_frq must be positive")
+        return 1
+
     try:
         ra_exp = RaExperiment(
             exper,
@@ -146,7 +160,11 @@ def main():
         ra_exp.init_workdir()
 
         ra_exp.load(
-            update_db=False, force_small=args.force_small, scan_length=scan_length
+            update_db=False,
+            force_small=args.force_small,
+            scan_length=scan_length,
+            beg_frq=args.beg_frq,
+            end_frq=args.end_frq,
         )
         ra_exp.flag_edge_chann(args.flag_chann)
 
