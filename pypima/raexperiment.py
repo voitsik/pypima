@@ -851,7 +851,7 @@ bytes".format(
             }
         elif bandpass_var == 3:
             mseg = self.pima.chan_number // 2
-            min_snr = 5.1  # Could be tuned
+            min_snr = 5.0  # Could be tuned
 
             bpas_params = {
                 "BPS.MODE:": "ACCUM",

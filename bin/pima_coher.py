@@ -153,18 +153,13 @@ def proc_obs(exper, band, obs, max_dur, plot_format="pdf"):
 
     try:
         fri_file = pim.fine(
-            [
-                "FRIB.OBS:",
-                str(obs),
-                "SCAN_LEN_SKIP:",
-                "0.0",
-                "SCAN_LEN_USED:",
-                str(max_dur),
-                "FRINGE_FILE:",
-                tmp_fri,
-                "FRIRES_FILE:",
-                tmp_frr,
-            ]
+            params={
+                "FRIB.OBS:": str(obs),
+                "SCAN_LEN_SKIP:": "0.0",
+                "SCAN_LEN_USED:": str(max_dur),
+                "FRINGE_FILE:": tmp_fri,
+                "FRIRES_FILE:": tmp_frr,
+            }
         )
     except PimaError as err:
         logging.error("PIMA Error: %s", err)
@@ -205,18 +200,13 @@ def proc_obs(exper, band, obs, max_dur, plot_format="pdf"):
 
             logging.debug("Set SCAN_LEN_SKIP to %s", skip)
             fri_file = pim.fine(
-                [
-                    "FRIB.OBS:",
-                    str(obs),
-                    "SCAN_LEN_SKIP:",
-                    str(skip),
-                    "SCAN_LEN_USED:",
-                    str(dur),
-                    "FRINGE_FILE:",
-                    tmp_fri,
-                    "FRIRES_FILE:",
-                    tmp_frr,
-                ]
+                params={
+                    "FRIB.OBS:": str(obs),
+                    "SCAN_LEN_SKIP:": str(skip),
+                    "SCAN_LEN_USED:": str(dur),
+                    "FRINGE_FILE:": tmp_fri,
+                    "FRIRES_FILE:": tmp_frr,
+                }
             )
             fri = Fri(fri_file)
             if not fri:
