@@ -32,7 +32,13 @@ class CoherAnalyzer:
 
         self.pim = Pima(exper, band)
 
-    def analyze_obs(self, obs, max_dur, accel=True):
+    def _mk_txt_file_name(self):
+        """Return file name."""
+        return "{}_{}_{:02d}_coher.{}".format(
+            self.pim.exper, self.pim.band, self.obs, "txt"
+        )
+
+    def analyze_obs(self, obs, max_dur, accel=True, force=False):
         """
         Analyze coherent loses in observation `obs`.
 
@@ -42,6 +48,8 @@ class CoherAnalyzer:
             Observation id.
         max_dur : float
             Maximum scal length.
+        force : bool
+            Force rerun ``pima`` even if the output txt file exists.
 
         """
         self.obs = obs
@@ -57,6 +65,24 @@ class CoherAnalyzer:
                 self.pim.obs_number,
             )
             raise ValueError
+
+        # Read info from obs-file
+        obs_info = self.pim.observations[self.obs]
+        self.start_time = obs_info.start_time + self.pim.exper_info["utc_minus_tai"]
+        self.sta1 = obs_info.sta1
+        self.sta2 = obs_info.sta2
+
+        txt_file_name = self._mk_txt_file_name()
+        if os.path.isfile(txt_file_name):
+            logging.info("file %s already exists", txt_file_name)
+            if force:
+                os.remove(txt_file_name)
+                logging.info("remove it!")
+            else:
+                self.dur_arr, self.ampl_arr, self.snr_arr = np.loadtxt(
+                    txt_file_name, unpack=True
+                )
+                return
 
         # Prepare temporary fri and frr files
         with NamedTemporaryFile(suffix=".fri", delete=False) as tmp:
@@ -88,7 +114,7 @@ class CoherAnalyzer:
             logging.warning("SNR of obs #%s is too low, skip it.", obs)
             return
 
-        full_duration = fri[0]["duration"]
+        # Update from fri-file
         self.start_time = fri[0]["start_time"] + self.pim.exper_info["utc_minus_tai"]
         self.sta1 = fri[0]["sta1"]
         self.sta2 = fri[0]["sta2"]
@@ -96,6 +122,7 @@ class CoherAnalyzer:
         dur_arr = []
         ampl_arr = []
         snr_arr = []
+        full_duration = fri[0]["duration"]
 
         for divisor in [20, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1.7, 1.5, 1.3, 1.1, 1]:
             dur = round(full_duration / divisor)
@@ -147,11 +174,12 @@ class CoherAnalyzer:
         assert isinstance(self.ampl_arr, np.ndarray)
         assert isinstance(self.snr_arr, np.ndarray)
 
-        data = np.vstack((self.dur_arr, self.ampl_arr, self.snr_arr)).T
+        file_name = self._mk_txt_file_name()
+        if os.path.isfile(file_name):
+            logging.warning("file %s already exists", file_name)
+            return
 
-        file_name = "{}_{}_{:02d}_coher.{}".format(
-            self.pim.exper, self.pim.band, self.obs, "txt"
-        )
+        data = np.vstack((self.dur_arr, self.ampl_arr, self.snr_arr)).T
 
         header = "{:^4} {:^10} {:^8}".format("solint", "ampl", "SNR")
 
@@ -267,6 +295,9 @@ def parse_args():
     )
     parser.add_argument(
         "--plot-format", default="pdf", help="output plot file format (PDF by default)"
+    )
+    parser.add_argument(
+        "--for-paper", action="store_true", help="plot in format suitable for paper"
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="be more verbose")
 
