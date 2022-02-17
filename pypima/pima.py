@@ -846,7 +846,9 @@ class Pima:
         Return list of observations with some information.
 
         """
-        Obs = namedtuple("Obs", "obs scan time_code source sta1 sta2 ap_num")
+        Obs = namedtuple(
+            "Obs", "obs scan time_code source sta1 sta2 start_time stop_time ap_num"
+        )
         obs_list = []
 
         obs_file = os.path.join(
@@ -876,6 +878,8 @@ class Pima:
                         source=toks[8],
                         sta1=toks[9],
                         sta2=toks[10],
+                        start_time=datetime.strptime(toks[4], "%Y.%m.%d-%H:%M:%S.%f,"),
+                        stop_time=datetime.strptime(toks[5], "%Y.%m.%d-%H:%M:%S.%f"),
                         ap_num=ap_num,
                     )
 
