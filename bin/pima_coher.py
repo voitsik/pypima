@@ -67,7 +67,7 @@ class CoherAnalyzer:
             raise ValueError
 
         # Read info from obs-file
-        obs_info = self.pim.observations[self.obs]
+        obs_info = self.pim.observations[self.obs - 1]
         self.start_time = obs_info.start_time + self.pim.exper_info["utc_minus_tai"]
         self.sta1 = obs_info.sta1
         self.sta2 = obs_info.sta2
@@ -185,7 +185,7 @@ class CoherAnalyzer:
 
         np.savetxt(file_name, data, fmt=["%6.1f", "%10.3e", "%8.1f"], header=header)
 
-    def _plot_theo_curves(self, ax_ampl, ax_snr, max_coher_dur=400):
+    def _plot_theo_curves(self, ax_ampl, ax_snr, max_coher_dur=200):
         """Plot theoretical curves for amplitude and SNR."""
         # Mask to select values with int time less then coher time
         coher_mask = self.dur_arr < max_coher_dur
@@ -203,11 +203,14 @@ class CoherAnalyzer:
         )
 
         dur_theo_arr = np.linspace(0, self.dur_arr.max(), num=200)
-        snr_theo_arr = sqrt_func(dur_theo_arr, *fit_params)
-        ampl_theo_arr = np.full_like(dur_theo_arr, self.ampl_arr[coher_mask].mean())
 
-        ax_ampl.plot(dur_theo_arr, ampl_theo_arr, "r-")
-        ax_snr.plot(dur_theo_arr, snr_theo_arr, "r-")
+        if ax_ampl is not None:
+            ampl_theo_arr = np.full_like(dur_theo_arr, self.ampl_arr[coher_mask].mean())
+            ax_ampl.plot(dur_theo_arr, ampl_theo_arr, "r-")
+
+        if ax_snr is not None:
+            snr_theo_arr = sqrt_func(dur_theo_arr, *fit_params)
+            ax_snr.plot(dur_theo_arr, snr_theo_arr, "r-")
 
     def plot(self, out_format="pdf"):
         """Plot curves."""
@@ -257,6 +260,36 @@ class CoherAnalyzer:
         fig.suptitle(title)
 
         plot_file_name = "{}_{}_{:02d}_coher.{}".format(
+            self.pim.exper, self.pim.band, self.obs, out_format
+        )
+        if out_format == "png":
+            dpi = 300
+        else:
+            dpi = None
+
+        plt.savefig(plot_file_name, bbox_inches="tight", pad_inches=0.1, dpi=dpi)
+
+    def plot_snr(self, out_format="pdf"):
+        """Plot curves."""
+        assert isinstance(self.dur_arr, np.ndarray)
+        assert isinstance(self.ampl_arr, np.ndarray)
+        assert isinstance(self.snr_arr, np.ndarray)
+
+        if self.dur_arr.size == 0 or self.ampl_arr.size == 0 or self.snr_arr.size == 0:
+            logging.warning("Nothing to plot...")
+            return
+
+        fig, ax = plt.subplots()
+
+        ax.plot(self.dur_arr, self.snr_arr, ".")
+
+        self._plot_theo_curves(None, ax)
+
+        ax.set_xlabel("Integration time (s)")
+        ax.set_ylabel("SNR")
+        ax.grid(True)
+
+        plot_file_name = "{}_{}_{:02d}_coher_snr.{}".format(
             self.pim.exper, self.pim.band, self.obs, out_format
         )
         if out_format == "png":
@@ -337,7 +370,11 @@ def main():
             return 1
 
         analyzer.save_txt()
-        analyzer.plot(args.plot_format)
+
+        if args.for_paper:
+            analyzer.plot_snr(args.plot_format)
+        else:
+            analyzer.plot(args.plot_format)
 
     return 0
 
