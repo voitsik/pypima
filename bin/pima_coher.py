@@ -279,7 +279,7 @@ class CoherAnalyzer:
             logging.warning("Nothing to plot...")
             return
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5, 3))
 
         ax.plot(self.dur_arr, self.snr_arr, ".")
 
@@ -288,6 +288,13 @@ class CoherAnalyzer:
         ax.set_xlabel("Integration time (s)")
         ax.set_ylabel("SNR")
         ax.grid(True)
+
+        ax.text(
+            0.1, 0.9, "{}, {}-band".format(self.pim.exper, self.pim.band.upper()),
+            size="large",
+            bbox=dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9),
+            transform=ax.transAxes
+        )
 
         plot_file_name = "{}_{}_{:02d}_coher_snr.{}".format(
             self.pim.exper, self.pim.band, self.obs, out_format
