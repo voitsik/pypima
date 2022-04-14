@@ -26,9 +26,10 @@ class CoherAnalyzer:
         self.sta2 = ""
         self.obs = 0
         self.start_time = None
-        self.dur_arr = None
-        self.ampl_arr = None
-        self.snr_arr = None
+        # self.dur_arr = None
+        # self.ampl_arr = None
+        # self.snr_arr = None
+        self.data = {}
 
         self.pim = Pima(exper, band)
 
@@ -53,9 +54,10 @@ class CoherAnalyzer:
 
         """
         self.obs = obs
-        self.dur_arr = None
-        self.ampl_arr = None
-        self.snr_arr = None
+        # self.dur_arr = None
+        # self.ampl_arr = None
+        # self.snr_arr = None
+        self.data.clear()
 
         if self.obs <= 0 or self.obs > self.pim.obs_number:
             logging.error(
@@ -79,9 +81,23 @@ class CoherAnalyzer:
                 os.remove(txt_file_name)
                 logging.info("remove it!")
             else:
-                self.dur_arr, self.ampl_arr, self.snr_arr = np.loadtxt(
-                    txt_file_name, unpack=True
-                )
+                values = np.loadtxt(txt_file_name, unpack=True)
+                if values.shape[0] == 4:
+                    (
+                        self.data["dur"],
+                        self.data["skip"],
+                        self.data["ampl"],
+                        self.data["snr"],
+                    ) = values
+                elif values.shape[0] == 3:
+                    (
+                        self.data["dur"],
+                        self.data["ampl"],
+                        self.data["snr"],
+                    ) = values
+                else:
+                    logging.error("Invalid input file %s", txt_file_name)
+
                 return
 
         # Prepare temporary fri and frr files
@@ -120,6 +136,7 @@ class CoherAnalyzer:
         self.sta2 = fri[0]["sta2"]
 
         dur_arr = []
+        skip_arr = []
         ampl_arr = []
         snr_arr = []
         full_duration = fri[0]["duration"]
@@ -153,14 +170,16 @@ class CoherAnalyzer:
                     continue
 
                 dur_arr.append(fri[0]["duration"])
+                skip_arr.append(skip)
                 ampl_arr.append(fri[0]["ampl_lsq"])
                 snr_arr.append(fri[0]["SNR"])
 
                 print("{} {} {}".format(dur_arr[-1], ampl_arr[-1], snr_arr[-1]))
 
-        self.dur_arr = np.asarray(dur_arr)
-        self.ampl_arr = np.asarray(ampl_arr)
-        self.snr_arr = np.asarray(snr_arr)
+        self.data["dur"] = np.asarray(dur_arr)
+        self.data["skip"] = np.asanyarray(skip_arr)
+        self.data["ampl"] = np.asarray(ampl_arr)
+        self.data["snr"] = np.asarray(snr_arr)
 
         # Delete temporary files
         if os.path.isfile(tmp_fri):
@@ -170,25 +189,30 @@ class CoherAnalyzer:
 
     def save_txt(self):
         """Save data as a text table."""
-        assert isinstance(self.dur_arr, np.ndarray)
-        assert isinstance(self.ampl_arr, np.ndarray)
-        assert isinstance(self.snr_arr, np.ndarray)
+        # assert isinstance(self.dur_arr, np.ndarray)
+        # assert isinstance(self.ampl_arr, np.ndarray)
+        # assert isinstance(self.snr_arr, np.ndarray)
 
         file_name = self._mk_txt_file_name()
         if os.path.isfile(file_name):
             logging.warning("file %s already exists", file_name)
             return
 
-        data = np.vstack((self.dur_arr, self.ampl_arr, self.snr_arr)).T
+        # data = np.vstack((self.dur_arr, self.ampl_arr, self.snr_arr)).T
+        data = np.vstack(
+            (self.data["dur"], self.data["skip"], self.data["ampl"], self.data["snr"])
+        ).T
 
-        header = "{:^4} {:^10} {:^8}".format("solint", "ampl", "SNR")
+        header = "{:^4} {:^6} {:^10} {:^8}".format("solint", "skip", "ampl", "SNR")
 
-        np.savetxt(file_name, data, fmt=["%6.1f", "%10.3e", "%8.1f"], header=header)
+        np.savetxt(
+            file_name, data, fmt=["%6.1f", "%6d", "%10.3e", "%8.1f"], header=header
+        )
 
     def _plot_theo_curves(self, ax_ampl, ax_snr, max_coher_dur=200):
         """Plot theoretical curves for amplitude and SNR."""
         # Mask to select values with int time less then coher time
-        coher_mask = self.dur_arr < max_coher_dur
+        coher_mask = self.data["dur"] < max_coher_dur
 
         # At least 2 points to fit
         if np.count_nonzero(coher_mask) <= 1:
@@ -199,13 +223,15 @@ class CoherAnalyzer:
             return ampl * np.sqrt(time)
 
         fit_params, _ = curve_fit(
-            sqrt_func, self.dur_arr[coher_mask], self.snr_arr[coher_mask]
+            sqrt_func, self.data["dur"][coher_mask], self.data["snr"][coher_mask]
         )
 
-        dur_theo_arr = np.linspace(0, self.dur_arr.max(), num=200)
+        dur_theo_arr = np.linspace(0, self.data["dur"].max(), num=200)
 
         if ax_ampl is not None:
-            ampl_theo_arr = np.full_like(dur_theo_arr, self.ampl_arr[coher_mask].mean())
+            ampl_theo_arr = np.full_like(
+                dur_theo_arr, self.data["ampl"][coher_mask].mean()
+            )
             ax_ampl.plot(dur_theo_arr, ampl_theo_arr, "r-")
 
         if ax_snr is not None:
@@ -214,11 +240,11 @@ class CoherAnalyzer:
 
     def plot(self, out_format="pdf"):
         """Plot curves."""
-        assert isinstance(self.dur_arr, np.ndarray)
-        assert isinstance(self.ampl_arr, np.ndarray)
-        assert isinstance(self.snr_arr, np.ndarray)
+        # assert isinstance(self.dur_arr, np.ndarray)
+        # assert isinstance(self.ampl_arr, np.ndarray)
+        # assert isinstance(self.snr_arr, np.ndarray)
 
-        if self.dur_arr.size == 0 or self.ampl_arr.size == 0 or self.snr_arr.size == 0:
+        if self.data["dur"].size == 0:
             logging.warning("Nothing to plot...")
             return
 
@@ -227,9 +253,9 @@ class CoherAnalyzer:
 
         ax1.yaxis.get_major_formatter().set_powerlimits((-4, 6))
 
-        ax1.plot(self.dur_arr, self.ampl_arr, ".")
+        ax1.plot(self.data["dur"], self.data["ampl"], ".")
         ax1.plot(0, 0, alpha=0)  # Dirty hack
-        ax2.plot(self.dur_arr, self.snr_arr, ".")
+        ax2.plot(self.data["dur"], self.data["snr"], ".")
 
         self._plot_theo_curves(ax1, ax2)
 
@@ -271,17 +297,20 @@ class CoherAnalyzer:
 
     def plot_snr(self, out_format="pdf"):
         """Plot curves."""
-        assert isinstance(self.dur_arr, np.ndarray)
-        assert isinstance(self.ampl_arr, np.ndarray)
-        assert isinstance(self.snr_arr, np.ndarray)
+        # assert isinstance(self.dur_arr, np.ndarray)
+        # assert isinstance(self.ampl_arr, np.ndarray)
+        # assert isinstance(self.snr_arr, np.ndarray)
 
-        if self.dur_arr.size == 0 or self.ampl_arr.size == 0 or self.snr_arr.size == 0:
+        band2freq = {"l": 1.668, "c": 4.836, "k": 22.236}
+        ivs2sta = {"RADIO-AS": "SRT", "GBT-VLBA": "GBT", "EFLSBERG": "Effelsberg"}
+
+        if self.data["dur"].size == 0:
             logging.warning("Nothing to plot...")
             return
 
         fig, ax = plt.subplots(figsize=(5, 3))
 
-        ax.plot(self.dur_arr, self.snr_arr, ".")
+        ax.plot(self.data["dur"], self.data["snr"], ".")
 
         self._plot_theo_curves(None, ax)
 
@@ -289,11 +318,24 @@ class CoherAnalyzer:
         ax.set_ylabel("SNR")
         ax.grid(True)
 
+        try:
+            sta1_txt = ivs2sta[self.sta1]
+        except KeyError:
+            sta1_txt = self.sta1.capitalize()
+
+        try:
+            sta2_txt = ivs2sta[self.sta2]
+        except KeyError:
+            sta2_txt = self.sta2.capitalize()
+
         ax.text(
-            0.1, 0.9, "{}, {}-band".format(self.pim.exper, self.pim.band.upper()),
-            size="large",
+            0.02,
+            0.79,
+            "{:%Y-%m-%d %H:%M} UT\n{}-{}\n{:.1f} GHz".format(
+                self.start_time, sta1_txt, sta2_txt, band2freq[self.pim.band]
+            ),
             bbox=dict(boxstyle="round", fc="w", ec="0.5", alpha=0.9),
-            transform=ax.transAxes
+            transform=ax.transAxes,
         )
 
         plot_file_name = "{}_{}_{:02d}_coher_snr.{}".format(
@@ -339,6 +381,7 @@ def parse_args():
     parser.add_argument(
         "--for-paper", action="store_true", help="plot in format suitable for paper"
     )
+    parser.add_argument("--force", action="store_true", help="delete existing txt file")
     parser.add_argument("-v", "--verbose", action="store_true", help="be more verbose")
 
     return parser.parse_args()
@@ -371,7 +414,9 @@ def main():
 
     for obs_id in args.obs_list:
         try:
-            analyzer.analyze_obs(obs_id, args.scan_length, accel=not args.no_accel)
+            analyzer.analyze_obs(
+                obs_id, args.scan_length, accel=not args.no_accel, force=args.force
+            )
         except PimaError as err:
             logging.error("PIMA Error: %s", err)
             return 1
