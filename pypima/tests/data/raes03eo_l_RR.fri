@@ -1,7 +1,7 @@
 # PIMA Fringe results  v  1.2   Format version of 2019.04.20
 # 
-# PIMA_FRINGE started on 2020.10.02-14:25:03
-# PIMA v 2.37a  2020.07.23
+# PIMA_FRINGE started on 2022.04.20-12:56:14
+# PIMA 20220403  version 2.39e
 # 
 # Control file:    /tmp/pytest-of-voitsik/pytest-3/work_dir0/raes03eo_l_pima.cnt
 # Experiment code: RE03EO
@@ -32,6 +32,6 @@
 # FRIB.SNR_DETECTION:          5.5000D+00
 # PHASE_ACCELERATION:          0.0000D+00
 # 
-     1    1 290-1000   0529+483 RADIO-AS ZELENCHK SNR:    12.48 Ampl: 0.0001057 [ 2012.10.16-10:00:36.500, 2012.10.16-10:10:04.500 ] Ampl_lsq: 0.0001065 No_ap:    569  FRT_offst:    283.988179581 Gr_del_drf: -2.73101951D-20 Gr_del_lsq:  8.09912514D-10 Gr_del_mul:  8.09912514D-10 Gr_del_add:  7.39318786D-10 Ph_rat_drf:  7.47241866D-23 Ph_rat_lsq: -5.95717848D-14 Ph_rat_add: -5.95717848D-14 Ph_rat_add: -6.06411134D-14 Ph_acc:  8.66557496D-16 Sb_del: -2.37536750D-09 Phs_drf:   1.53506 Phs_lsq:   1.75023 Phs_mul:   1.75023 Phs_add:   1.70595 Gd_err_drf:  1.478297D-09 Gd_err_lsq:  1.174686D-09 Gd_err_mul:  8.187322D-10 Gd_err_add:  1.149302D-09 Pr_err_drf:  4.760312D-14 Pr_err_lsq:  3.766566D-14 Pr_err_mul:  2.625220D-14 Pr_err_add:  3.672266D-14 Ph_acc_err:  5.022125D-16 Sb_err:   2.003317D-09 Pd_err_drf:  7.818678D-12 Pd_err_lsq:  1.434737D-11 Pd_err_mul:  9.999826D-12 Pd_err_add:  1.400344D-11 Gr_amb_sp:  4.00000000D-06 Duration:  568.97 s  AP_len: 1.0000000 UV: -3.5077136D+08  1.6783803D+08  Amp_Intg:  1.00000 El_Deg:  0.000 10.858 Noi: 8.4713D-06 Ref_Frq:  1.644250000000D+09   Eff_Frq:  1.644299065360D+09   1.659709448489D+09   1.659214389347D+09   Cov_Pr:  0.00000D+00 Cov_Gr:  0.00000D+00 Tec:   0.00000D+00 Tec_err:   0.00000D+00 Tec_rate:  0.00000D+00 Tec_rate_err:  0.00000D+00 Par_ang:  1.571  0.564 Decor_tim: 0.490 Pa_used:  0.000 Polar: RR Sts:               10
+     1    1 290-1000   0529+483 RADIO-AS ZELENCHK SNR:    12.50 Ampl: 0.0001061 [ 2012.10.16-10:00:36.500, 2012.10.16-10:10:04.500 ] Ampl_lsq: 0.0001071 No_ap:    569  FRT_offst:    283.988179581 Gr_del_drf:  1.95312500D-08 Gr_del_lsq:  1.93666549D-08 Gr_del_mul:  1.93666549D-08 Gr_del_add:  1.93021080D-08 Ph_rat_drf: -2.02679117D-22 Ph_rat_lsq: -5.94948210D-14 Ph_rat_add: -5.94948210D-14 Ph_rat_add: -6.04363006D-14 Ph_acc:  8.60200832D-16 Sb_del:  1.64362883D-08 Phs_drf:  -2.26062 Phs_lsq:  -2.13746 Phs_mul:  -2.13746 Phs_add:  -2.18226 Gd_err_drf:  1.478016D-09 Gd_err_lsq:  1.173475D-09 Gd_err_mul:  8.196764D-10 Gd_err_add:  1.150540D-09 Pr_err_drf:  4.759407D-14 Pr_err_lsq:  3.761941D-14 Pr_err_mul:  2.627730D-14 Pr_err_add:  3.676712D-14 Ph_acc_err:  5.016046D-16 Sb_err:   2.004318D-09 Pd_err_drf:  7.817191D-12 Pd_err_lsq:  1.433574D-11 Pd_err_mul:  1.001357D-11 Pd_err_add:  1.402515D-11 Gr_amb_sp:  4.00000000D-06 Duration:  568.97 s  AP_len: 1.0000000 UV: -3.5077136D+08  1.6783803D+08  Amp_Intg:  1.00000 El_Deg:  0.000 10.858 Noi: 8.4847D-06 Ref_Frq:  1.644250000000D+09   Eff_Frq:  1.644299064980D+09   1.659709433249D+09   1.659214337010D+09   Cov_Pr:  0.00000D+00 Cov_Gr:  0.00000D+00 Tec:   0.00000D+00 Tec_err:   0.00000D+00 Tec_rate:  0.00000D+00 Tec_rate_err:  0.00000D+00 Par_ang:  1.571  0.564 Decor_tim: 0.489 Pa_used:  0.000 Polar: RR Sts:               10
 # 
-# PIMA_FRINGE ended on 2020.10.02-14:25:08
+# PIMA_FRINGE ended on 2022.04.20-12:56:19

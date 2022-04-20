@@ -1,9 +1,9 @@
 # PIMA Fringe results  v  1.2   Format version of 2019.04.20
 # 
-# PIMA_FRINGE started on 2020.10.02-14:24:32
-# PIMA v 2.37a  2020.07.23
+# PIMA_FRINGE started on 2022.04.20-12:04:08
+# PIMA 20220403  version 2.39e
 # 
-# Control file:    /tmp/pytest-of-voitsik/pytest-3/work_dir0/raes03eo_l_pima.cnt
+# Control file:    /tmp/pytest-of-voitsik/pytest-1/work_dir0/raes03eo_l_pima.cnt
 # Experiment code: RE03EO
 # Session code     raes03eo_l
 # 
@@ -11,7 +11,7 @@
 # CORR_FLAG_MIN:                1
 # BANDPASS_MASK_FILE:        NO
 # PCAL_USE:                  NO      
-# FRINGE_FITTING_STYLE:      GR_RAT
+# FRINGE_FITTING_STYLE:      PH_ACC
 # FRIB.SEARCH_TYPE:          2FFT    
 # FRIB.DELAY_WINDOW_CENTER:    0.0000D+00
 # FRIB.RATE_WINDOW_CENTER:     0.0000D+00
@@ -23,7 +23,7 @@
 # FRIB.POLAR:                 RR      
 # FRIB.OVERSAMPLE_MD:          4
 # FRIB.OVERSAMPLE_RT:          4
-# FRIB.FINE_SEARCH:          PAR     
+# FRIB.FINE_SEARCH:          ACC     
 # FRIB.AUTOCORR_CALIB:       SQRT_MEA
 # FRIB.AMPL_FUDGE_TYPE:      DIFX    
 # FRIB.AUTOCORR_THRESHOLD:     2.0000D-01
@@ -32,6 +32,6 @@
 # FRIB.SNR_DETECTION:          5.5000D+00
 # PHASE_ACCELERATION:          0.0000D+00
 # 
-     1    1 290-1000   0529+483 RADIO-AS ZELENCHK SNR:    11.04 Ampl: 0.0000943 [ 2012.10.16-10:00:36.500, 2012.10.16-10:10:04.500 ] Ampl_lsq: 0.0000923 No_ap:    569  FRT_offst:    283.988179581 Gr_del_drf:  1.75916479D-09 Gr_del_lsq:  1.75916479D-09 Gr_del_mul:  1.75916479D-09 Gr_del_add:  1.75916479D-09 Ph_rat_drf: -6.33364442D-14 Ph_rat_lsq: -6.33364442D-14 Ph_rat_mul: -6.33364442D-14 Ph_rat_add: -6.33364442D-14 Gr_rat:  0.00000000D+00 Sb_del:  1.66677108D-08 Phs_drf:   1.68485 Phs_lsq:   1.53291 Phs_mul:   1.68485 Phs_add:   1.53291 Gd_err_drf:  1.692083D-09 Gd_err_lsq:  0.000000D+00 Gd_err_mul:  1.088140D-09 Gd_err_add:  0.000000D+00 Pr_err_drf:  5.449854D-14 Pr_err_lsq:  0.000000D+00 Pr_err_mul:  3.504677D-14 Pr_err_add:  0.000000D+00 Gr_rat_err:  1.456930D-11 Sb_err:   1.997072D-09 Pd_err_drf:  8.951230D-12 Pd_err_lsq:  8.951230D-12 Pd_err_mul:  5.756332D-12 Pd_err_add:  8.951230D-12 Gr_amb_sp:  4.00000000D-06 Duration:  568.97 s  AP_len: 1.0000000 UV: -3.5077136D+08  1.6783803D+08  Amp_Intg:  1.00000 El_Deg:  0.000 10.858 Noi: 8.5341D-06 Ref_Frq:  1.644250000000D+09   Eff_Frq:  1.644299083969D+09   1.659710194700D+09   1.659216948459D+09   Cov_Pr:  0.00000D+00 Cov_Gr:  0.00000D+00 Tec:   0.00000D+00 Tec_rate:   0.00000D+00 Tec_err:  0.00000D+00 Tec_rate_err:  0.00000D+00 Par_ang:  1.571  0.564 Decor_tim: 0.436 Pa_used:  0.000 Polar: RR Sts:               10
+     1    1 290-1000   0529+483 RADIO-AS ZELENCHK SNR:    11.09 Ampl: 0.0000932 [ 2012.10.16-10:00:36.500, 2012.10.16-10:10:04.500 ] Ampl_lsq: 0.0000946 No_ap:    569  FRT_offst:    283.988179581 Gr_del_drf:  3.90625000D-09 Gr_del_lsq:  2.32534162D-09 Gr_del_mul:  2.32534162D-09 Gr_del_add:  2.34175520D-09 Ph_rat_drf:  2.50376878D-23 Ph_rat_lsq: -6.38721206D-14 Ph_rat_add: -6.38721206D-14 Ph_rat_add: -6.34315598D-14 Ph_acc:  8.46903463D-16 Sb_del:  1.64544085D-08 Phs_drf:   0.86842 Phs_lsq:   0.85146 Phs_mul:   0.85146 Phs_add:   0.84279 Gd_err_drf:  1.676848D-09 Gd_err_lsq:  1.317832D-09 Gd_err_mul:  8.513996D-10 Gd_err_add:  1.332789D-09 Pr_err_drf:  5.399674D-14 Pr_err_lsq:  4.300200D-14 Pr_err_mul:  2.778191D-14 Pr_err_add:  4.354021D-14 Ph_acc_err:  6.003486D-16 Sb_err:   2.009834D-09 Pd_err_drf:  8.868811D-12 Pd_err_lsq:  1.648509D-11 Pd_err_mul:  1.065037D-11 Pd_err_add:  1.667497D-11 Gr_amb_sp:  4.00000000D-06 Duration:  568.97 s  AP_len: 1.0000000 UV: -3.5077136D+08  1.6783803D+08  Amp_Intg:  1.00000 El_Deg:  0.000 10.858 Noi: 8.4026D-06 Ref_Frq:  1.644250000000D+09   Eff_Frq:  1.644299086627D+09   1.659710302593D+09   1.659217314315D+09   Cov_Pr:  0.00000D+00 Cov_Gr:  0.00000D+00 Tec:   0.00000D+00 Tec_err:   0.00000D+00 Tec_rate:  0.00000D+00 Tec_rate_err:  0.00000D+00 Par_ang:  1.571  0.564 Decor_tim: 0.437 Pa_used:  0.000 Polar: RR Sts:               10
 # 
-# PIMA_FRINGE ended on 2020.10.02-14:24:36
+# PIMA_FRINGE ended on 2022.04.20-12:04:13
