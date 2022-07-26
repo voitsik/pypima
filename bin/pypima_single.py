@@ -62,51 +62,67 @@ def parse_args():
         "--debug", "-d", action="store_true", help="enable debug output"
     )
 
-    group = parser.add_argument_group("bandpass settings")
-    group.add_argument("--ref-sta", metavar="STA", help="reference station")
-    group.add_argument(
+    bpas_group = parser.add_argument_group("bandpass settings")
+    bpas_group.add_argument("--ref-sta", metavar="STA", help="reference station")
+    bpas_group.add_argument(
         "--no-bandpass", action="store_true", help="disable bandpass calibration"
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--bpas-mode",
         metavar="MODE",
         choices=["INIT", "ACCUM", "FINE"],
         help="set bandpass calibration mode",
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--bpas-use",
         metavar="BANDPASS_USE",
         default="PHS",
         choices=["AMP", "PHS", "AMP_PHS", "NO"],
         help="set BANDPASS_USE PIMA parameter",
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--no-ampl-bpas",
         action="store_true",
         help="disable amplitude bandpass calibration",
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--bpas-var",
         type=int,
         choices=[0, 1, 2, 3, 4, 5],
         default=3,
         help="predefined bandpass parameters",
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--flag-chann",
         type=int,
         default=2,
         metavar="N",
         help="flag N edge spectral channels of the bandpass",
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--bpas-norm",
         choices=["NO", "IF", "BAND"],
         default="IF",
         help="the way how the bandpass normalization is made",
     )
-    group.add_argument(
+    bpas_group.add_argument(
         "--no-bpas-renorm", action="store_true", help="disable bandpass renormalization"
+    )
+
+    ff_group = parser.add_argument_group("fringe fitting settings")
+    ff_group.add_argument(
+        "--delay-window-width",
+        metavar="DELAY_WIDTH",
+        type=float,
+        default=64.0,
+        help="delay window width in microseconds",
+    )
+    ff_group.add_argument(
+        "--rate-window-width",
+        metavar="RATE_WIDTH",
+        type=float,
+        default=1e-8,
+        help="rate window width in s/s",
     )
 
     return parser.parse_args()
@@ -189,6 +205,14 @@ def main():
             ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
         else:
             ra_exp.load_antab()
+
+            # Set fringe fitting window
+            ra_exp.pima.update_cnt(
+                {
+                    "FRIB.DELAY_WINDOW_WIDTH:": f"{args.delay_window_width * 1e-6:e}",
+                    "FRIB.RATE_WINDOW_WIDTH:": f"{args.rate_window_width:e}",
+                }
+            )
 
             if args.individual_ifs:
                 if_num = ra_exp.pima.exper_info["if_num"]
