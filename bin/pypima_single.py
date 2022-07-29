@@ -146,6 +146,9 @@ def main():
         "PYPIMA_DATA_DIR", default=os.path.join(os.getenv("HOME"), "data", "pima_data")
     )
 
+    #
+    # Check command line arguments
+    #
     if args.scan_length:
         if args.scan_length <= 0:
             logging.error("scan_length must be positive")
@@ -163,6 +166,15 @@ def main():
         logging.error("beg_frq must be positive")
         return 1
 
+    if args.orbit:
+        if os.path.isfile(args.orbit):
+            orbit = os.path.abspath(args.orbit)
+        else:
+            logging.error("orbit file %s does not exist", args.orbit)
+            return 1
+    else:
+        orbit = None
+
     try:
         ra_exp = RaExperiment(
             exper,
@@ -171,7 +183,7 @@ def main():
             gvlbi=args.gvlbi,
             data_dir=data_dir,
             uv_fits=args.fits,
-            orbit=args.orbit,
+            orbit=orbit,
         )
         ra_exp.init_workdir()
 
