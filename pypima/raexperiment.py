@@ -1286,18 +1286,12 @@ bytes".format(
                         self.db.uvfits2db(uvfits_file, b1950_name, self.run_id)
 
     def fringes2db(self):
-        """
-        Put fringe fitting information to the database.
-
-        """
+        """Put fringe fitting information to the database."""
         if self.run_id > 0 and self.fri:
             self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
 
     def delete_uvfits(self):
-        """
-        Delete UV-FITS file.
-
-        """
+        """Delete UV-FITS file."""
         # Delete FITS file in `data_dir` only
         if (
             isinstance(self.uv_fits, str)

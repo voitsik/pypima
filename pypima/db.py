@@ -17,7 +17,7 @@ class DB:
     def __init__(self):
         """Connect to the database."""
         self.conn = psycopg2.connect(database="ra_results", user="guest", host="odin")
-        self.conn.autocommit = True
+        self.conn.set_session(readonly=True, autocommit=True)
         self.connw = psycopg2.connect(database="ra_results", user="editor", host="odin")
 
     def get_uvfits_url(self, exper, band, gvlbi=False, small=False):
@@ -455,3 +455,8 @@ VALUES %s RETURNING id;"""
             execute_values(cursor, query_data, data, page_size=2048)
 
         self.connw.commit()
+
+    def close(self):
+        """Close connections."""
+        self.connw.close()
+        self.conn.close()

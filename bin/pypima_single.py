@@ -175,11 +175,13 @@ def main():
     else:
         orbit = None
 
+    database = DB()
+
     try:
         ra_exp = RaExperiment(
             exper,
             band,
-            DB(),
+            database,
             gvlbi=args.gvlbi,
             data_dir=data_dir,
             uv_fits=args.fits,
@@ -284,6 +286,8 @@ def main():
     except Exception:
         logging.error("Unexpected error: %s", sys.exc_info()[0])
         raise
+    finally:
+        database.close()
 
     return 0
 

@@ -628,6 +628,7 @@ def main():
             raise
 
     load_thread.join()
+    database.close()
 
     logging.info("Quitting normally")
 
