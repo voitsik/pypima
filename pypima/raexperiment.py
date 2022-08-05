@@ -24,7 +24,7 @@ from .uvfits import UVFits
 
 
 class Error(Exception):
-    """Raised when RaExperiment error occurs"""
+    """Raised when RaExperiment error occurs."""
 
     def __init__(self, exper, band, msg):
         self.exper = exper
@@ -37,7 +37,7 @@ class Error(Exception):
 
 
 class RaExperiment:
-    """This class describe experiment in RadioAstron AGN survey"""
+    """Describe experiment in RadioAstron AGN survey."""
 
     def __init__(
         self,
@@ -66,7 +66,7 @@ class RaExperiment:
             Path(s) to the data file (FITS-IDI). If ``None`` (default) get a
             file name from data base and download file from the FTP archive.
         orbit : str, optional
-            Path to a file with reconstructed orbit. If ``None`` (default),
+            Path to a reconstructed orbit file. If ``None`` (default),
             download it from the FTP archive.
         gvlbi : bool, optional
             If ``True``, process ground only of part of the experiment (GVLBI

@@ -19,10 +19,7 @@ from pypima import DB, PimaError, RaExperiment, RaExperimentError
 
 
 def download_it(ra_exps, force_small):
-    """
-    Download FITS files for the list of the experiments.
-
-    """
+    """Download FITS files from the list of experiments."""
     logger = logging.getLogger("download_thread")
 
     logger.info("started")
@@ -107,10 +104,7 @@ def process_gvlbi(ra_exp, **kwargs):
 
 
 def process_ind_ifs(ra_exp, **kwargs):
-    """
-    Do fringe fitting for each IF separatly.
-
-    """
+    """Do fringe fitting for each IF separatly."""
     accel = kwargs.pop("accel", True)
     force_small = kwargs.pop("force_small", False)
     # scan_part_base = kwargs.pop('scan_part_base', 0)
@@ -385,7 +379,7 @@ def parser_input_file(file_name):
 
             if len(columns) < 2:
                 raise InvalidInputFile(
-                    "file should contain at least two " "columns", file_name
+                    "file should contain at least two columns", file_name
                 )
 
             exper_name = columns[0]
@@ -397,7 +391,7 @@ def parser_input_file(file_name):
                 # Check FITS file existence
                 for fits_file in fits_list:
                     if not os.path.exists(fits_file):
-                        raise FileNotFoundError(f"File {fits_file} does not " "exist")
+                        raise FileNotFoundError(f"File {fits_file} does not exist")
             else:
                 fits_list = None
 
@@ -407,10 +401,7 @@ def parser_input_file(file_name):
 
 
 def parse_args():
-    """
-    Parse command line arguments.
-
-    """
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "file_name", metavar="FILE", help="File with list of experiments and bands"

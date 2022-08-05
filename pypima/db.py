@@ -12,16 +12,10 @@ from psycopg2.extras import execute_values
 
 
 class DB:
-    """
-    Interface to the "ra_results" database.
-
-    """
+    """Interface to the "ra_results" database."""
 
     def __init__(self):
-        """
-        Connect to the database.
-
-        """
+        """Connect to the database."""
         self.conn = psycopg2.connect(database="ra_results", user="guest", host="odin")
         self.conn.autocommit = True
         self.connw = psycopg2.connect(database="ra_results", user="editor", host="odin")
@@ -322,10 +316,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
         self.connw.commit()
 
     def set_error_msg(self, run_id, msg):
-        """
-        Put error comment into DB.
-
-        """
+        """Put error comment into DB."""
         query = "UPDATE pima_runs SET last_error = %s WHERE id = %s"
 
         with self.connw.cursor() as cursor:
@@ -425,10 +416,7 @@ VALUES %s;"""
             self.connw.commit()
 
     def autospec2db(self, acta_file):
-        """
-        Store autocorrelation spectrum to the database.
-
-        """
+        """Store autocorrelation spectrum to the database."""
         exper, band = acta_file.header["experiment"].split("_")
         polar = acta_file.header["polar"]
         sta = acta_file.header["station"]
