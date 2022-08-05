@@ -1102,13 +1102,17 @@ def fits_to_txt(fits_file: str) -> str:
 
 
 class ActaFile:
-    """
-    This class represents PIMA ``ACTA`` file.
+    """This class represents PIMA ``ACTA`` file."""
 
-    """
+    supported_versions = (
+        "# ACTA Output.  Format version of 2014.04.19",
+        "# ACTA Output.  Format version of 2021.07.15",
+    )
 
     def __init__(self, input_file_name, polar=None, utc_tai=None):
         """
+        Read and parse ACTA-file.
+
         Parameters
         ----------
         input_file_name : str
@@ -1127,9 +1131,8 @@ class ActaFile:
 
         with open(input_file_name) as file:
             magic = file.readline().strip()
-            if magic != "# ACTA Output.  Format version of 2014.04.19":
-                logging.error("File %s has invalid format")
-                return
+            if not magic.startswith(self.supported_versions):
+                raise ValueError(f"{input_file_name} is not PIMA ACTA-file")
 
             for line in file:
                 cols = line.split()
@@ -1171,41 +1174,27 @@ class ActaFile:
 
     @property
     def header(self):
-        """
-        Return dictionary with header information.
-
-        """
+        """Return dictionary with header information."""
         return self._header
 
     @property
     def if_num(self):
-        """
-        Return list of the IF numbers.
-
-        """
+        """Return list of the IF numbers."""
         return self._if
 
     @property
     def channel(self):
-        """
-        Return list of the channel numbers,
-
-        """
+        """Return list of the channel numbers."""
         return self._channel
 
     @property
     def freq(self):
-        """
-        Return list of the frequencies of the autospectrum.
-
-        """
+        """Return list of the frequencies of the autospectrum."""
         return self._freq
 
     @property
     def ampl(self):
-        """
-        Return list of the amplitudes of the autospectrum.
-        """
+        """Return list of the amplitudes of the autospectrum."""
         return self._ampl
 
     def plot(self, out_dir_base: str, out_format: str = "pdf") -> None:
