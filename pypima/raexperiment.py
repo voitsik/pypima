@@ -83,7 +83,6 @@ class RaExperiment:
         self.lock = threading.Lock()  # Lock for FITS file downloading control
         self.logger = logging.getLogger(f"{self.exper}({self.band})")
         self.antab = None
-        self.antab_downloaded = False
         self.calibration_loaded = False
         self.split_time_aver = 0
         self.pima = None
@@ -310,10 +309,7 @@ bytes".format(
         self.pima.update_cnt({"EPHEMERIDES_FILE:": self.orbit})
 
     def _get_antab(self):
-        """
-        Download ANTAB-file from the FTP server.
-
-        """
+        """Download ANTAB-file from the FTP server."""
         antab_url = self.db.get_antab_url(self.exper, self.band)
 
         if not antab_url:
@@ -328,15 +324,14 @@ bytes".format(
                 with open(antab_file, "wb") as fil:
                     _download_it(antab_url, fil)
 
-                self.antab_downloaded = True
                 self.logger.info("ANTAB-file downloading is complete.")
                 self.antab = self._fix_antab(antab_file)
             except pycurl.error as err:
-                self.antab_downloaded = False
+                self.antab = None
                 self.logger.warning("Could not download file %s: %s", antab_url, err)
 
     def _fix_antab(self, antab):
-        """Fix antab."""
+        """Fix ANTAB file."""
         if not antab or not os.path.isfile(antab):
             return
 
@@ -600,13 +595,12 @@ bytes".format(
                 {"FRIB.1D_RESFRQ_PLOT:": "NO", "FRIB.1D_RESTIM_PLOT:": "NO"}
             )
 
-    def load_antab(self):
-        """
-        Download ANTAB file and load calibration information to PIMA.
-
-        """
+    def load_antab(self, antab_file=None):
+        """Download ANTAB file and load calibration information to PIMA."""
         # Always download antab-file.
-        if not self.antab_downloaded:
+        if antab_file:
+            self.antab = antab_file
+        elif not self.antab:
             self._get_antab()
 
         # Try to load calibration information from ANTAB

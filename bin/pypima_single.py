@@ -48,6 +48,7 @@ def parse_args():
     parser.add_argument("--split", action="store_true", help="do SPLIT")
     parser.add_argument("--fits", nargs="+", help="external FITS-IDI file(s)")
     parser.add_argument("--orbit", help="reconstructed orbit file")
+    parser.add_argument("--antab", help="ANTAB file")
     parser.add_argument("--scan-length", type=float, help="set scan length in seconds")
     parser.add_argument(
         "--beg-frq", type=int, help="start intermediate frequency (IF) index"
@@ -175,6 +176,15 @@ def main():
     else:
         orbit = None
 
+    if args.antab:
+        if os.path.isfile(args.antab):
+            antab_file = os.path.abspath(args.antab)
+        else:
+            logging.error("ANTAB file %s does not exist", args.antab)
+            return 1
+    else:
+        antab_file = None
+
     database = DB()
 
     try:
@@ -218,7 +228,7 @@ def main():
 
             ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
         else:
-            ra_exp.load_antab()
+            ra_exp.load_antab(antab_file)
 
             # Set fringe fitting window
             ra_exp.pima.update_cnt(
