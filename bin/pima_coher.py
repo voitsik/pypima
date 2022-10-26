@@ -174,7 +174,7 @@ class CoherAnalyzer:
                 ampl_arr.append(fri[0]["ampl_lsq"])
                 snr_arr.append(fri[0]["SNR"])
 
-                print("{} {} {}".format(dur_arr[-1], ampl_arr[-1], snr_arr[-1]))
+                print(f"{dur_arr[-1]} {ampl_arr[-1]} {snr_arr[-1]}")
 
         self.data["dur"] = np.asarray(dur_arr)
         self.data["skip"] = np.asanyarray(skip_arr)
@@ -226,7 +226,7 @@ class CoherAnalyzer:
             sqrt_func, self.data["dur"][coher_mask], self.data["snr"][coher_mask]
         )
 
-        dur_theo_arr = np.linspace(0, self.data["dur"].max(), num=200)
+        dur_theo_arr = np.linspace(0, self.data["dur"].max() * 1.01, num=300)
 
         if ax_ampl is not None:
             ampl_theo_arr = np.full_like(
@@ -293,14 +293,10 @@ class CoherAnalyzer:
         else:
             dpi = None
 
-        plt.savefig(plot_file_name, bbox_inches="tight", pad_inches=0.1, dpi=dpi)
+        fig.savefig(plot_file_name, bbox_inches="tight", pad_inches=0.1, dpi=dpi)
 
     def plot_snr(self, out_format="pdf"):
-        """Plot curves."""
-        # assert isinstance(self.dur_arr, np.ndarray)
-        # assert isinstance(self.ampl_arr, np.ndarray)
-        # assert isinstance(self.snr_arr, np.ndarray)
-
+        """Plot SNR vs integration time."""
         band2freq = {"l": 1.668, "c": 4.836, "k": 22.236}
         ivs2sta = {"RADIO-AS": "SRT", "GBT-VLBA": "GBT", "EFLSBERG": "Effelsberg"}
 
@@ -316,7 +312,7 @@ class CoherAnalyzer:
 
         ax.set_xlabel("Integration time (s)")
         ax.set_ylabel("SNR")
-        ax.grid(True)
+        ax.grid(True, linestyle=":")
 
         try:
             sta1_txt = ivs2sta[self.sta1]
@@ -346,16 +342,16 @@ class CoherAnalyzer:
         else:
             dpi = None
 
-        plt.savefig(plot_file_name, bbox_inches="tight", pad_inches=0.1, dpi=dpi)
+        fig.savefig(plot_file_name, bbox_inches="tight", pad_inches=0.1, dpi=dpi)
 
 
 def valid_obs_list(string):
     """Convert a string with comma-separated values to list of integers."""
     try:
         return [int(obs) for obs in string.split(",")]
-    except ValueError:
+    except ValueError as exc:
         msg = f"Not a valid comma-separated list of integers: '{string}'."
-        raise argparse.ArgumentTypeError(msg)
+        raise argparse.ArgumentTypeError(msg) from exc
 
 
 def parse_args():
