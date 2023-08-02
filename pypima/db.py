@@ -133,7 +133,7 @@ class DB:
         Returns
         -------
         url : str
-            File URL on FTP server. Returns None the database reply is empty.
+            File URL on FTP server. Returns ``None`` if database reply is empty.
 
         """
         url = None
@@ -149,7 +149,7 @@ class DB:
         if reply:
             date = reply[0]
             date1 = date[0:7]
-            url = "{0}/{1}/{2}_{3}/{3}{4}.antab".format(
+            url = "{0}/{1}/{2}_{3}/{3}{4}.antab2".format(
                 url_base, date1, date, exper, band
             )
 
