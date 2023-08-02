@@ -243,6 +243,7 @@ class Fri:
         "# PIMA Fringe results  v  1.01  Format version of 2014.02.08",
         "# PIMA Fringe results  v  1.02  Format version of 2014.12.24",
         "# PIMA Fringe results  v  1.2   Format version of 2019.04.20",
+        "# PIMA Fringe results  v  1.3   Format version of 2022.12.15",
     )
 
     def __init__(self, file_name=None):
