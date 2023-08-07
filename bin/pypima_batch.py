@@ -309,7 +309,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
 
     # Special run for ground-ground baselines with 60 s scan length
     if ra_exp.pima.chan_number <= 256 and detections:
-        scan_part = scan_part_base + 100
+        scan_part = scan_part_base + 99
         scan_len = 60
         ra_exp.load(
             update_db=True,
