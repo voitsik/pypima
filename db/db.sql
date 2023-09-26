@@ -164,6 +164,7 @@ GRANT SELECT, UPDATE, INSERT, DELETE ON ra_uvfits TO editor;
 GRANT USAGE, SELECT ON SEQUENCE ra_uvfits_id_seq TO editor;
 
 CREATE INDEX ra_uvfits_run_id_idx ON ra_uvfits(run_id);
+CREATE INDEX ra_uvfits_exper_name_band_idx ON ra_uvfits (exper_name, band);
 
 --
 -- PIMA station names catalog

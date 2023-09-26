@@ -389,10 +389,10 @@ bytes".format(
 
                 toks = line.split()
 
-                # Fix EF C-band channels table
-                if len(toks) == 10 and toks[0] == "!" and toks[1].isdigit():
-                    self.logger.warning("fix EF C-band channels table")
-                    toks.insert(2, "6cm")
+                # # Fix EF C-band channels table
+                # if len(toks) == 10 and toks[0] == "!" and toks[1].isdigit():
+                #     self.logger.warning("fix EF C-band channels table")
+                #     toks.insert(2, "6cm")
 
                 if fix_freq and len(toks) > 9 and toks[1].isdigit():
                     if toks[6] == "L":
