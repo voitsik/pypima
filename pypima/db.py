@@ -53,11 +53,11 @@ class DB:
 
         query = """SELECT path, size, ftp_user FROM fits_files
         WHERE exper_name = %(exper)s AND band = %(band)s AND
-        (basename NOT LIKE %(frb)s) AND
-        split_part(basename, '_', 1) = %(base)s #EXT#
+        split_part(basename, '_', 1) = %(base)s AND
+        LOWER(split_part(basename, '_', 2)) = %(exper)s #EXT#
         ORDER BY corr_date DESC, path DESC;"""
 
-        params = {"exper": exper, "band": band, "frb": "%FRB%"}
+        params = {"exper": exper, "band": band}
 
         if gvlbi:
             params["base"] = "GVLBI"
