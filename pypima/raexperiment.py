@@ -729,7 +729,13 @@ bytes".format(
 
         for deg in range(1, 7):
             log_file = self.pima.bpas(
-                params={"BPS.DEG_AMP:": str(deg), "BPS.DEG_PHS:": str(deg)}
+                params={
+                    "BPS.DEG_AMP:": str(deg), 
+                    "BPS.DEG_PHS:": str(deg),
+                    "PHASE_ACCEL_MIN:": "0",
+                    "PHASE_ACCEL_MAX:": "0",
+                    "FRIB.FINE_SEARCH:": "LSQ",
+                }
             )
             log_file_deg = f"{log_file}_{deg}"
             os.rename(log_file, log_file_deg)
@@ -913,15 +919,12 @@ bytes".format(
                 else:
                     self._auto_bpas(fringe_fit=True)
             else:
-                if self.gvlbi:
-                    bpas_params = {
-                        "FRIB.FINE_SEARCH:": "PAR",
-                        "MKDB.FRINGE_ALGORITHM:": "DRF",
-                        "PHASE_ACCEL_MIN:": "0",
-                        "PHASE_ACCEL_MAX:": "0",
-                    }
-                else:
-                    bpas_params = {}
+                bpas_params = {
+                    "FRIB.FINE_SEARCH:": "LSQ",
+                    "MKDB.FRINGE_ALGORITHM:": "LSQ",
+                    "PHASE_ACCEL_MIN:": "0",
+                    "PHASE_ACCEL_MAX:": "0",
+                }
 
                 self.pima.bpas(bpas_params)
         except pypima.pima.Error:
@@ -1038,15 +1041,12 @@ bytes".format(
             else:
                 self.pima.mk_exclude_obs_file(self.bad_obs_set, "coarse")
 
-                if self.gvlbi:
-                    coarse_params = {
-                        "FRIB.FINE_SEARCH:": "PAR",
-                        "MKDB.FRINGE_ALGORITHM:": "DRF",
-                        "PHASE_ACCEL_MIN:": "0",
-                        "PHASE_ACCEL_MAX:": "0",
-                    }
-                else:
-                    coarse_params = {}
+                coarse_params = {
+                    "FRIB.FINE_SEARCH:": "LSQ",
+                    "MKDB.FRINGE_ALGORITHM:": "LSQ",
+                    "PHASE_ACCEL_MIN:": "0",
+                    "PHASE_ACCEL_MAX:": "0",
+                }
 
                 fri_file = self.pima.coarse(coarse_params)
                 fri = Fri(fri_file)
