@@ -310,25 +310,31 @@ bytes".format(
 
     def _get_antab(self):
         """Download ANTAB-file from the FTP server."""
-        antab_url = self.db.get_antab_url(self.exper, self.band)
+        # antab_url = self.db.get_antab_url(self.exper, self.band)
 
-        if not antab_url:
-            self.logger.warning("Could not get ANTAB-file url from DB.")
-        else:
-            antab_dir = os.path.join(self.work_dir, "antab")
-            os.makedirs(antab_dir, exist_ok=True)
+        # Make ANTAB url
+        date_str1 = self.pima.exper_info["nominal_start"].strftime("%Y_%m")
+        date_str2 = self.pima.exper_info["nominal_start"].strftime("%Y_%m_%d")
+        url_base = "ftp://webinet.asc.rssi.ru/radioastron/ampcal"
+        antab_url = "{0}/{1}/{2}_{3}/{3}{4}.antab2".format(
+            url_base, date_str1, date_str2, self.exper, self.band
+        )
 
-            antab_file = os.path.join(antab_dir, os.path.basename(antab_url) + ".orig")
-            self.logger.info("Start downloading file %s", antab_url)
-            try:
-                with open(antab_file, "wb") as fil:
-                    _download_it(antab_url, fil)
+        antab_dir = os.path.join(self.work_dir, "antab")
+        os.makedirs(antab_dir, exist_ok=True)
 
-                self.logger.info("ANTAB-file downloading is complete.")
-                self.antab = self._fix_antab(antab_file)
-            except pycurl.error as err:
-                self.antab = None
-                self.logger.warning("Could not download file %s: %s", antab_url, err)
+        antab_file = os.path.join(antab_dir, os.path.basename(antab_url) + ".orig")
+        self.logger.info("Start downloading file %s", antab_url)
+
+        try:
+            with open(antab_file, "wb") as fil:
+                _download_it(antab_url, fil)
+
+            self.logger.info("ANTAB-file downloading is complete.")
+            self.antab = self._fix_antab(antab_file)
+        except pycurl.error as err:
+            self.antab = None
+            self.logger.warning("Could not download file %s: %s", antab_url, err)
 
     def _fix_antab(self, antab):
         """Fix ANTAB file."""
@@ -559,8 +565,7 @@ bytes".format(
             ):
                 self._error(
                     "end_frq must be in range [{}, {}]".format(
-                        self.pima.cnt_params["BEG_FRQ:"],
-                        self.pima.exper_info["if_num"]
+                        self.pima.cnt_params["BEG_FRQ:"], self.pima.exper_info["if_num"]
                     )
                 )
             else:
@@ -730,7 +735,7 @@ bytes".format(
         for deg in range(1, 7):
             log_file = self.pima.bpas(
                 params={
-                    "BPS.DEG_AMP:": str(deg), 
+                    "BPS.DEG_AMP:": str(deg),
                     "BPS.DEG_PHS:": str(deg),
                     "PHASE_ACCEL_MIN:": "0",
                     "PHASE_ACCEL_MAX:": "0",
