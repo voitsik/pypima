@@ -189,8 +189,16 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     bandpass_renorm = kwargs.pop("bandpass_renorm", True)
     flag_chann = kwargs.pop("flag_chann", 0)
     scan_len = kwargs.pop("max_scan_length", 1500)
+    split_crosses = kwargs.pop("split_crosses", False)
 
+    if split_crosses:
+        polars_to_split = ("RR", "RL", "LR", "LL")
+    else:
+        polars_to_split = ("RR", "LL")
+
+    #
     # First run on full scan
+    #
     scan_part = scan_part_base + 1
     ra_exp.load(
         update_db=True,
@@ -232,7 +240,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             if (
                 ra_exp.pima.chan_number <= 256
                 and ra_exp.calibration_loaded
-                and polar in ("RR", "LL")
+                and polar in polars_to_split
             ):
                 for aver in (False, True):
                     ra_exp.split(average=aver)
@@ -267,7 +275,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             if (
                 ra_exp.pima.chan_number <= 256
                 and ra_exp.calibration_loaded
-                and polar in ("RR", "LL")
+                and polar in polars_to_split
             ):
                 ra_exp.split(average=True)
                 ra_exp.copy_uvfits(uv_fits_out_dir)
@@ -292,7 +300,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
                 ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-                for polar in ("RR", "LL"):
+                for polar in polars_to_split:
                     ra_exp.pima.set_polar(polar)
                     fri = ra_exp.fringe_fitting(**ff_params)
                     print(fri)
@@ -307,7 +315,9 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             scan_part += 1
             scan_len = round(max_scan_len / (scan_part - scan_part_base))
 
+    #
     # Special run for ground-ground baselines with 60 s scan length
+    #
     if ra_exp.pima.chan_number <= 256 and detections:
         scan_part = scan_part_base + 99
         scan_len = 60
@@ -322,7 +332,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
             ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
-            for polar in ("RR", "LL"):
+            for polar in polars_to_split:
                 ra_exp.pima.set_polar(polar)
                 fri = ra_exp.fringe_fitting(**ff_params)
                 print(fri)
@@ -336,7 +346,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
 
 
 class InvalidInputFile(Exception):
-    """Invalid file format error"""
+    """Invalid file format error."""
 
     def __init__(self, message, file_name):
         self.file_name = file_name
@@ -421,6 +431,11 @@ def parse_args():
         help="do full processing for ground-only files",
     )
     parser.add_argument(
+        "--split-crosses",
+        action="store_true",
+        help="do split for cross hands polarizations",
+    )
+    parser.add_argument(
         "--no-accel", action="store_true", help="disable parabolic term fitting"
     )
     parser.add_argument(
@@ -503,9 +518,7 @@ def parse_args():
         help="do fringe fittig for individual IFs",
     )
 
-    parser.add_argument(
-        "--debug", "-d", action="store_true", help="enable debug output"
-    )
+    parser.add_argument("--debug", "-d", action="store_true", help="enable debug output")
 
     return parser.parse_args()
 
@@ -575,9 +588,7 @@ def main():
         "PYPIMA_AUTOSPEC_DIR", default=os.path.join(os.getenv("HOME"), "pima_autospec")
     )
 
-    load_thread = threading.Thread(
-        target=download_it, args=(exp_list, args.force_small)
-    )
+    load_thread = threading.Thread(target=download_it, args=(exp_list, args.force_small))
     load_thread.daemon = True
     load_thread.start()
 
@@ -594,6 +605,7 @@ def main():
         "bandpass_renorm": not args.no_bpas_renorm,
         "flag_chann": args.flag_chann,
         "max_scan_length": args.max_scan_length,
+        "split_crosses": args.split_crosses,
     }
 
     for ra_exp in exp_list:
