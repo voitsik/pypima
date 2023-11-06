@@ -9,6 +9,7 @@ import os.path
 import shutil
 import subprocess
 from collections import namedtuple
+from dataclasses import dataclass, InitVar, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,45 +30,61 @@ class Error(Exception):
         return f"{self.exper}({self.band}): {self.msg}"
 
 
+@dataclass
 class ExperInfo:
     """Some experiment information."""
 
-    def __init__(self, exper_name, band, stt_file=None):
-        self.exper = exper_name
-        self.band = band
+    exper_name: str
+    band: str
+    stt_file: InitVar[str] = ""
 
-        self._data = {}
+    correlator_name: str = field(init=False)
+    if_num: int = field(init=False)
+    frq_grp: int = field(init=False)
+    sp_chann_num: int = field(init=False)
+    time_epochs_num: int = field(init=False)
+    scans_num: int = field(init=False)
+    obs_num: int = field(init=False)
+    uv_points_num: int = field(init=False)
+    uv_points_used_num: int = field(init=False)
+    deselected_points_num: int = field(init=False)
+    utc_minus_tai: timedelta = field(init=False)
+    nominal_start: datetime = field(init=False)
+    nominal_end: datetime = field(init=False)
+    hostname: str = field(init=False)
+    pima_version: str = field(init=False)
+    accum_length: float = field(init=False)
+    no_auto_points_num: int = field(init=False)
 
+    def __post_init__(self, stt_file: str) -> None:
         if stt_file:
             self.update(stt_file)
 
-    def update(self, stt_file):
-        """
-        Fill ExperInfo with info from PIMA stt-file
-        """
+    def update(self, stt_file: str) -> None:
+        """Fill ExperInfo with info from PIMA stt-file."""
 
         with open(stt_file) as fil:
             for line in fil:
                 if line.startswith("Correlator_name:"):
-                    self._data["correlator_name"] = line.split()[1]
+                    self.correlator_name = line.split()[1]
                 elif line.startswith("Number of frequencies:"):
-                    self._data["if_num"] = int(line.split(":")[1])
+                    self.if_num = int(line.split(":")[1])
                 elif line.startswith("Number of frequency groups:"):
-                    self._data["frq_grp"] = int(line.split(":")[1])
+                    self.frq_grp = int(line.split(":")[1])
                 elif line.startswith("Number of spectral channels:"):
-                    self._data["sp_chann_num"] = int(line.split(":")[1])
+                    self.sp_chann_num = int(line.split(":")[1])
                 elif line.startswith("Number of time epochs:"):
-                    self._data["time_epochs_num"] = int(line.split(":")[1])
+                    self.time_epochs_num = int(line.split(":")[1])
                 elif line.startswith("Number of scans:"):
-                    self._data["scans_num"] = int(line.split(":")[1])
+                    self.scans_num = int(line.split(":")[1])
                 elif line.startswith("Number of observations:"):
-                    self._data["obs_num"] = int(line.split(":")[1])
+                    self.obs_num = int(line.split(":")[1])
                 elif line.startswith("Total number of UV points:"):
-                    self._data["uv_points_num"] = int(line.split(":")[1])
+                    self.uv_points_num = int(line.split(":")[1])
                 elif line.startswith("Total number of used UV points:"):
-                    self._data["uv_points_used_num"] = int(line.split(":")[1])
+                    self.uv_points_used_num = int(line.split(":")[1])
                 elif line.startswith("Total number of deselected points:"):
-                    self._data["deselected_points_num"] = int(line.split(":")[1])
+                    self.deselected_points_num = int(line.split(":")[1])
                 elif line.startswith(
                     "Number of cross-correl NO_AUTO_1 deselected points:"
                 ):
@@ -81,34 +98,29 @@ class ExperInfo:
                 elif line.startswith("Accummulation period length_max:"):
                     acc_max = float(line.split(":")[1])
                 elif line.startswith("UTC_minus_TAI:"):
-                    self._data["utc_minus_tai"] = timedelta(
-                        seconds=float(line.split(":")[1])
-                    )
+                    self.utc_minus_tai = timedelta(seconds=float(line.split(":")[1]))
                 elif line.startswith("Experiment nominal start:"):
-                    self._data["nominal_start"] = datetime.strptime(
+                    self.nominal_start = datetime.strptime(
                         line.split(":", 1)[1].strip()[:23], "%Y.%m.%d-%H:%M:%S.%f"
                     )
                 elif line.startswith("Experiment nominal end:"):
-                    self._data["nominal_end"] = datetime.strptime(
+                    self.nominal_end = datetime.strptime(
                         line.split(":", 1)[1].strip()[:23], "%Y.%m.%d-%H:%M:%S.%f"
                     )
                 elif line.startswith("# Generated    at"):
                     cols = line.split()
                     if len(cols) == 4:
-                        self._data["hostname"] = cols[3]
+                        self.hostname = cols[3]
                     else:
-                        self._data["hostname"] = ""
+                        self.hostname = ""
                 elif line.startswith("#                 by PIMA"):
                     if "version" in line:
-                        self._data["pima_version"] = line.split()[5]
+                        self.pima_version = line.split()[5]
                     else:
-                        self._data["pima_version"] = line.split()[4]
+                        self.pima_version = line.split()[4]
 
-        self._data["accum_length"] = (acc_min + acc_max) / 2.0
-        self._data["no_auto_points_num"] = no_auto1 + no_auto2
-
-    def __getitem__(self, key):
-        return self._data[key]
+        self.accum_length = (acc_min + acc_max) / 2.0
+        self.no_auto_points_num = no_auto1 + no_auto2
 
 
 # Some global variables
@@ -673,7 +685,7 @@ class Pima:
             Frequency group number.
 
         """
-        if frq_grp < 1 or frq_grp > self.exper_info["frq_grp"]:
+        if frq_grp < 1 or frq_grp > self.exper_info.frq_grp:
             self._error(f"Invalid frequency group {frq_grp}")
 
         self.logger.info("Set frequency group to %s", frq_grp)
@@ -681,10 +693,7 @@ class Pima:
 
     @property
     def ap_minmax(self):
-        """
-        Return minimum and maximum accummulation periods in experiment.
-
-        """
+        """Return minimum and maximum accummulation periods in experiment."""
         ap_min = ap_max = 0
         stt_file = os.path.join(
             self.cnt_params["EXPER_DIR:"], self.cnt_params["SESS_CODE:"] + ".stt"
@@ -702,11 +711,8 @@ class Pima:
 
     @property
     def number_of_deselected_points(self):
-        """
-        Return total number of deselected points
-
-        """
-        return self.exper_info["deselected_points_num"]
+        """Return total number of deselected points."""
+        return self.exper_info.deselected_points_num
 
     def station_list(self, ivs_name=True):
         """
@@ -791,19 +797,13 @@ class Pima:
 
     @property
     def obs_number(self):
-        """
-        Return number of the observations in the experiment.
-
-        """
-        return self.exper_info["obs_num"]
+        """Return number of observations in the experiment."""
+        return self.exper_info.obs_num
 
     @property
     def chan_number(self):
-        """
-        Return number of the spectral channels in uv-data.
-
-        """
-        return self.exper_info["sp_chann_num"]
+        """Return number of spectral channels in uv-data."""
+        return self.exper_info.sp_chann_num
 
     @property
     def frequencies(self):

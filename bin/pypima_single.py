@@ -239,7 +239,7 @@ def main():
             )
 
             if args.individual_ifs:
-                if_num = ra_exp.pima.exper_info["if_num"]
+                if_num = ra_exp.pima.exper_info.if_num
                 for ind in range(if_num):
                     ra_exp.pima.update_cnt(
                         {"BEG_FRQ:": str(ind + 1), "END_FRQ:": str(ind + 1)}

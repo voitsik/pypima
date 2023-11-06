@@ -267,10 +267,7 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
         return run_id
 
     def update_exper_info(self, exper_info, run_id):
-        """
-        Add extended experiment information to the DB.
-
-        """
+        """Add extended experiment information to the DB."""
         query = """UPDATE pima_runs SET
         sp_chann_num = %s,
         time_epochs_num = %s,
@@ -294,21 +291,21 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
             cursor.execute(
                 query,
                 (
-                    exper_info["sp_chann_num"],
-                    exper_info["time_epochs_num"],
-                    exper_info["scans_num"],
-                    exper_info["obs_num"],
-                    exper_info["uv_points_num"],
-                    exper_info["uv_points_used_num"],
-                    exper_info["deselected_points_num"],
-                    exper_info["no_auto_points_num"],
-                    exper_info["accum_length"],
-                    exper_info["utc_minus_tai"],
-                    exper_info["nominal_start"],
-                    exper_info["nominal_end"],
-                    exper_info["hostname"],
-                    exper_info["pima_version"],
-                    exper_info["correlator_name"],
+                    exper_info.sp_chann_num,
+                    exper_info.time_epochs_num,
+                    exper_info.scans_num,
+                    exper_info.obs_num,
+                    exper_info.uv_points_num,
+                    exper_info.uv_points_used_num,
+                    exper_info.deselected_points_num,
+                    exper_info.no_auto_points_num,
+                    exper_info.accum_length,
+                    exper_info.utc_minus_tai,
+                    exper_info.nominal_start,
+                    exper_info.nominal_end,
+                    exper_info.hostname,
+                    exper_info.pima_version,
+                    exper_info.correlator_name,
                     run_id,
                 ),
             )

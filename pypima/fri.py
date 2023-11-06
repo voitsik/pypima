@@ -233,10 +233,7 @@ SNR_LIMITS = {
 # 90 -> Elevation of sta2
 # 94 -> Reference frequency
 class Fri:
-    """
-    This class represents PIMA fringe file.
-
-    """
+    """This class represents PIMA fringe file."""
 
     supported_versions = (
         "# PIMA Fringe results  v  1.00  Format version of 2010.04.05",
@@ -261,10 +258,7 @@ class Fri:
             self.parse_file(file_name)
 
     def parse_file(self, file_name):
-        """
-        Parse PIMA fri-file.
-
-        """
+        """Parse PIMA fri-file."""
         started = False
         header = {}
         self.records.clear()

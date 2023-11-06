@@ -141,9 +141,7 @@ class TestPima:
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_load(self, work_dir, exper, band):
-        """
-        Test pima.load
-        """
+        """Test pima.load."""
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
@@ -151,9 +149,7 @@ class TestPima:
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_exper_info(self, work_dir, exper, band):
-        """
-        Test pima.exper_info and Pima properties
-        """
+        """Test pima.exper_info and Pima properties."""
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
@@ -161,14 +157,14 @@ class TestPima:
 
         assert pima.exper_info.exper == exper
         assert pima.exper_info.band == band
-        assert pima.exper_info["sp_chann_num"] == result.sp_chann_num
+        assert pima.exper_info.sp_chann_num == result.sp_chann_num
         assert (
-            pima.exper_info["deselected_points_num"]
+            pima.exper_info.deselected_points_num
             == result.number_of_deselected_points
         )
 
         # Check PIMA version format
-        assert re.fullmatch(r"\d+\.\d+\w*", pima.exper_info["pima_version"], re.ASCII)
+        assert re.fullmatch(r"\d+\.\d+\w*", pima.exper_info.pima_version, re.ASCII)
 
         assert pima.ap_minmax == result.ap_minmax
         assert pima.number_of_deselected_points == result.number_of_deselected_points
@@ -180,9 +176,7 @@ class TestPima:
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_set_frq_grp(self, work_dir, exper, band):
-        """
-        Test pima.set_frq_grp
-        """
+        """Test pima.set_frq_grp."""
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
@@ -195,9 +189,7 @@ class TestPima:
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_coarse(self, work_dir, exper, band):
-        """
-        Test pima.coarse
-        """
+        """Test pima.coarse."""
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
@@ -228,9 +220,7 @@ class TestPima:
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_bpas(self, work_dir, exper, band):
-        """
-        Test pima.bpas
-        """
+        """Test pima.bpas."""
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 
@@ -264,9 +254,7 @@ class TestPima:
 
     @pytest.mark.parametrize(("exper", "band"), [("raes03eo", "l"), ("raks16nq", "c")])
     def test_pima_fine(self, work_dir, exper, band):
-        """
-        Test pima.fine
-        """
+        """Test pima.fine."""
         wdir, _ = work_dir
         pima = Pima(exper, band, work_dir=wdir)
 

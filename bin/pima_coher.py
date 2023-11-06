@@ -70,7 +70,7 @@ class CoherAnalyzer:
 
         # Read info from obs-file
         obs_info = self.pim.observations[self.obs - 1]
-        self.start_time = obs_info.start_time + self.pim.exper_info["utc_minus_tai"]
+        self.start_time = obs_info.start_time + self.pim.exper_info.utc_minus_tai
         self.sta1 = obs_info.sta1
         self.sta2 = obs_info.sta2
 
@@ -131,7 +131,7 @@ class CoherAnalyzer:
             return
 
         # Update from fri-file
-        self.start_time = fri[0]["start_time"] + self.pim.exper_info["utc_minus_tai"]
+        self.start_time = fri[0]["start_time"] + self.pim.exper_info.utc_minus_tai
         self.sta1 = fri[0]["sta1"]
         self.sta2 = fri[0]["sta2"]
 

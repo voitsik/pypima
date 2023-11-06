@@ -313,8 +313,8 @@ bytes".format(
         # antab_url = self.db.get_antab_url(self.exper, self.band)
 
         # Make ANTAB url
-        date_str1 = self.pima.exper_info["nominal_start"].strftime("%Y_%m")
-        date_str2 = self.pima.exper_info["nominal_start"].strftime("%Y_%m_%d")
+        date_str1 = self.pima.exper_info.nominal_start.strftime("%Y_%m")
+        date_str2 = self.pima.exper_info.nominal_start.strftime("%Y_%m_%d")
         url_base = "ftp://webinet.asc.rssi.ru/radioastron/ampcal"
         antab_url = "{0}/{1}/{2}_{3}/{3}{4}.antab2".format(
             url_base, date_str1, date_str2, self.exper, self.band
@@ -547,10 +547,10 @@ bytes".format(
 
         # Set number of IFs
         if beg_frq:
-            if beg_frq < 1 or beg_frq > self.pima.exper_info["if_num"]:
+            if beg_frq < 1 or beg_frq > self.pima.exper_info.if_num:
                 self._error(
                     "beg_frq must be in range [1, {}]".format(
-                        self.pima.exper_info["if_num"]
+                        self.pima.exper_info.if_num
                     )
                 )
             else:
@@ -561,17 +561,17 @@ bytes".format(
         if end_frq:
             if (
                 end_frq < int(self.pima.cnt_params["BEG_FRQ:"])
-                or end_frq > self.pima.exper_info["if_num"]
+                or end_frq > self.pima.exper_info.if_num
             ):
                 self._error(
                     "end_frq must be in range [{}, {}]".format(
-                        self.pima.cnt_params["BEG_FRQ:"], self.pima.exper_info["if_num"]
+                        self.pima.cnt_params["BEG_FRQ:"], self.pima.exper_info.if_num
                     )
                 )
             else:
                 self.pima.update_cnt({"END_FRQ:": end_frq})
         else:
-            self.pima.update_cnt({"END_FRQ:": self.pima.exper_info["if_num"]})
+            self.pima.update_cnt({"END_FRQ:": self.pima.exper_info.if_num})
 
         if "RADIO-AS" not in self.pima.station_list():
             self.logger.warning("RADIO-AS is not in station list")
@@ -720,9 +720,7 @@ bytes".format(
                     continue
 
                 if np.median(acta_file.ampl) < 0.5:
-                    self.logger.warning(
-                        "Bad autospec for sta: %s obs: %s", sta, obs.obs
-                    )
+                    self.logger.warning("Bad autospec for sta: %s obs: %s", sta, obs.obs)
                     bad_obs_set.add(obs.obs)
 
         return bad_obs_set
@@ -1103,9 +1101,9 @@ bytes".format(
         if not self.fri:
             self.logger.warning("PIMA fri-file is empty after fine")
         else:
-            if self.pima.exper_info["sp_chann_num"] <= 128:
+            if self.pima.exper_info.sp_chann_num <= 128:
                 ch_num = 64
-            elif self.pima.exper_info["sp_chann_num"] == 256:
+            elif self.pima.exper_info.sp_chann_num == 256:
                 ch_num = 256
             else:
                 ch_num = 2048
@@ -1130,7 +1128,7 @@ bytes".format(
         if number < 0 or number >= chann_num / 2:
             self._error(f"invald number of channels to flag: {number}")
         elif number > 0:
-            ind_frq = "1-{}".format(self.pima.exper_info["if_num"])
+            ind_frq = "1-{}".format(self.pima.exper_info.if_num)
             ind_chn1 = f"1-{number}"
             ind_chn2 = "{}-{}".format(chann_num - number + 1, chann_num)
 
@@ -1250,16 +1248,13 @@ bytes".format(
             out_fits_dir = os.path.join(out_dir, b1950_name)
             os.makedirs(out_fits_dir, exist_ok=True)
 
-            # Correlator name
-            corr_name = self.pima.exper_info["correlator_name"]
-
             out_fits_name = "{}_{}_{}_{}_{:04d}s_{}_uva.fits".format(
                 b1950_name,
                 self.exper,
                 self.band.upper(),
                 polar,
                 round(self.split_time_aver),
-                corr_name,
+                self.pima.exper_info.correlator_name,  # correlator name
             )
 
             if self.scan_part >= 1000:
@@ -1342,10 +1337,10 @@ bytes".format(
 
                 return
 
-            utc_tai = self.pima.exper_info["utc_minus_tai"]
-
             for file_name in file_list:
-                acta_file = ActaFile(file_name, polar, utc_tai)
+                acta_file = ActaFile(
+                    file_name, polar, self.pima.exper_info.utc_minus_tai
+                )
 
                 sta = acta_file.header["station"]
                 scan_name = acta_file.header["scan_name"]

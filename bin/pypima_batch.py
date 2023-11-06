@@ -133,7 +133,7 @@ def process_ind_ifs(ra_exp, **kwargs):
 
     for polar in ("RR", "RL", "LR", "LL"):
         ra_exp.pima.set_polar(polar)
-        if_num = ra_exp.pima.exper_info["if_num"]
+        if_num = ra_exp.pima.exper_info.if_num
 
         for ind in range(if_num):
             ra_exp.pima.update_cnt({"BEG_FRQ:": str(ind + 1), "END_FRQ:": str(ind + 1)})
@@ -223,7 +223,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
 
     scan_len_list = []
 
-    for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
+    for frq_grp_ind in range(ra_exp.pima.exper_info.frq_grp):
         ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
         for polar in ("RR", "RL", "LR", "LL"):
@@ -261,7 +261,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ra_exp.load_antab()
 
     detections = False
-    for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
+    for frq_grp_ind in range(ra_exp.pima.exper_info.frq_grp):
         ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
         for polar in ("RR", "RL", "LR", "LL"):
@@ -297,7 +297,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             ra_exp.load_antab()
             detections = False
 
-            for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
+            for frq_grp_ind in range(ra_exp.pima.exper_info.frq_grp):
                 ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
                 for polar in polars_to_split:
@@ -329,7 +329,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
         )
         ra_exp.load_antab()
 
-        for frq_grp_ind in range(ra_exp.pima.exper_info["frq_grp"]):
+        for frq_grp_ind in range(ra_exp.pima.exper_info.frq_grp):
             ra_exp.pima.set_frq_grp(frq_grp_ind + 1)
 
             for polar in polars_to_split:
