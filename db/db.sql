@@ -75,10 +75,10 @@ CREATE TABLE pima_obs (
   snr real,
   ampl real,
   solint real,
-  u real,
-  v real,
+  u double precision,
+  v double precision,
   base_ed real,
-  ref_freq real,
+  ref_freq double precision,
   exper_name varchar(20) NOT NULL,
   band band_type NOT NULL,
   status status_type DEFAULT 'u'::status_type,
@@ -94,7 +94,14 @@ GRANT SELECT ON pima_obs TO guest;
 GRANT SELECT, UPDATE, INSERT, DELETE ON pima_obs TO editor;
 GRANT USAGE, SELECT ON SEQUENCE pima_obs_id_seq TO editor;
 
+--
+-- PIMA fringe fitting results without bandpass
+--
+CREATE TABLE pima_obs_nobps ( LIKE pima_obs INCLUDING ALL );
 
+--
+-- Correlator clock model
+--
 CREATE TABLE clock_models (
     id SERIAL primary key,
     sta varchar(8) NOT NULL,
