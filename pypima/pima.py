@@ -34,7 +34,7 @@ class Error(Exception):
 class ExperInfo:
     """Some experiment information."""
 
-    exper_name: str
+    exper: str
     band: str
     stt_file: InitVar[str] = ""
 
