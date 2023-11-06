@@ -9,7 +9,7 @@ import os.path
 import shutil
 import subprocess
 from collections import namedtuple
-from dataclasses import dataclass, InitVar, field
+from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -224,7 +224,7 @@ class Pima:
                     else:
                         line = f"{key:<20} {val}\n"
                 elif line.startswith("# Last update on"):
-                    line = "# Last update on  {}\n".format(str(datetime.now()))
+                    line = f"# Last update on  {str(datetime.now())}\n"
 
                 lines.append(line)
 
@@ -1096,7 +1096,7 @@ def fits_to_txt(fits_file: str) -> str:
         txt_file = fits_file + ".txt"
 
     cmd_line = ["fits_to_radplot", "-o", txt_file, fits_file]
-    out = subprocess.check_output(cmd_line, universal_newlines=True)
+    out = subprocess.check_output(cmd_line, text=True)
 
     return out
 
@@ -1335,7 +1335,7 @@ def acta_plot(input_file: str, output_file: str) -> str:
         raise FileNotFoundError(f"file {input_file} does not exist")
 
     cmd_line = ["acta_plot", input_file, output_file]
-    out = subprocess.check_output(cmd_line, universal_newlines=True)
+    out = subprocess.check_output(cmd_line, text=True)
 
     return out
 
