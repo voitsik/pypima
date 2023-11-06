@@ -19,14 +19,14 @@ class pfd_dist(rv_continuous):
     """Theoretical distribution of SNR values in no-signal case."""
 
     def _cdf(self, x, n_eff, sigma_eff):
-        exp_arg = -(np.pi * x ** 2) / (4 * sigma_eff ** 2)
+        exp_arg = -(np.pi * x**2) / (4 * sigma_eff**2)
 
         return np.power(1 - np.exp(exp_arg), n_eff)
 
     def _pdf(self, x, n_eff, sigma_eff):
-        exp_arg = -(np.pi * x ** 2) / (4 * sigma_eff ** 2)
+        exp_arg = -(np.pi * x**2) / (4 * sigma_eff**2)
 
-        x1 = np.log((np.pi / 2) * n_eff * x / sigma_eff ** 2)
+        x1 = np.log((np.pi / 2) * n_eff * x / sigma_eff**2)
         x2 = exp_arg
         x3 = (n_eff - 1) * np.log(1 - np.exp(exp_arg))
 
@@ -37,7 +37,6 @@ class pfd_dist(rv_continuous):
 
 
 class PFDRec(NamedTuple):
-
     p2: float  # PFD=1e-2
     p3: float  # PFD=1e-3
     p4: float  # PFD=1e-4
@@ -330,6 +329,12 @@ class Fri:
                     self.records[-1]["V"] = float(toks[85].replace("D", "e"))
                     self.records[-1]["ref_freq"] = float(toks[94].replace("D", "e"))
                     self.records[-1]["elevation"] = [float(toks[89]), float(toks[90])]
+
+                    try:
+                        self.records[-1]["polar"] = toks[toks.index("Polar:") + 1]
+                    except ValueError:
+                        pass
+
                     # Calculated parameters
                     # UV-radius in lambda
                     self.records[-1]["uv_rad"] = math.hypot(
