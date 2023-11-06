@@ -1054,6 +1054,9 @@ bytes".format(
                 fri_file = self.pima.coarse(coarse_params)
                 fri = Fri(fri_file)
 
+                if self.run_id > 0 and fri:
+                    self.db.fri2db(fri, self.pima.exper_info, self.run_id, nobps=True)
+
                 # Exclude suspicious observations
                 obs_list = []
                 for rec in fri:
@@ -1109,6 +1112,9 @@ bytes".format(
                 ch_num = 2048
 
             self.fri.update_status(ch_num)
+
+            if self.run_id > 0:
+                self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
 
         return self.fri
 

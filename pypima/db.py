@@ -155,7 +155,7 @@ class DB:
 
         return url
 
-    def fri2db(self, fri, exper_info, run_id):
+    def fri2db(self, fri, exper_info, run_id, nobps=False):
         """
         Store information from the PIMA fri-file to the database.
 
@@ -167,6 +167,9 @@ class DB:
             Experiment general information.
         run_id : int
             Id of the record in the ``pima_runs`` database table.
+        nobps : bool
+            If ``True`` store data to the ``pima_obs_nobps`` table instead of
+            ``pima_obs`` one.
 
         """
         if not fri:
@@ -174,12 +177,16 @@ class DB:
 
         exper = exper_info.exper
         band = exper_info.band
-        polar = fri.records[0]["polar"]
 
-        query = """INSERT INTO pima_obs (obs, start_time, stop_time,
+        if nobps:
+            table = "pima_obs_nobps"
+        else:
+            table = "pima_obs"
+
+        query = """INSERT INTO {} (obs, start_time, stop_time,
 exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
 solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation,
-bandpass, pfd) VALUES %s;"""
+bandpass, pfd) VALUES %s;""".format(table)
 
         rec_list = []
         for rec in fri.records:
@@ -202,7 +209,7 @@ bandpass, pfd) VALUES %s;"""
                     exper,
                     band,
                     rec["source"],
-                    polar,
+                    rec["polar"],
                     rec["sta1"],
                     rec["sta2"],
                     rec["delay"],

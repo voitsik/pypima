@@ -98,7 +98,7 @@ def process_gvlbi(ra_exp, **kwargs):
     for polar in ("RR", "RL", "LR", "LL"):
         ra_exp.pima.set_polar(polar)
         print(ra_exp.fringe_fitting(**ff_params))
-        ra_exp.fringes2db()
+        # ra_exp.fringes2db()
 
     ra_exp.delete_uvfits()
 
@@ -140,7 +140,7 @@ def process_ind_ifs(ra_exp, **kwargs):
             fri = ra_exp.fringe_fitting(**ff_params)
             print("IF #{}".format(ind + 1))
             print(fri)
-            ra_exp.fringes2db()
+            # ra_exp.fringes2db()
 
         # Restore IFs
         ra_exp.pima.update_cnt({"BEG_FRQ:": str(1), "END_FRQ:": str(if_num)})
@@ -234,7 +234,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             fri = ra_exp.fringe_fitting(**ff_params)
             print(fri)
             scan_len_list.append(fri.max_scan_length())
-            ra_exp.fringes2db()
+            # ra_exp.fringes2db()
 
             # Split good data
             if (
@@ -270,7 +270,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             print(fri)
             if fri.any_detections():
                 detections = True
-            ra_exp.fringes2db()
+            # ra_exp.fringes2db()
 
             if (
                 ra_exp.pima.chan_number <= 256
@@ -306,7 +306,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                     print(fri)
                     if fri.any_detections():
                         detections = True
-                    ra_exp.fringes2db()
+                    # ra_exp.fringes2db()
 
                     if ra_exp.calibration_loaded:
                         ra_exp.split(average=True)
@@ -336,7 +336,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                 ra_exp.pima.set_polar(polar)
                 fri = ra_exp.fringe_fitting(**ff_params)
                 print(fri)
-                ra_exp.fringes2db()
+                # ra_exp.fringes2db()
 
                 if ra_exp.calibration_loaded:
                     ra_exp.split(average=True)
