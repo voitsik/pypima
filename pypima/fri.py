@@ -251,7 +251,7 @@ class Fri:
 
         """
         self.records = []
-        self.aux = {}  # Auxiliary user defined parameters
+        self.aux = {"bandpass": False}  # Auxiliary user defined parameters
 
         if file_name:
             self.parse_file(file_name)
