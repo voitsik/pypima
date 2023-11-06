@@ -99,6 +99,9 @@ GRANT USAGE, SELECT ON SEQUENCE pima_obs_id_seq TO editor;
 --
 CREATE TABLE pima_obs_nobps ( LIKE pima_obs INCLUDING ALL );
 
+GRANT SELECT ON pima_obs_nobps TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON pima_obs_nobps TO editor;
+
 --
 -- Correlator clock model
 --
