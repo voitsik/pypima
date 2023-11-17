@@ -58,17 +58,22 @@ class DB:
         ORDER BY corr_date DESC, path DESC;"""
 
         params = {"exper": exper, "band": band}
+        where_arr = []
 
         if gvlbi:
             params["base"] = "GVLBI"
         else:
             params["base"] = "RADIOASTRON"
 
+            # Exclude rubidium
+            where_arr.append("basename NOT LIKE %(rub)s")
+            params["rub"] = "%RUB%"
+
         if small:
-            query = query.replace("#EXT#", "AND ch_num = %(ch_num)s")
+            where_arr.append("ch_num = %(ch_num)s")
             params["ch_num"] = 64
-        else:
-            query = query.replace("#EXT#", "")
+
+        query = query.replace("#EXT#", "AND {}".format(" AND ".join(where_arr)))
 
         with self.conn.cursor() as cursor:
             cursor.execute(query, params)
@@ -186,7 +191,9 @@ class DB:
         query = """INSERT INTO {} (obs, start_time, stop_time,
 exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
 solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation,
-bandpass, pfd) VALUES %s;""".format(table)
+bandpass, pfd) VALUES %s;""".format(
+            table
+        )
 
         rec_list = []
         for rec in fri.records:
@@ -253,8 +260,9 @@ bandpass, pfd) VALUES %s;""".format(table)
         """
         with self.connw.cursor() as cursor:
             # Delete old before add new
-            query = """DELETE FROM pima_runs WHERE \
-exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;"""
+            query = """DELETE FROM pima_runs
+            WHERE exper_name = %s AND band = %s
+            AND fits_idi LIKE %s AND scan_part = %s;"""
             uv_fits_toks = uv_fits.split("_")
             fits_name_base = uv_fits_toks[0] + "%"
 
@@ -264,8 +272,9 @@ exper_name = %s AND band = %s AND fits_idi LIKE %s AND scan_part = %s;"""
 
             cursor.execute(query, (exper, band, fits_name_base, scan_part))
 
-            query = "INSERT INTO pima_runs (exper_name, band, \
-proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
+            query = """INSERT INTO pima_runs (exper_name, band, proc_date, fits_idi,
+            scan_part)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id;"""
             cursor.execute(query, (exper, band, datetime.now(), uv_fits, scan_part))
             run_id = cursor.fetchone()[0]
 
@@ -340,8 +349,8 @@ proc_date, fits_idi, scan_part) VALUES (%s, %s, %s, %s, %s) RETURNING id;"
 
         """
         query = """INSERT INTO clock_models
-(sta, time, clock_offset, clock_rate, group_delay, delay_rate, run_id)
-VALUES %s;"""
+        (sta, time, clock_offset, clock_rate, group_delay, delay_rate, run_id)
+        VALUES %s;"""
 
         data = []
 
@@ -408,8 +417,8 @@ VALUES %s;"""
                 data.append(row)
 
         query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
-band, polar, sta1, sta2, u, v, freq, ampl, weight, inttime, file_name, run_id)
-VALUES %s;"""
+        band, polar, sta1, sta2, u, v, freq, ampl, weight, inttime, file_name, run_id)
+        VALUES %s;"""
 
         if data:
             with self.connw.cursor() as cursor:
@@ -430,13 +439,13 @@ VALUES %s;"""
         scan_name = acta_file.header["scan_name"]
 
         delete_query = """DELETE FROM autospec_info
-WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
-scan_name = %s;"""
+        WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
+        scan_name = %s;"""
         query_info = """INSERT INTO autospec_info
-(exper_name, band, polar, sta, start_date, stop_date, obs, scan_name)
-VALUES %s RETURNING id;"""
+        (exper_name, band, polar, sta, start_date, stop_date, obs, scan_name)
+        VALUES %s RETURNING id;"""
         query_data = """INSERT INTO autospec
-(if_num, chann_num, freq, ampl, info_id) VALUES %s;"""
+        (if_num, chann_num, freq, ampl, info_id) VALUES %s;"""
         data = []
 
         with self.connw.cursor() as cursor:
