@@ -66,8 +66,10 @@ class DB:
             params["base"] = "RADIOASTRON"
 
             # Exclude rubidium
-            where_arr.append("basename NOT LIKE %(rub)s")
-            params["rub"] = "%RUB%"
+            where_arr.append("basename NOT LIKE %(rub1)s")
+            params["rub1"] = "%_RUB.idifits"
+            where_arr.append("basename NOT LIKE %(rub2)s")
+            params["rub2"] = "%_RB.idifits"
 
         if small:
             where_arr.append("ch_num = %(ch_num)s")
