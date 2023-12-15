@@ -75,7 +75,10 @@ class DB:
             where_arr.append("ch_num = %(ch_num)s")
             params["ch_num"] = 64
 
-        query = query.replace("#EXT#", "AND {}".format(" AND ".join(where_arr)))
+        if where_arr:
+            query = query.replace("#EXT#", "AND {}".format(" AND ".join(where_arr)))
+        else:
+            query = query.replace("#EXT#", "")
 
         with self.conn.cursor() as cursor:
             cursor.execute(query, params)
