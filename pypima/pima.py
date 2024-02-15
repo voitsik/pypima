@@ -1088,17 +1088,11 @@ def fits_to_txt(fits_file: str) -> str:
     if not fits_file_path.is_file():
         raise FileNotFoundError(f"file {fits_file_path} does not exist")
 
-    suffix = fits_file_path.suffix
-
-    if suffix:
-        txt_file = fits_file.replace(suffix, ".txt")
-    else:
-        txt_file = fits_file + ".txt"
+    txt_file = str(fits_file_path.with_suffix(".txt"))
 
     cmd_line = ["fits_to_radplot", "-o", txt_file, fits_file]
-    out = subprocess.check_output(cmd_line, text=True)
 
-    return out
+    return subprocess.check_output(cmd_line, text=True)
 
 
 class ActaFile:
