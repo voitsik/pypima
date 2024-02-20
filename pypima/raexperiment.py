@@ -257,7 +257,10 @@ class RaExperiment:
 
         if os.path.isfile(fits_path_local) and os.path.getsize(fits_path_local) == size:
             self.logger.info("File %s already exists", fits_path_local)
-        elif os.path.isfile(fits_path_archive):
+        elif (
+            os.path.isfile(fits_path_archive)
+            and os.path.getsize(fits_path_archive) == size
+        ):
             self.logger.info("Use %s from archive", fits_path_archive)
             os.symlink(fits_path_archive, fits_path_local)
         else:
