@@ -11,15 +11,16 @@ import subprocess
 import threading
 from datetime import datetime
 from io import BytesIO
+from urllib.parse import urlunsplit
 
 import numpy as np
 import pandas as pd
 import pycurl
 
-import pypima.pima
-
 from .fri import Fri
-from .pima import ActaFile, Pima, bpas_log_snr_new
+from .pima import MAX_UVFILE_NAME_LEN, ActaFile
+from .pima import Error as PimaError
+from .pima import Pima, bpas_log_snr_new, fits_to_txt
 from .uvfits import UVFits
 
 
@@ -122,13 +123,14 @@ class RaExperiment:
         else:
             self.data_dir = self.work_dir
 
-        if len(self.data_dir) >= pypima.pima.UVFILE_NAME_LEN - 1:
+        if len(self.data_dir) >= MAX_UVFILE_NAME_LEN - 1:
             self._error(
-                "Length of the data_dir path must be less than {} \
-bytes".format(
-                    pypima.pima.UVFILE_NAME_LEN - 1
-                )
+                "Length of the data_dir path must be less than "
+                f"{MAX_UVFILE_NAME_LEN - 1} bytes"
             )
+
+        # Local archive of FITS-IDI files
+        self.archive_dir = os.getenv("PYPIMA_ARCHIVE")
 
         # PIMA control file path
         self.cnt_file_name = os.path.join(
@@ -139,6 +141,9 @@ bytes".format(
         """Create working directory and PIMA control file."""
         # Create work directory
         os.makedirs(self.work_dir, exist_ok=True)
+
+        # Create data directory for FITS-IDI files
+        os.makedirs(self.data_dir, exist_ok=True)
 
         os.chdir(self.work_dir)
 
@@ -182,7 +187,7 @@ bytes".format(
                     return
 
     def _error(self, msg):
-        """Raise pima.Error exception."""
+        """Raise raexperiment.Error exception."""
         self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
@@ -228,33 +233,38 @@ bytes".format(
                 cnt_file.write(line)
 
     def _download_fits(self, force_small=False):
-        """
-        Download FITS-file from the FTP archive.
-
-        """
-        fits_url, size = self.db.get_uvfits_url(
+        """Download FITS-file from the FTP archive."""
+        fits_path_remote, ftp_host, size = self.db.get_uvfits_path(
             self.exper, self.band, self.gvlbi, force_small
         )
 
-        if not fits_url:
+        if not fits_path_remote or not ftp_host:
             self._error("Could not find FITS file name in DB")
 
         # Delete spaces in filename
-        uv_fits = os.path.join(
-            self.data_dir, os.path.basename(fits_url).replace(" ", "")
+        fits_path_local = os.path.join(
+            self.data_dir, os.path.basename(fits_path_remote).replace(" ", "")
         )
 
-        if len(uv_fits) > pypima.pima.UVFILE_NAME_LEN:
-            uv_fits = uv_fits[: pypima.pima.UVFILE_NAME_LEN]
-            assert uv_fits[-1] == "/"
+        # Cut off too long fits file name
+        if len(fits_path_local) > MAX_UVFILE_NAME_LEN:
+            fits_path_local = fits_path_local[:MAX_UVFILE_NAME_LEN]
 
-        if os.path.isfile(uv_fits) and os.path.getsize(uv_fits) == size:
-            self.logger.info("File %s already exists", uv_fits)
+        if self.archive_dir and os.path.isdir(self.archive_dir):
+            fits_path_archive = os.path.join(
+                self.archive_dir, f"{ftp_host}{fits_path_remote}"
+            )
+
+        if os.path.isfile(fits_path_local) and os.path.getsize(fits_path_local) == size:
+            self.logger.info("File %s already exists", fits_path_local)
+        elif os.path.isfile(fits_path_archive):
+            self.logger.info("Use %s from archive", fits_path_archive)
+            os.symlink(fits_path_archive, fits_path_local)
         else:
-            os.makedirs(self.data_dir, exist_ok=True)
+            fits_url = urlunsplit(("ftp", ftp_host, fits_path_remote, "", ""))
             self.logger.info("Start downloading file %s...", fits_url)
             try:
-                with open(uv_fits, "wb") as fil:
+                with open(fits_path_local, "wb") as fil:
                     _download_it(fits_url, fil, max_retries=2)
             except pycurl.error as err:
                 self._error(f"Could not download file {fits_url}: {err}")
@@ -263,7 +273,7 @@ bytes".format(
 
         # We use self.uv_fits as a flag of FITS file existence, so set it at
         # the end of this function
-        self.uv_fits = uv_fits
+        self.uv_fits = fits_path_local
 
     def _get_orbit(self):
         """Download reconstructed orbit file from FTP server."""
@@ -614,7 +624,7 @@ bytes".format(
                 self.pima.load_gains(self.antab)
                 self.pima.load_tsys(self.antab)
                 self.calibration_loaded = True
-            except pypima.pima.Error:
+            except PimaError:
                 self.logger.warning("Could not load calibration information")
                 self.calibration_loaded = False
 
@@ -930,7 +940,7 @@ bytes".format(
                 }
 
                 self.pima.bpas(bpas_params)
-        except pypima.pima.Error:
+        except PimaError:
             self.logger.warning("continue without bandpass")
             self.pima.update_cnt({"BANDPASS_FILE:": "NO"})
             return False
@@ -1057,7 +1067,9 @@ bytes".format(
                 if self.run_id > 0 and fri:
                     if self.pima.exper_info.sp_chann_num <= 128:
                         fri.update_status(64)
-                        self.db.fri2db(fri, self.pima.exper_info, self.run_id, nobps=True)
+                        self.db.fri2db(
+                            fri, self.pima.exper_info, self.run_id, nobps=True
+                        )
 
                 # Exclude suspicious observations
                 obs_list = []
@@ -1279,7 +1291,7 @@ bytes".format(
             # Run `fits_to_radplot` only for averaged uv-fits
             if self.split_time_aver > 2:
                 try:
-                    pypima.pima.fits_to_txt(out_fits_path)
+                    fits_to_txt(out_fits_path)
                 except subprocess.SubprocessError:
                     self._error("fits_to_radplot failed")
 
@@ -1338,7 +1350,7 @@ bytes".format(
             # Sometimes PIMA crashes on `acta` task
             try:
                 file_list = self.pima.acta(params={"POLAR:": polar})
-            except pypima.pima.Error:
+            except PimaError:
                 # Remove core dump file.
                 if os.path.isfile("core"):
                     os.remove("core")

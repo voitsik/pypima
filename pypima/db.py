@@ -20,10 +20,9 @@ class DB:
         self.conn.set_session(readonly=True, autocommit=True)
         self.connw = psycopg2.connect(database="ra_results", user="editor", host="odin")
 
-    def get_uvfits_url(self, exper, band, gvlbi=False, small=False):
+    def get_uvfits_path(self, exper, band, gvlbi=False, small=False):
         """
-        Retrieve FITS-file URL and size from the database for the given
-        experiment and band.
+        Retrieve path on FTP server and size of FITS-IDI file from the database.
 
         Parameters
         ----------
@@ -38,9 +37,9 @@ class DB:
 
         Returns
         -------
-        url, size : (str, int)
-            Tuple of the file URL and size. Returns (None, 0) if the database
-            reply is empty.
+        path, host, size : (str, str, int)
+            Tuple of the file path, ftp hostname and size.
+            Returns (None, None, 0) if the database reply is empty.
 
         Notes
         -----
@@ -48,7 +47,8 @@ class DB:
         band, this function selects the most recent FITS-file.
 
         """
-        url = None
+        path = None
+        host = None
         size = 0
 
         query = """SELECT path, size, ftp_user FROM fits_files
@@ -87,10 +87,9 @@ class DB:
         if reply:
             path = reply[0]
             size = reply[1]
-            ftp_user = reply[2]
-            url = f"ftp://{ftp_user}{path}"
+            host = reply[2]
 
-        return url, size
+        return path, host, size
 
     def get_orbit_url(self, exper):
         """

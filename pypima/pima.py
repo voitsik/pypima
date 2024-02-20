@@ -124,7 +124,7 @@ class ExperInfo:
 
 
 # Some global variables
-UVFILE_NAME_LEN = 128
+MAX_UVFILE_NAME_LEN = 128
 
 
 class Pima:
