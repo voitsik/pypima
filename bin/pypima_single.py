@@ -168,7 +168,9 @@ def main():
         return 1
 
     if args.orbit:
-        if os.path.isfile(args.orbit):
+        if args.orbit == "NO":
+            orbit = args.orbit
+        elif os.path.isfile(args.orbit):
             orbit = os.path.abspath(args.orbit)
         else:
             logging.error("orbit file %s does not exist", args.orbit)
