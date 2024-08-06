@@ -198,6 +198,7 @@ def main():
             data_dir=data_dir,
             uv_fits=args.fits,
             orbit=orbit,
+            reference_station=args.ref_sta,
         )
         ra_exp.init_workdir()
 
@@ -252,7 +253,7 @@ def main():
                         bandpass_mode=args.bpas_mode,
                         ampl_bandpass=not args.no_ampl_bpas,
                         bandpass_use=args.bpas_use,
-                        reference_station=args.ref_sta,
+                        # reference_station=args.ref_sta,
                     )
                     print("IF #{}".format(ind + 1))
                     print(fri)
@@ -269,7 +270,7 @@ def main():
                 bandpass_use=args.bpas_use,
                 bandpass_norm=args.bpas_norm,
                 bandpass_renorm=not args.no_bpas_renorm,
-                reference_station=args.ref_sta,
+                # reference_station=args.ref_sta,
             )
             print(fri)
 

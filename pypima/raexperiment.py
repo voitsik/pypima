@@ -49,6 +49,7 @@ class RaExperiment:
         uv_fits=None,
         orbit=None,
         gvlbi=False,
+        reference_station=None,
     ):
         """
         Parameters
@@ -72,14 +73,17 @@ class RaExperiment:
         gvlbi : bool, optional
             If ``True``, process ground only of part of the experiment (GVLBI
             FITS file).
-
+        reference_station : str, optional
+            Default reference station. If ``None`` use value from the cnt-file
+            template and update it to the first station from station list after
+            ``load`` task.
         """
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
         self.db = data_base
         self.gvlbi = gvlbi
-        self.sta_ref = "RADIO-AS"
+        self.sta_ref = reference_station
         self.run_id = 0  # Record id in pima_runs database table
         self.lock = threading.Lock()  # Lock for FITS file downloading control
         self.logger = logging.getLogger(f"{self.exper}({self.band})")
@@ -151,6 +155,9 @@ class RaExperiment:
         self._mk_cnt()
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
+
+        if not self.sta_ref:
+            self.sta_ref = self.pima.cnt_params["STA_REF:"]
 
         if self.uv_fits:
             self.pima.update_cnt({"UV_FITS:": self.uv_fits})
@@ -586,9 +593,10 @@ class RaExperiment:
         else:
             self.pima.update_cnt({"END_FRQ:": self.pima.exper_info.if_num})
 
-        if "RADIO-AS" not in self.pima.station_list():
-            self.logger.warning("RADIO-AS is not in station list")
+        if self.sta_ref not in self.pima.station_list():
+            self.logger.warning("%s is not in station list", self.sta_ref)
             self.sta_ref = self.pima.station_list()[0]
+            self.logger.info("Set reference station to %s", self.sta_ref)
             self.pima.update_cnt({"STA_REF:": self.sta_ref})
 
         desel_nam = self.pima.number_of_deselected_points
