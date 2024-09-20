@@ -47,11 +47,29 @@ class PFDRec(NamedTuple):
 
 SNR_LIMITS = {
     #
-    # P-band
+    # All-band
     #
-    # Copy from C-band
-    ("p", 64, 0.5, 285): PFDRec(5.24, 5.62, 5.97, 6.30, 5.523e04, 1.179),
-    ("p", 2048, 0.125, 570): PFDRec(6.01, 6.34, 6.65, 6.95, 8.163e06, 1.177),
+    # 1269 points
+    (64, 0.125, 570): PFDRec(5.70, 6.04, 6.35, 6.65, 2.159e06, 1.154),
+    # 4364 points
+    (64, 0.125, 285): PFDRec(5.44, 5.78, 6.09, 6.39, 8.445e05, 1.130),
+    # 1695 points
+    (64, 0.5, 1170): PFDRec(5.68, 6.01, 6.32, 6.61, 3.088e06, 1.139),
+    # 4522 points
+    (64, 0.5, 870): PFDRec(5.55, 5.88, 6.18, 6.47, 2.211e06, 1.123),
+    # 7972 points
+    (64, 0.5, 570): PFDRec(5.39, 5.71, 6.02, 6.31, 1.320e06, 1.105),
+    # 31877 points
+    (64, 0.5, 285): PFDRec(5.24, 5.62, 5.97, 6.30, 5.590e04, 1.179),
+    # 1251 points
+    (64, 1, 1170): PFDRec(5.73, 6.04, 6.34, 6.62, 8.761e06, 1.119),
+    # 2644 points
+    (64, 1, 870): PFDRec(5.66, 6.00, 6.32, 6.62, 1.574e06, 1.155),
+    # 4987 points
+    (64, 1, 570): PFDRec(5.47, 5.80, 6.11, 6.40, 1.311e06, 1.121),
+    # 18620 points
+    (64, 1, 285): PFDRec(5.30, 5.67, 6.02, 6.35, 7.411e04, 1.181),
+    #
     #
     # L-band
     #
@@ -390,9 +408,12 @@ class Fri:
 
         if not snr_det_limits:
             try:
-                snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
+                snr_det_limits = SNR_LIMITS[ch_num, accum_length, scan_length]
             except KeyError:
-                return
+                try:
+                    snr_det_limits = SNR_LIMITS[band, ch_num, accum_length, scan_length]
+                except KeyError:
+                    return
 
         my_dist = pfd_dist(name="my_dist")
 
@@ -410,8 +431,9 @@ class Fri:
                 if abs(rec["rate"]) > 5e-10 and rec["status"] == "y":
                     rec["status"] = "u"
 
-            rec["pfd"] = 1.0 - my_dist.cdf(
-                rec["SNR"], snr_det_limits.n_eff, snr_det_limits.sigma_eff
+            rec["pfd"] = float(
+                1.0
+                - my_dist.cdf(rec["SNR"], snr_det_limits.n_eff, snr_det_limits.sigma_eff)
             )
 
     def rec_by_obs(self, obs):
