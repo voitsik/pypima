@@ -48,6 +48,7 @@ class RaExperiment:
         data_dir=None,
         uv_fits=None,
         orbit=None,
+        source_names=None,
         gvlbi=False,
         reference_station=None,
     ):
@@ -70,6 +71,9 @@ class RaExperiment:
         orbit : str, optional
             Path to a reconstructed orbit file. If ``None`` (default),
             download it from the FTP archive.
+        source_names : str, optional
+            Path to a source names catalog. If ``None`` (default),
+            use ``source.names`` file provided by VTD.
         gvlbi : bool, optional
             If ``True``, process ground only of part of the experiment (GVLBI
             FITS file).
@@ -93,6 +97,7 @@ class RaExperiment:
         self.pima = None
         self.uv_fits = uv_fits
         self.orbit = orbit
+        self.source_names = source_names
         self.fri = None  # Result of last fringe fitting
         self.scan_part = 0
         self.bad_obs_set = set()  # Set of bad obs (autospec)
@@ -161,6 +166,9 @@ class RaExperiment:
 
         if self.uv_fits:
             self.pima.update_cnt({"UV_FITS:": self.uv_fits})
+
+        if self.source_names:
+            self.pima.update_cnt({"SOU_NAMES:": self.source_names})
 
         # Only one sideband at P-band
         if self.band == "p":
@@ -741,7 +749,9 @@ class RaExperiment:
                     continue
 
                 if np.median(acta_file.ampl) < 0.5:
-                    self.logger.warning("Bad autospec for sta: %s obs: %s", sta, obs.obs)
+                    self.logger.warning(
+                        "Bad autospec for sta: %s obs: %s", sta, obs.obs
+                    )
                     bad_obs_set.add(obs.obs)
 
         return bad_obs_set

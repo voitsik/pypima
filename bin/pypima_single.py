@@ -49,6 +49,7 @@ def parse_args():
     parser.add_argument("--fits", nargs="+", help="external FITS-IDI file(s)")
     parser.add_argument("--orbit", help="reconstructed orbit file")
     parser.add_argument("--antab", help="ANTAB file")
+    parser.add_argument("--source-names", help="PIMA source-names catalog file")
     parser.add_argument("--scan-length", type=float, help="set scan length in seconds")
     parser.add_argument(
         "--beg-frq", type=int, help="start intermediate frequency (IF) index"
@@ -187,6 +188,13 @@ def main():
     else:
         antab_file = None
 
+    if args.source_names:
+        if os.path.isfile(args.source_names):
+            source_names = os.path.abspath(args.source_names)
+        else:
+            logging.error("SOURCE-NAMES file %s does not exist", args.antab)
+            return 1
+
     database = DB()
 
     try:
@@ -198,6 +206,7 @@ def main():
             data_dir=data_dir,
             uv_fits=args.fits,
             orbit=orbit,
+            source_names=source_names,
             reference_station=args.ref_sta,
         )
         ra_exp.init_workdir()
@@ -277,15 +286,14 @@ def main():
             max_scan_len = fri.max_scan_length()
             logging.debug("DEBUG: max_scan_len = %s", max_scan_len)
             if args.split:
-                for aver in (False, True):
-                    ra_exp.split(average=aver)
+                ra_exp.split(average=True)
 
-                    # Copy final UV-FITS files to the system tmp directory
-                    ra_exp.copy_uvfits(tempfile.gettempdir())
+                # Copy final UV-FITS files to the system tmp directory
+                ra_exp.copy_uvfits(tempfile.gettempdir())
 
-    except PimaError as err:
+    except PimaError:
         return 1
-    except RaExperimentError as err:
+    except RaExperimentError:
         return 1
     except psycopg2.Error as err:
         logging.error("DBError: %s", err)
