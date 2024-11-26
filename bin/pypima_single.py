@@ -192,8 +192,10 @@ def main():
         if os.path.isfile(args.source_names):
             source_names = os.path.abspath(args.source_names)
         else:
-            logging.error("SOURCE-NAMES file %s does not exist", args.antab)
+            logging.error("SOURCE-NAMES file %s does not exist", args.source_names)
             return 1
+    else:
+        source_names = None
 
     database = DB()
 
