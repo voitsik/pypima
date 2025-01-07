@@ -12,6 +12,7 @@ import threading
 from datetime import datetime
 from io import BytesIO
 from urllib.parse import urlunsplit
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -221,9 +222,10 @@ class RaExperiment:
         else:
             polar = "LL"
 
-        with open(cnt_templ_name) as cnt_templ, open(
-            self.cnt_file_name, "w"
-        ) as cnt_file:
+        with (
+            open(cnt_templ_name) as cnt_templ,
+            open(self.cnt_file_name, "w") as cnt_file,
+        ):
             for line in cnt_templ:
                 if "@CDATE@" in line:
                     line = line.replace("@CDATE@", str(datetime.now()))
@@ -470,13 +472,14 @@ class RaExperiment:
 
     def load(
         self,
-        download_only=False,
-        update_db=False,
-        scan_length=1200,
-        scan_part=1,
-        force_small=False,
-        beg_frq=None,
-        end_frq=None,
+        download_only: bool = False,
+        update_db: bool = False,
+        scan_length: int = 1200,
+        scan_part: int = 1,
+        force_small: bool = False,
+        beg_frq: Optional[int] = None,
+        end_frq: Optional[int] = None,
+        pcal: str = "NO",
     ):
         """
         Download data, run pima load, and do some checks.
@@ -498,6 +501,8 @@ class RaExperiment:
             Start IF index.
         end_frq : int, optional
             End IF index.
+        pcal : str, optional
+            PCAL mode. Default is ``NO``.
 
         """
         self.scan_part = scan_part
@@ -544,6 +549,9 @@ class RaExperiment:
         self.pima.update_cnt(
             {"MAX_SCAN_LEN:": str(scan_length), "SCAN_LEN_USED:": str(scan_length)}
         )
+
+        # Set PCAL mode
+        self.pima.update_cnt({"PCAL:": pcal})
 
         if update_db:
             if isinstance(self.uv_fits, list):

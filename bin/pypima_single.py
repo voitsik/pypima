@@ -61,6 +61,13 @@ def parse_args():
         "--frequency-group", type=int, default=1, help="frequency group"
     )
     parser.add_argument(
+        "--pcal",
+        type=str,
+        choices=["NO", "USE_ONE", "USE_ALL"],
+        default="NO",
+        help="phase calibration (PCAL) usage",
+    )
+    parser.add_argument(
         "--debug", "-d", action="store_true", help="enable debug output"
     )
 
@@ -131,7 +138,7 @@ def parse_args():
 
 
 def main():
-    """Main"""
+    """Run main."""
     args = parse_args()
 
     log_format = "%(asctime)s %(levelname)s: %(name)s: %(message)s"
@@ -219,6 +226,7 @@ def main():
             scan_length=scan_length,
             beg_frq=args.beg_frq,
             end_frq=args.end_frq,
+            pcal=args.pcal,
         )
         ra_exp.flag_edge_chann(args.flag_chann)
 
