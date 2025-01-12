@@ -1,4 +1,5 @@
-"""
+"""Module for handling UVFITS files and UV data.
+
 Created on Thu Feb 11 14:00:15 2016
 
 @author: Petr Voytsik
@@ -167,9 +168,7 @@ class UVFits:
                     }
                 )
         else:
-            raise UVFitsError(
-                f"Invalid NO_IF value: {self.no_if}", self.file_name
-            )
+            raise UVFitsError(f"Invalid NO_IF value: {self.no_if}", self.file_name)
 
     def _read_uv_data(self):
         """Read UV data."""

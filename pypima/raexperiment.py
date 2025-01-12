@@ -18,10 +18,12 @@ import numpy as np
 import pandas as pd
 import pycurl
 
+from .db import DB
 from .fri import Fri
 from .pima import MAX_UVFILE_NAME_LEN, ActaFile
 from .pima import Error as PimaError
 from .pima import Pima, bpas_log_snr_new, fits_to_txt
+from .tools import check_fits_has_calib_tables
 from .uvfits import UVFits
 
 
@@ -43,15 +45,15 @@ class RaExperiment:
 
     def __init__(
         self,
-        experiment_code,
-        band,
-        data_base,
-        data_dir=None,
-        uv_fits=None,
-        orbit=None,
-        source_names=None,
-        gvlbi=False,
-        reference_station=None,
+        experiment_code: str,
+        band: str,
+        data_base: DB,
+        data_dir: Optional[str] = None,
+        uv_fits: Optional[str | list] = None,
+        orbit: Optional[str] = None,
+        source_names: Optional[str] = None,
+        gvlbi: bool = False,
+        reference_station: Optional[str] = None,
     ):
         """
         Parameters
@@ -392,7 +394,7 @@ class RaExperiment:
             magic = inp.readline()
             if not magic.startswith("! Produced by: TSM"):
                 self.logger.warning(
-                    "antab file %s does NOT have magic in the" "first line", antab
+                    "antab file %s does NOT have magic in the first line", antab
                 )
                 return
 
@@ -457,7 +459,7 @@ class RaExperiment:
                             fr2 = float(fr2)  # Upper limit
                             if min(freq_list) < fr1 or max(freq_list) > fr2:
                                 self.logger.warning(
-                                    "deselect GAIN due to " "%s is out of freq range",
+                                    "deselect GAIN due to %s is out of freq range",
                                     tok,
                                 )
                                 toks.insert(0, "!")
@@ -637,9 +639,18 @@ class RaExperiment:
                 {"FRIB.1D_RESFRQ_PLOT:": "NO", "FRIB.1D_RESTIM_PLOT:": "NO"}
             )
 
-    def load_antab(self, antab_file=None):
+        # Check if FITS file has calibration tables
+        if check_fits_has_calib_tables(self.pima.cnt_params["UV_FITS:"][0]):
+            self.calibration_loaded = True
+
+    def load_antab(self, antab_file=None) -> None:
         """Download ANTAB file and load calibration information to PIMA."""
-        # Always download antab-file.
+        if self.calibration_loaded:
+            self.logger.info(
+                "Skip ANTAB loading: calibration information is already loaded"
+            )
+            return
+
         if antab_file:
             self.antab = antab_file
         elif not self.antab:
@@ -1120,9 +1131,7 @@ class RaExperiment:
                         "BANDPASS_FILE:"
                     ]
                 else:
-                    self.logger.info(
-                        "skip bandpass due to absence of the " "useful scans"
-                    )
+                    self.logger.info("skip bandpass due to absence of the useful scans")
                     bandpass = False
                     self.bpass_files[polar] = ""
                     self.pima.update_cnt({"BANDPASS_FILE:": "NO"})
@@ -1215,7 +1224,7 @@ class RaExperiment:
 
         if not self.calibration_loaded:
             self.logger.warning(
-                "Could not do splitting due to absence of " "calibration information"
+                "Could not do splitting due to absence of calibration information"
             )
             return
 

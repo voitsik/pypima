@@ -8,15 +8,11 @@ import array
 
 
 class TextTable1D:
-    """
-    Read 1D PIMA graphics in TXT format.
-
-    """
+    """Read 1D PIMA graphics in TXT format."""
 
     FORMAT_STRING = "# 1D text table.  Format version of 2012.12.30"
 
     def __init__(self, file_name):
-
         self.plot_title = ""
         self.subtitle = ""
         self.num_points = 0
@@ -34,7 +30,7 @@ class TextTable1D:
         with open(file_name) as fil:
             magic = fil.readline().strip()
             if magic != self.FORMAT_STRING:
-                raise Exception(f'Bad format string in file "{file_name}"')
+                raise ValueError(f'Bad format string in file "{file_name}"')
             for line in fil:
                 if line.startswith("#"):
                     continue
