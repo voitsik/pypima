@@ -4,3 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [tool.isort]
 profile = "black"
+
+[tool.ruff.lint]
+select = [
+    # Pyflakes
+    "F",
+    # Pycodestyle
+    "E",
+    "W",
+    # isort
+    "I001",
+    # Doc
+    "D"
+]
+
+ignore = [
+    # Missing docstring in magic method
+    "D105"
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
