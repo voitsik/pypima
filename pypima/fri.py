@@ -6,7 +6,7 @@ Read and analyze PIMA fri-files.
 
 import math
 from datetime import datetime
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import numpy as np
 from scipy.stats import rv_continuous
@@ -37,10 +37,12 @@ class pfd_dist(rv_continuous):
 
 
 class PFDRec(NamedTuple):
-    p2: float  # PFD=1e-2
-    p3: float  # PFD=1e-3
-    p4: float  # PFD=1e-4
-    p5: float  # PFD=1e-5
+    """Parameters of the theoretical noise-only SNR distribution."""
+
+    p2: float  # SNR for PFD=1e-2
+    p3: float  # SNR for PFD=1e-3
+    p4: float  # SNR for PFD=1e-4
+    p5: float  # SNR for PFD=1e-5
     n_eff: float
     sigma_eff: float
 
@@ -251,7 +253,7 @@ SNR_LIMITS = {
 # 90 -> Elevation of sta2
 # 94 -> Reference frequency
 class Fri:
-    """This class represents PIMA fringe file."""
+    """Class represents PIMA fringe file."""
 
     supported_versions = (
         "# PIMA Fringe results  v  1.00  Format version of 2010.04.05",
@@ -369,9 +371,8 @@ class Fri:
                         self.records[-1]["uv_rad"] * wave_len / ED
                     )
 
-    def update_status(self, ch_num, snr_det_limits=None):
-        """
-        Update observations statuses acording to PFD.
+    def update_status(self, ch_num: int, snr_det_limits: Optional[PFDRec] = None):
+        """Update observations statuses acording to PFD.
 
         Parameters
         ----------
@@ -380,33 +381,24 @@ class Fri:
         snr_det_limits : PFDRec, optional
             List of SNR values corresponding to PDF 1e-2, 1e-3, 1e-4, 1e-5.
 
-        Notes
-        -----
-            This function is useful only for RadioAstron AGN survey.
-
         """
         if not self.records:
             return
 
         accum_length = self.records[0]["ap_len"]
-
-        # Check if Session code in RA AGN survey format
-        if "_" not in self.records[0]["session_code"]:
-            return
-
         band = self.records[0]["session_code"].split("_")[1]
 
-        max_scan_len = self.max_scan_length()
-        if max_scan_len <= 300:
-            scan_length = 285
-        elif max_scan_len <= 600:
-            scan_length = 570
-        elif max_scan_len <= 900:
-            scan_length = 870
-        else:
-            scan_length = 1170
-
         if not snr_det_limits:
+            max_scan_len = self.max_scan_length()
+            if max_scan_len <= 300:
+                scan_length = 285
+            elif max_scan_len <= 600:
+                scan_length = 570
+            elif max_scan_len <= 900:
+                scan_length = 870
+            else:
+                scan_length = 1170
+
             try:
                 snr_det_limits = SNR_LIMITS[ch_num, accum_length, scan_length]
             except KeyError:
@@ -433,10 +425,12 @@ class Fri:
 
             rec["pfd"] = float(
                 1.0
-                - my_dist.cdf(rec["SNR"], snr_det_limits.n_eff, snr_det_limits.sigma_eff)
+                - my_dist.cdf(
+                    rec["SNR"], snr_det_limits.n_eff, snr_det_limits.sigma_eff
+                )
             )
 
-    def rec_by_obs(self, obs):
+    def rec_by_obs(self, obs: int):
         """
         Return record with given observation number.
 
@@ -455,7 +449,7 @@ class Fri:
 
         return result
 
-    def max_snr(self, station=None):
+    def max_snr(self, station: Optional[str] = None):
         """
         Return observation record with maximum SNR.
 
@@ -490,10 +484,7 @@ class Fri:
         return result
 
     def average_scan_length(self):
-        """
-        Return average length of observations.
-
-        """
+        """Return average length of observations."""
         if self.records:
             lengths = [rec["duration"] for rec in self.records]
             aver_len = math.fsum(lengths) / len(lengths)
@@ -503,10 +494,7 @@ class Fri:
         return aver_len
 
     def max_scan_length(self):
-        """
-        Return maximum length of observations.
-
-        """
+        """Return maximum length of observations."""
         if self.records:
             lengths = [rec["duration"] for rec in self.records]
             max_len = max(lengths)
@@ -516,10 +504,7 @@ class Fri:
         return max_len
 
     def min_detected_snr(self):
-        """
-        Return minimum SNR of obsevations with detection status = 'y'.
-
-        """
+        """Return minimum SNR of obsevations with detection status = 'y'."""
         if self.records:
             result = min([rec["SNR"] for rec in self.records if rec["status"] == "y"])
         else:
@@ -527,9 +512,8 @@ class Fri:
 
         return result
 
-    def any_detections(self, station=None):
-        """
-        Return ``True`` if there is at least one observation with status 'y'.
+    def any_detections(self, station: Optional[str] = None):
+        """Return ``True`` if there is at least one observation with status 'y'.
 
         Parameters
         ----------
@@ -549,20 +533,14 @@ class Fri:
         return "y" in [rec["status"] for rec in records]
 
     def non_detections(self):
-        """
-        Return list of observation indices with status != 'y'.
-
-        """
+        """Return list of observation indices with status != 'y'."""
         return [rec["obs"] for rec in self.records if rec["status"] != "y"]
 
     def append(self, rec):
-        """
-        Append fri-file record to the end of the list.
-
-        """
+        """Append fri-file record to the end of the list."""
         self.records.append(rec)
 
-    def remove_obs(self, obs_list):
+    def remove_obs(self, obs_list: list[int]):
         """
         Remove observations with indices in `obs_list`.
 

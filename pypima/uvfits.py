@@ -31,6 +31,8 @@ def baseline_decode(baseline):
 
 
 class UVFits:
+    """Class for reading and handling UVFITS data files."""
+
     NUM2STOKES = {
         1: "I",
         2: "Q",

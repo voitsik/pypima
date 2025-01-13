@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """
+A command-line script for processing single experiment using PIMA software.
+
+The script is part of the PyPIMA package and serves as a command-line interface for
+processing individual VLBI experiments.
+
 Created on Fri Dec 13 17:50:20 2013
 
 @author: Petr Voytsik
@@ -14,10 +19,26 @@ import tempfile
 import psycopg2
 
 from pypima import DB, PimaError, RaExperiment, RaExperimentError
+from pypima.fri import PFDRec
+
+
+def string_to_pfdrec(string: str) -> PFDRec:
+    """Convert a string with comma-separated values to ``PFDRec``."""
+    try:
+        values = [float(x) for x in string.split(",")]
+    except ValueError:
+        msg = "Not a valid comma-separated list of floats: '{}'.".format(string)
+        raise argparse.ArgumentTypeError(msg)
+
+    if len(values) != 6:
+        msg = "Expected six values, got {}.".format(len(values))
+        raise argparse.ArgumentTypeError(msg)
+
+    return PFDRec(*values)
 
 
 def parse_args():
-    """Parse command line arguments"""
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("exper", help="experiment code")
     parser.add_argument("band", help="frequency band")
@@ -66,6 +87,11 @@ def parse_args():
         choices=["NO", "USE_ONE", "USE_ALL"],
         default="NO",
         help="phase calibration (PCAL) usage",
+    )
+    parser.add_argument(
+        "--snr-det-limits",
+        type=string_to_pfdrec,
+        help="SNR destribution parameters: six comma-separated values",
     )
     parser.add_argument(
         "--debug", "-d", action="store_true", help="enable debug output"
@@ -289,7 +315,7 @@ def main():
                 bandpass_use=args.bpas_use,
                 bandpass_norm=args.bpas_norm,
                 bandpass_renorm=not args.no_bpas_renorm,
-                # reference_station=args.ref_sta,
+                snr_det_limits=args.snr_det_limits,
             )
             print(fri)
 

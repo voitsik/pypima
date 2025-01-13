@@ -1,4 +1,6 @@
 """
+Module for VLBI (mainly RadioAstron) experiment processing.
+
 Created on Sun Dec 29 04:02:35 2013
 
 @author: Petr Voytsik
@@ -11,18 +13,17 @@ import subprocess
 import threading
 from datetime import datetime
 from io import BytesIO
-from urllib.parse import urlunsplit
 from typing import Optional
+from urllib.parse import urlunsplit
 
 import numpy as np
 import pandas as pd
 import pycurl
 
 from .db import DB
-from .fri import Fri
-from .pima import MAX_UVFILE_NAME_LEN, ActaFile
+from .fri import Fri, PFDRec
+from .pima import MAX_UVFILE_NAME_LEN, ActaFile, Pima, bpas_log_snr_new, fits_to_txt
 from .pima import Error as PimaError
-from .pima import Pima, bpas_log_snr_new, fits_to_txt
 from .tools import check_fits_has_calib_tables
 from .uvfits import UVFits
 
@@ -55,10 +56,10 @@ class RaExperiment:
         gvlbi: bool = False,
         reference_station: Optional[str] = None,
     ):
-        """
+        """Init experiment object.
+
         Parameters
         ----------
-
         experiment_code : str
             Experiment code.
         band : srt
@@ -210,7 +211,7 @@ class RaExperiment:
         raise Error(self.exper, self.band, msg)
 
     def _mk_cnt(self):
-        """Make new cnt-file from template."""
+        """Make new PIMA control file from template."""
         cnt_templ_name = os.path.join(
             self.pima_dir, "share", "pima", "TEMPLATE_pima.cnt"
         )
@@ -856,10 +857,7 @@ class RaExperiment:
     def _bandpass(
         self, bandpass_mode=None, ampl_bandpass=True, bandpass_var=0, bandpass_norm="IF"
     ):
-        """
-        Setup **PIMA** bandpass parameters and run ``bpas`` task.
-
-        """
+        """Set up **PIMA** bandpass parameters and run ``bpas`` task."""
         bpas_params = {}
 
         if bandpass_var == 0:
@@ -989,16 +987,17 @@ class RaExperiment:
 
     def fringe_fitting(
         self,
-        bandpass=False,
-        accel=False,
-        bandpass_mode=None,
-        ampl_bandpass=True,
-        bandpass_var=0,
-        bandpass_use=None,
-        bandpass_norm="IF",
-        bandpass_renorm=True,
-        reference_station=None,
-    ):
+        bandpass: bool = False,
+        accel: bool = False,
+        bandpass_mode: Optional[str] = None,
+        ampl_bandpass: bool = True,
+        bandpass_var: int = 0,
+        bandpass_use: Optional[str] = None,
+        bandpass_norm: str = "IF",
+        bandpass_renorm: bool = True,
+        reference_station: Optional[str] = None,
+        snr_det_limits: Optional[PFDRec] = None,
+    ) -> Fri:
         """
         Perform a fringe fitting.
 
@@ -1099,6 +1098,8 @@ class RaExperiment:
                     "MKDB.FRINGE_ALGORITHM:": "LSQ",
                     "PHASE_ACCEL_MIN:": "0",
                     "PHASE_ACCEL_MAX:": "0",
+                    "FRIB.1D_RESFRQ_PLOT:": "NO",
+                    "FRIB.1D_RESTIM_PLOT:": "NO",
                 }
 
                 fri_file = self.pima.coarse(coarse_params)
@@ -1163,7 +1164,7 @@ class RaExperiment:
             else:
                 ch_num = 2048
 
-            self.fri.update_status(ch_num)
+            self.fri.update_status(ch_num, snr_det_limits)
 
             if self.run_id > 0:
                 self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
@@ -1172,8 +1173,7 @@ class RaExperiment:
 
     def flag_edge_chann(self, number):
         """
-        Flag `number` spectral channels at the edges of the bandpass. Must be
-        called after ``load``.
+        Flag `number` spectral channels at the edges of the bandpass.
 
         Parameters
         ----------
