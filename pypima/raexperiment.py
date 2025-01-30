@@ -115,7 +115,7 @@ class RaExperiment:
             ("LR", 1): "",
         }
 
-        if self.band not in ("p", "l", "c", "k"):
+        if self.band not in ("p", "l", "c", "x", "k"):
             self._error(f"unknown band {band}")
 
         self.pima_dir = os.getenv("PIMA_DIR")
@@ -691,8 +691,7 @@ class RaExperiment:
             if obs:
                 if obs["SNR"] < snr_detecton:
                     self.logger.debug(
-                        "SNR is too low on space baseline for \
-    bandpass: %s",
+                        "SNR is too low on space baseline for bandpass: %s",
                         obs["SNR"],
                     )
                 else:

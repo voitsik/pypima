@@ -62,7 +62,6 @@ class ExperInfo:
 
     def update(self, stt_file: str) -> None:
         """Fill ExperInfo with info from PIMA stt-file."""
-
         with open(stt_file) as fil:
             for line in fil:
                 if line.startswith("Correlator_name:"):
@@ -128,10 +127,7 @@ MAX_UVFILE_NAME_LEN = 128
 
 
 class Pima:
-    """
-    Pima class is analog of pima_fringe.csh script.
-
-    """
+    """Pima class is analog of pima_fringe.csh script."""
 
     def __init__(self, experiment_code, band, work_dir=None):
         # First, set common variables
@@ -1040,9 +1036,7 @@ class Pima:
                 print("#", file=file)
                 print(
                     "#  Control for bandpass mask generation for \
-experiment {}".format(
-                        self.exper
-                    ),
+experiment {}".format(self.exper),
                     file=file,
                 )
                 print("#", file=file)

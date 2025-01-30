@@ -41,7 +41,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
     parser.add_argument("exper", help="experiment code")
-    parser.add_argument("band", help="frequency band")
+    parser.add_argument("band", type=str.lower, help="frequency band")
 
     # Optional arguments
     parser.add_argument("--polar", help="polarization")
