@@ -465,7 +465,10 @@ class RaExperiment:
                                 )
                                 toks.insert(0, "!")
                                 break
-
+                elif toks[0] == "POLY" and len(toks) >= 3:
+                    if toks[2] == "-0.75891,0.066179,-0.0006225":
+                        # Replace invalid ZC L-band polynomial with unity
+                        toks[2] = "1.0"
                 elif toks[0] == "/" and len(toks) > 1:
                     toks[1] = "\n" + toks[1]
 
