@@ -646,6 +646,8 @@ class RaExperiment:
         # Check if FITS file has calibration tables
         if check_fits_has_calib_tables(self.pima.cnt_params["UV_FITS:"][0]):
             self.calibration_loaded = True
+        else:
+            self.calibration_loaded = False
 
     def load_antab(self, antab_file=None) -> None:
         """Download ANTAB file and load calibration information to PIMA."""
