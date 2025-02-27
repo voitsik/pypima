@@ -16,7 +16,7 @@ import os.path
 import sys
 import tempfile
 
-import psycopg2
+from sqlalchemy.exc import SQLAlchemyError
 
 from pypima import DB, PimaError, RaExperiment, RaExperimentError
 from pypima.fri import PFDRec
@@ -163,7 +163,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> int:
     """Run main."""
     args = parse_args()
 
@@ -331,7 +331,7 @@ def main():
         return 1
     except RaExperimentError:
         return 1
-    except psycopg2.Error as err:
+    except SQLAlchemyError as err:
         logging.error("DBError: %s", err)
         return 1
     except OSError as err:

@@ -13,7 +13,7 @@ import sys
 import threading
 from collections import namedtuple
 
-import psycopg2
+from sqlalchemy.exc import SQLAlchemyError
 
 from pypima import DB, PimaError, RaExperiment, RaExperimentError
 
@@ -503,7 +503,7 @@ def parse_args():
         type=int,
         default=2,
         metavar="N",
-        help="flag N edge spectral channels of the bandpass " "(default is 2)",
+        help="flag N edge spectral channels of the bandpass (default is 2)",
     )
 
     group = parser.add_mutually_exclusive_group()
@@ -518,13 +518,15 @@ def parse_args():
         help="do fringe fittig for individual IFs",
     )
 
-    parser.add_argument("--debug", "-d", action="store_true", help="enable debug output")
+    parser.add_argument(
+        "--debug", "-d", action="store_true", help="enable debug output"
+    )
 
     return parser.parse_args()
 
 
-def main():
-    """Main"""
+def main() -> int:
+    """Run main."""
     args = parse_args()
 
     if not args.log_file:
@@ -549,7 +551,7 @@ def main():
     # Connect to database
     try:
         database = DB()
-    except psycopg2.Error as err:
+    except SQLAlchemyError as err:
         logging.error("DBError: %s", err)
         return 1
 
@@ -588,7 +590,9 @@ def main():
         "PYPIMA_AUTOSPEC_DIR", default=os.path.join(os.getenv("HOME"), "pima_autospec")
     )
 
-    load_thread = threading.Thread(target=download_it, args=(exp_list, args.force_small))
+    load_thread = threading.Thread(
+        target=download_it, args=(exp_list, args.force_small)
+    )
     load_thread.daemon = True
     load_thread.start()
 
@@ -626,7 +630,7 @@ def main():
             continue
         except RaExperimentError as err:
             continue
-        except psycopg2.Error as err:
+        except SQLAlchemyError as err:
             logging.error("DBError: %s", err)
             return 1
         except OSError as err:

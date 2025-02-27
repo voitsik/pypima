@@ -1,14 +1,23 @@
 """
+Interact with the RadioAstron database.
+
 Created on Thu Oct 30 14:23:23 2014
 
 @author: Petr Voytsik
 """
 
+import logging
 import os.path
 from datetime import datetime
+from typing import Optional
 
-import psycopg2
-from psycopg2.extras import execute_values
+from sqlalchemy import MetaData, Table, create_engine, func, select
+
+from .fri import Fri  # for type hints
+from .pima import ActaFile, ExperInfo  # for type hints
+from .uvfits import UVFits  # for type hints
+
+logger = logging.getLogger(__name__)
 
 
 class DB:
@@ -16,11 +25,32 @@ class DB:
 
     def __init__(self):
         """Connect to the database."""
-        self.conn = psycopg2.connect(database="ra_results", user="guest", host="odin")
-        self.conn.set_session(readonly=True, autocommit=True)
-        self.connw = psycopg2.connect(database="ra_results", user="editor", host="odin")
+        self.engine = create_engine(
+            "postgresql://editor@localhost/ra_results",
+            insertmanyvalues_page_size=2048,
+        )
+        self.metadata = MetaData()
 
-    def get_uvfits_path(self, exper, band, gvlbi=False, small=False):
+        self.fits_files = Table("fits_files", self.metadata, autoload_with=self.engine)
+        self.pima_runs = Table("pima_runs", self.metadata, autoload_with=self.engine)
+        self.pima_obs = Table("pima_obs", self.metadata, autoload_with=self.engine)
+        self.pima_obs_nobps = Table(
+            "pima_obs_nobps", self.metadata, autoload_with=self.engine
+        )
+        self.clock_models = Table(
+            "clock_models", self.metadata, autoload_with=self.engine
+        )
+        self.ra_uvfits = Table("ra_uvfits", self.metadata, autoload_with=self.engine)
+        self.autospec_info = Table(
+            "autospec_info", self.metadata, autoload_with=self.engine
+        )
+        self.autospec = Table("autospec", self.metadata, autoload_with=self.engine)
+        self.scf_files = Table("scf_files", self.metadata, autoload_with=self.engine)
+        self.vex_files = Table("vex_files", self.metadata, autoload_with=self.engine)
+
+    def get_uvfits_path(
+        self, exper: str, band: str, gvlbi: bool = False, small: bool = False
+    ) -> tuple[str, str, int]:
         """
         Retrieve path on FTP server and size of FITS-IDI file from the database.
 
@@ -39,7 +69,7 @@ class DB:
         -------
         path, host, size : (str, str, int)
             Tuple of the file path, ftp hostname and size.
-            Returns (None, None, 0) if the database reply is empty.
+            Returns ("", "", 0) if the database reply is empty.
 
         Notes
         -----
@@ -47,53 +77,48 @@ class DB:
         band, this function selects the most recent FITS-file.
 
         """
-        path = None
-        host = None
+        path = ""
+        host = ""
         size = 0
 
-        query = """SELECT path, size, ftp_user FROM fits_files
-        WHERE exper_name = %(exper)s AND band = %(band)s AND
-        split_part(basename, '_', 1) = %(base)s AND
-        LOWER(split_part(basename, '_', 2)) = %(exper)s #EXT#
-        ORDER BY corr_date DESC, path DESC;"""
+        query = select(
+            self.fits_files.c.path, self.fits_files.c.size, self.fits_files.c.ftp_user
+        ).where(
+            self.fits_files.c.exper_name == exper,
+            self.fits_files.c.band == band,
+            func.split_part(self.fits_files.c.basename, "_", 1)
+            == ("GVLBI" if gvlbi else "RADIOASTRON"),
+            func.lower(func.split_part(self.fits_files.c.basename, "_", 2))
+            == exper.lower(),
+        )
 
-        params = {"exper": exper, "band": band}
-        where_arr = []
-
-        if gvlbi:
-            params["base"] = "GVLBI"
-        else:
-            params["base"] = "RADIOASTRON"
-
+        if not gvlbi:
             # Exclude rubidium
-            where_arr.append("basename NOT LIKE %(rub1)s")
-            params["rub1"] = "%_RUB.idifits"
-            where_arr.append("basename NOT LIKE %(rub2)s")
-            params["rub2"] = "%_RB.idifits"
+            query = query.where(
+                ~self.fits_files.c.basename.like("%_RUB.idifits"),
+                ~self.fits_files.c.basename.like("%_RB.idifits"),
+            )
 
         if small:
-            where_arr.append("ch_num = %(ch_num)s")
-            params["ch_num"] = 64
+            query = query.where(self.fits_files.c.ch_num == 64)
 
-        if where_arr:
-            query = query.replace("#EXT#", "AND {}".format(" AND ".join(where_arr)))
-        else:
-            query = query.replace("#EXT#", "")
+        query = query.order_by(
+            self.fits_files.c.corr_date.desc(), self.fits_files.c.path.desc()
+        )
 
-        with self.conn.cursor() as cursor:
-            cursor.execute(query, params)
-            reply = cursor.fetchone()
+        logger.debug("%s: query:\n%s", "get_uvfits_path", query)
 
-        if reply:
-            path = reply[0]
-            size = reply[1]
-            host = reply[2]
+        with self.engine.connect() as conn:
+            row = conn.execute(query).first()
+
+        if row:
+            path, size, host = row
 
         return path, host, size
 
-    def get_orbit_url(self, exper):
+    def get_orbit_url(self, exper: str) -> Optional[str]:
         """
-        Return reconstructed orbit file URL for the given experiment.
+        Return reconstructed orbit file URL for the given experiment `exper`.
 
         Parameters
         ----------
@@ -103,32 +128,36 @@ class DB:
         Returns
         -------
         url : str
-            File URL on FTP server. Returns None the database reply is empty.
+            File URL on FTP server. Returns ``None`` the database reply is empty.
 
         """
         url = None
-        url_base = "ftp://webinet.asc.rssi.ru/radioastron/oddata/reconstr/"
+        url_base = "ftp://webinet.asc.rssi.ru/radioastron/oddata/reconstr"
 
-        query = """
-        SELECT scf_files.file_name FROM scf_files, vex_files
-        WHERE vex_files.exper_name = %s AND
-        scf_files.start_time <= vex_files.exper_nominal_start AND
-        scf_files.stop_time >= vex_files.exper_nominal_stop AND
-        step = 1
-        ORDER BY creation_date DESC, file_name DESC;
-        """
+        query = (
+            select(self.scf_files.c.file_name)
+            .join(self.vex_files, self.vex_files.c.exper_name == exper)
+            .where(
+                self.scf_files.c.start_time <= self.vex_files.c.exper_nominal_start,
+                self.scf_files.c.stop_time >= self.vex_files.c.exper_nominal_stop,
+                self.scf_files.c.step == 1,
+            )
+            .order_by(
+                self.scf_files.c.creation_date.desc(), self.scf_files.c.file_name.desc()
+            )
+        )
 
-        with self.conn.cursor() as cursor:
-            cursor.execute(query, (exper,))
-            reply = cursor.fetchone()
+        logger.debug("%s: query:\n%s", "get_orbit_url", query)
+
+        with self.engine.connect() as conn:
+            reply = conn.execute(query).scalar()
 
         if reply:
-            orbit_file = reply[0]
-            url = url_base + orbit_file
+            url = f"{url_base}/{reply}"
 
         return url
 
-    def get_antab_url(self, exper, band):
+    def get_antab_url(self, exper: str, band: str) -> Optional[str]:
         """
         Return ANTAB-file URL for the given experiment and band.
 
@@ -148,23 +177,29 @@ class DB:
         url = None
         url_base = "ftp://webinet.asc.rssi.ru/radioastron/ampcal"
 
-        query = "SELECT to_char(exper_nominal_start, 'YYYY_MM_DD') \
-                 FROM vex_files WHERE exper_name = %s;"
+        query = select(
+            func.to_char(self.vex_files.c.exper_nominal_start, "YYYY_MM_DD").label(
+                "date"
+            )
+        ).where(self.vex_files.c.exper_name == exper)
 
-        with self.conn.cursor() as cursor:
-            cursor.execute(query, (exper,))
-            reply = cursor.fetchone()
+        logger.debug("%s: query:\n%s", "get_antab_url", query)
+
+        with self.engine.connect() as conn:
+            reply = conn.execute(query).scalar()
 
         if reply:
-            date = reply[0]
-            date1 = date[0:7]
+            date_year_month_day = reply
+            date_year_month = date_year_month_day[0:7]
             url = "{0}/{1}/{2}_{3}/{3}{4}.antab2".format(
-                url_base, date1, date, exper, band
+                url_base, date_year_month, date_year_month_day, exper, band
             )
 
         return url
 
-    def fri2db(self, fri, exper_info, run_id, nobps=False):
+    def fri2db(
+        self, fri: Fri, exper_info: ExperInfo, run_id: int, nobps: bool = False
+    ) -> None:
         """
         Store information from the PIMA fri-file to the database.
 
@@ -184,22 +219,9 @@ class DB:
         if not fri:
             return
 
-        exper = exper_info.exper
-        band = exper_info.band
+        table = self.pima_obs_nobps if nobps else self.pima_obs
 
-        if nobps:
-            table = "pima_obs_nobps"
-        else:
-            table = "pima_obs"
-
-        query = """INSERT INTO {} (obs, start_time, stop_time,
-exper_name, band, source, polar, st1, st2, delay, rate, accel, snr, ampl,
-solint, u, v, base_ed, ref_freq, scan_name, run_id, if_id, status, elevation,
-bandpass, pfd) VALUES %s;""".format(
-            table
-        )
-
-        rec_list = []
+        data = []
         for rec in fri.records:
             if rec["FRIB.FINE_SEARCH"] == "ACC":
                 accel = rec["ph_acc"]
@@ -207,142 +229,151 @@ bandpass, pfd) VALUES %s;""".format(
                 accel = rec["accel"]
 
             # Set IF id to 0 if fringe fitting done over multiple IFs
-            if rec["beg_ifrq"] != rec["end_ifrq"]:
-                if_id = 0
-            else:
-                if_id = rec["beg_ifrq"]
+            if_id = 0 if rec["beg_ifrq"] != rec["end_ifrq"] else rec["beg_ifrq"]
 
-            rec_list.append(
-                (
-                    rec["obs"],
-                    rec["start_time"],
-                    rec["stop_time"],
-                    exper,
-                    band,
-                    rec["source"],
-                    rec["polar"],
-                    rec["sta1"],
-                    rec["sta2"],
-                    rec["delay"],
-                    rec["rate"],
-                    accel,
-                    rec["SNR"],
-                    rec["ampl_lsq"],
-                    rec["duration"],
-                    rec["U"],
-                    rec["V"],
-                    rec["uv_rad_ed"],
-                    rec["ref_freq"],
-                    rec["time_code"],
-                    run_id,
-                    if_id,
-                    rec["status"],
-                    rec["elevation"],
-                    fri.aux["bandpass"],
-                    rec["pfd"],
-                )
+            data.append(
+                {
+                    "obs": rec["obs"],
+                    "scan_name": rec["time_code"],
+                    "start_time": rec["start_time"],
+                    "stop_time": rec["stop_time"],
+                    "exper_name": exper_info.exper,
+                    "band": exper_info.band,
+                    "source": rec["source"],
+                    "polar": rec["polar"],
+                    "st1": rec["sta1"],
+                    "st2": rec["sta2"],
+                    "delay": rec["delay"],
+                    "rate": rec["rate"],
+                    "accel": accel,
+                    "snr": rec["SNR"],
+                    "ampl": rec["ampl_lsq"],
+                    "solint": rec["duration"],
+                    "u": rec["U"],
+                    "v": rec["V"],
+                    "base_ed": rec["uv_rad_ed"],
+                    "ref_freq": rec["ref_freq"],
+                    "run_id": run_id,
+                    "if_id": if_id,
+                    "status": rec["status"],
+                    "elevation": rec["elevation"],
+                    "bandpass": fri.aux["bandpass"],
+                    "pfd": rec["pfd"],
+                }
             )
 
-        with self.connw.cursor() as cursor:
-            execute_values(cursor, query, rec_list)
+        if data:
+            with self.engine.begin() as conn:
+                conn.execute(table.insert(), data)
 
-        self.connw.commit()
-
-    def add_exper_info(self, exper, band, uv_fits, scan_part):
+    def add_exper_info(
+        self, exper: str, band: str, uv_fits: str, scan_part: int
+    ) -> int:
         """
         Add experiment record to the DB.
+
+        Parameters
+        ----------
+        exper : str
+            Experiment name.
+        band : str
+            Frequency band.
+        uv_fits : str
+            Name of the UV-FITS file.
+        scan_part : int
+            Number of PIMA run (1 = full scan, 2 = half of scan, etc.).
 
         Returns
         -------
         run_id : int
-            Id of inserted record.
+            Id of the inserted record.
 
         Notes
         -----
         This function deletes previous record.
 
         """
-        with self.connw.cursor() as cursor:
-            # Delete old before add new
-            query = """DELETE FROM pima_runs
-            WHERE exper_name = %s AND band = %s
-            AND fits_idi LIKE %s AND scan_part = %s;"""
-            uv_fits_toks = uv_fits.split("_")
-            fits_name_base = uv_fits_toks[0] + "%"
+        uv_fits_toks = uv_fits.split("_")
+        fits_name_base = uv_fits_toks[0] + "%"  # RADIOASTRON% or GVLBI%
 
-            if len(uv_fits_toks) >= 5:
-                correlator = uv_fits_toks[4]
-                fits_name_base += correlator + "%"
+        if len(uv_fits_toks) >= 5:
+            correlator = uv_fits_toks[4]  # ASC or DIFX
+            fits_name_base += correlator + "%"
 
-            cursor.execute(query, (exper, band, fits_name_base, scan_part))
+        # Delete query
+        delete_stmt = self.pima_runs.delete().where(
+            self.pima_runs.c.exper_name == exper,
+            self.pima_runs.c.band == band,
+            self.pima_runs.c.fits_idi.like(fits_name_base),
+            self.pima_runs.c.scan_part == scan_part,
+        )
+        logger.debug("add_exper_info: delete_stmt:\n%s", delete_stmt)
 
-            query = """INSERT INTO pima_runs (exper_name, band, proc_date, fits_idi,
-            scan_part)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id;"""
-            cursor.execute(query, (exper, band, datetime.now(), uv_fits, scan_part))
-            run_id = cursor.fetchone()[0]
+        # Insert query
+        insert_stmt = (
+            self.pima_runs.insert()
+            .values(
+                exper_name=exper,
+                band=band,
+                proc_date=datetime.now(),
+                fits_idi=uv_fits,
+                scan_part=scan_part,
+            )
+            .returning(self.pima_runs.c.id)
+        )
+        logger.debug("add_exper_info: insert_stmt:\n%s", insert_stmt)
 
-        self.connw.commit()
+        with self.engine.begin() as conn:
+            conn.execute(delete_stmt)
+            result = conn.execute(insert_stmt)
+            run_id = result.scalar()
 
         return run_id
 
-    def update_exper_info(self, exper_info, run_id):
+    def update_exper_info(self, exper_info: ExperInfo, run_id: int) -> None:
         """Add extended experiment information to the DB."""
-        query = """UPDATE pima_runs SET
-        sp_chann_num = %s,
-        time_epochs_num = %s,
-        scans_num = %s,
-        obs_num = %s,
-        uv_points_num = %s,
-        uv_points_used_num = %s,
-        deselected_points_num = %s,
-        no_auto_points_num = %s,
-        accum_length = %s,
-        utc_minus_tai = %s,
-        nominal_start = %s,
-        nominal_end = %s,
-        hostname = %s,
-        pima_version = %s,
-        correlator_name = %s
-        WHERE id = %s
-        """
-
-        with self.connw.cursor() as cursor:
-            cursor.execute(
-                query,
-                (
-                    exper_info.sp_chann_num,
-                    exper_info.time_epochs_num,
-                    exper_info.scans_num,
-                    exper_info.obs_num,
-                    exper_info.uv_points_num,
-                    exper_info.uv_points_used_num,
-                    exper_info.deselected_points_num,
-                    exper_info.no_auto_points_num,
-                    exper_info.accum_length,
-                    exper_info.utc_minus_tai,
-                    exper_info.nominal_start,
-                    exper_info.nominal_end,
-                    exper_info.hostname,
-                    exper_info.pima_version,
-                    exper_info.correlator_name,
-                    run_id,
-                ),
+        update_stmt = (
+            self.pima_runs.update()
+            .where(self.pima_runs.c.id == run_id)
+            .values(
+                sp_chann_num=exper_info.sp_chann_num,
+                time_epochs_num=exper_info.time_epochs_num,
+                scans_num=exper_info.scans_num,
+                obs_num=exper_info.obs_num,
+                uv_points_num=exper_info.uv_points_num,
+                uv_points_used_num=exper_info.uv_points_used_num,
+                deselected_points_num=exper_info.deselected_points_num,
+                no_auto_points_num=exper_info.no_auto_points_num,
+                accum_length=exper_info.accum_length,
+                utc_minus_tai=exper_info.utc_minus_tai,
+                nominal_start=exper_info.nominal_start,
+                nominal_end=exper_info.nominal_end,
+                hostname=exper_info.hostname,
+                pima_version=exper_info.pima_version,
+                correlator_name=exper_info.correlator_name,
             )
+        )
+        logger.debug("update_exper_info: update_stmt:\n%s", update_stmt)
 
-        self.connw.commit()
+        with self.engine.begin() as conn:
+            conn.execute(update_stmt)
 
-    def set_error_msg(self, run_id, msg):
-        """Put error comment into DB."""
-        query = "UPDATE pima_runs SET last_error = %s WHERE id = %s"
+    def set_error_msg(self, run_id: int, msg: str) -> None:
+        """Write error `msg` to the database."""
+        update_stmt = (
+            self.pima_runs.update()
+            .where(self.pima_runs.c.id == run_id)
+            .values(last_error=msg)
+        )
+        logger.debug("set_error_msg: update_stmt:\n%s", update_stmt)
 
-        with self.connw.cursor() as cursor:
-            cursor.execute(query, (msg, run_id))
+        with self.engine.begin() as conn:
+            conn.execute(update_stmt)
 
-        self.connw.commit()
-
-    def model2db(self, run_id, clock_model):
+    def model2db(self, run_id: int, clock_model: list) -> None:
         """
+        Store clock model to the database.
+
         Parameters
         ----------
         run_id : int
@@ -352,24 +383,28 @@ bandpass, pfd) VALUES %s;""".format(
             List of clock model components.
 
         """
-        query = """INSERT INTO clock_models
-        (sta, time, clock_offset, clock_rate, group_delay, delay_rate, run_id)
-        VALUES %s;"""
-
         data = []
-
         for rec in clock_model:
-            row = list(rec)
-            row.append(run_id)
-            data.append(row)
+            data.append(
+                {
+                    "sta": rec.sta,
+                    "time": rec.time,
+                    "clock_offset": rec.clock_offset,
+                    "clock_rate": rec.clock_rate,
+                    "group_delay": rec.group_delay,
+                    "delay_rate": rec.delay_rate,
+                    "run_id": run_id,
+                }
+            )
 
-        with self.connw.cursor() as cursor:
-            execute_values(cursor, query, data)
+        if data:
+            with self.engine.begin() as conn:
+                conn.execute(self.clock_models.insert(), data)
 
-        self.connw.commit()
-
-    def uvfits2db(self, fits_file, b1950_name, run_id):
+    def uvfits2db(self, fits_file: UVFits, b1950_name: str, run_id: int) -> None:
         """
+        Store UV-data from `fits_file` to the database.
+
         Parameters
         ----------
         fits_file : UVFits object
@@ -389,7 +424,7 @@ bandpass, pfd) VALUES %s;""".format(
             inttime = float(fits_file.inttime[ind])
 
             for if_ind in range(fits_file.no_if):
-                flux = float(fits_file.amplitudes[ind, if_ind])
+                ampl = float(fits_file.amplitudes[ind, if_ind])
                 weight = float(fits_file.weights[ind, if_ind])
 
                 if weight <= 0:
@@ -399,40 +434,33 @@ bandpass, pfd) VALUES %s;""".format(
                 uu = float(fits_file.u_raw[ind])
                 vv = float(fits_file.v_raw[ind])
 
-                row = (
-                    ind + 1,
-                    time,
-                    if_ind + 1,
-                    b1950_name,
-                    fits_file.exper_name,
-                    fits_file.band,
-                    fits_file.stokes,
-                    ant1_name,
-                    ant2_name,
-                    uu,
-                    vv,
-                    freq,
-                    flux,
-                    weight,
-                    inttime,
-                    file_name,
-                    run_id,
+                data.append(
+                    {
+                        "ind": ind + 1,
+                        "time": time,
+                        "if_id": if_ind + 1,
+                        "source": b1950_name,
+                        "exper_name": fits_file.exper_name,
+                        "band": fits_file.band,
+                        "polar": fits_file.stokes,
+                        "sta1": ant1_name,
+                        "sta2": ant2_name,
+                        "u": uu,
+                        "v": vv,
+                        "freq": freq,
+                        "ampl": ampl,
+                        "weight": weight,
+                        "inttime": inttime,
+                        "file_name": file_name,
+                        "run_id": run_id,
+                    }
                 )
-                data.append(row)
-
-        query = """INSERT INTO ra_uvfits (ind, time, if_id, source, exper_name,
-        band, polar, sta1, sta2, u, v, freq, ampl, weight, inttime, file_name, run_id)
-        VALUES %s;"""
 
         if data:
-            with self.connw.cursor() as cursor:
-                # cursor.execute('DELETE FROM ra_uvfits WHERE file_name = %s;',
-                #                (file_name, ))
-                # cur.executemany(query, data)
-                execute_values(cursor, query, data)
-            self.connw.commit()
+            with self.engine.begin() as conn:
+                conn.execute(self.ra_uvfits.insert(), data)
 
-    def autospec2db(self, acta_file):
+    def autospec2db(self, acta_file: ActaFile) -> None:
         """Store autocorrelation spectrum to the database."""
         exper, band = acta_file.header["experiment"].split("_")
         polar = acta_file.header["polar"]
@@ -442,38 +470,51 @@ bandpass, pfd) VALUES %s;""".format(
         obs = acta_file.header["obs"]
         scan_name = acta_file.header["scan_name"]
 
-        delete_query = """DELETE FROM autospec_info
-        WHERE exper_name = %s AND band = %s AND polar = %s AND sta = %s AND
-        scan_name = %s;"""
-        query_info = """INSERT INTO autospec_info
-        (exper_name, band, polar, sta, start_date, stop_date, obs, scan_name)
-        VALUES %s RETURNING id;"""
-        query_data = """INSERT INTO autospec
-        (if_num, chann_num, freq, ampl, info_id) VALUES %s;"""
-        data = []
+        # Delete existing records
+        delete_stmt = self.autospec_info.delete().where(
+            self.autospec_info.c.exper_name == exper,
+            self.autospec_info.c.band == band,
+            self.autospec_info.c.polar == polar,
+            self.autospec_info.c.sta == sta,
+            self.autospec_info.c.scan_name == scan_name,
+        )
 
-        with self.connw.cursor() as cursor:
-            cursor.execute(delete_query, (exper, band, polar, sta, scan_name))
-            cursor.execute(
-                query_info,
-                [(exper, band, polar, sta, start_date, stop_date, obs, scan_name)],
+        # Insert new info record
+        insert_info_stmt = (
+            self.autospec_info.insert()
+            .values(
+                exper_name=exper,
+                band=band,
+                polar=polar,
+                sta=sta,
+                start_date=start_date,
+                stop_date=stop_date,
+                obs=obs,
+                scan_name=scan_name,
             )
-            info_id = cursor.fetchone()[0]
+            .returning(self.autospec_info.c.id)
+        )
 
-            for ind in range(acta_file.header["num_of_points"]):
-                row = (
-                    acta_file.if_num[ind],
-                    acta_file.channel[ind],
-                    acta_file.freq[ind],
-                    acta_file.ampl[ind],
-                    info_id,
-                )
-                data.append(row)
-            execute_values(cursor, query_data, data, page_size=2048)
+        with self.engine.begin() as conn:
+            conn.execute(delete_stmt)
+            result = conn.execute(insert_info_stmt)
+            info_id = result.scalar()
 
-        self.connw.commit()
+            # Insert autospec data
+            data = [
+                {
+                    "if_num": acta_file.if_num[ind],
+                    "chann_num": acta_file.channel[ind],
+                    "freq": acta_file.freq[ind],
+                    "ampl": acta_file.ampl[ind],
+                    "info_id": info_id,
+                }
+                for ind in range(acta_file.header["num_of_points"])
+            ]
+
+            if data:
+                conn.execute(self.autospec.insert(), data)
 
     def close(self):
         """Close connections."""
-        self.connw.close()
-        self.conn.close()
+        self.engine.dispose()
