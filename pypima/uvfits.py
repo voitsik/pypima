@@ -48,7 +48,7 @@ class UVFits:
         -8: "YX",
     }
 
-    def __init__(self, file_name):
+    def __init__(self, file_name: str):
         # Init class variables
         self.file_name = file_name
         self.antenna_table = []

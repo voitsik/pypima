@@ -12,6 +12,7 @@ from collections import namedtuple
 from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -124,6 +125,31 @@ class ExperInfo:
 
 # Some global variables
 MAX_UVFILE_NAME_LEN = 128
+
+
+class Obs(NamedTuple):
+    """PIMA observation information."""
+
+    obs: int
+    scan: int
+    time_code: str
+    source: str
+    sta1: str
+    sta2: str
+    start_time: datetime
+    stop_time: datetime
+    ap_num: int
+
+
+class ClockModelRec(NamedTuple):
+    """Clock model record."""
+
+    sta: str
+    time: datetime
+    clock_offset: float
+    clock_rate: float
+    group_delay: float
+    delay_rate: float
 
 
 class Pima:
@@ -837,14 +863,11 @@ class Pima:
         return freqs
 
     @property
-    def observations(self):
-        """
-        Return list of observations with some information.
-
-        """
-        Obs = namedtuple(
-            "Obs", "obs scan time_code source sta1 sta2 start_time stop_time ap_num"
-        )
+    def observations(self) -> list[Obs]:
+        """Return list of observations with some information."""
+        # Obs = namedtuple(
+        #     "Obs", "obs scan time_code source sta1 sta2 start_time stop_time ap_num"
+        # )
         obs_list = []
 
         obs_file = os.path.join(
@@ -867,31 +890,34 @@ class Pima:
                         )
                         ap_num = 0
 
-                    obs = Obs(
-                        obs=int(toks[0]),
-                        scan=int(toks[1]),
-                        time_code=toks[2],
-                        source=toks[8],
-                        sta1=toks[9],
-                        sta2=toks[10],
-                        start_time=datetime.strptime(toks[4], "%Y.%m.%d-%H:%M:%S.%f,"),
-                        stop_time=datetime.strptime(toks[5], "%Y.%m.%d-%H:%M:%S.%f"),
-                        ap_num=ap_num,
+                    obs_list.append(
+                        Obs(
+                            obs=int(toks[0]),
+                            scan=int(toks[1]),
+                            time_code=toks[2],
+                            source=toks[8],
+                            sta1=toks[9],
+                            sta2=toks[10],
+                            start_time=datetime.strptime(
+                                toks[4], "%Y.%m.%d-%H:%M:%S.%f,"
+                            ),
+                            stop_time=datetime.strptime(
+                                toks[5], "%Y.%m.%d-%H:%M:%S.%f"
+                            ),
+                            ap_num=ap_num,
+                        )
                     )
-
-                    obs_list.append(obs)
 
         return obs_list
 
-    def clock_model(self):
+    def clock_model(self) -> list[ClockModelRec]:
         """
-        Read clock model components from the PIMA mdc file and retrun
-        they as list of records.
+        Read clock model components from the **PIMA** ``mdc`` file.
 
         Returns
         -------
         clock_model : list
-
+            List of tuples with clock model components.
 
         """
         clock_model = []
@@ -932,7 +958,9 @@ class Pima:
                         delay_rate = 0.0
 
                     clock_model.append(
-                        (sta, time, clock_offset, clock_rate, group_delay, delay_rate)
+                        ClockModelRec(
+                            sta, time, clock_offset, clock_rate, group_delay, delay_rate
+                        )
                     )
 
         return clock_model
@@ -940,7 +968,6 @@ class Pima:
     def mk_exclude_obs_file(self, obs_list, suffix, polar=None):
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
-        If `obs_list` is empty delete the file.
 
         Parameters
         ----------
@@ -955,6 +982,10 @@ class Pima:
         -------
         exc_obs_file : srt
             Return name of the generated file or ``NO`` if `obs_list` is empty.
+
+        Notes
+        -----
+            If `obs_list` is empty or ``None`` function removes existing file.
 
         """
         if not polar:
@@ -1035,8 +1066,9 @@ class Pima:
                 print("# PIMA BPASS_MASK_GEN  v 0.90 2009.02.05", file=file)
                 print("#", file=file)
                 print(
-                    "#  Control for bandpass mask generation for \
-experiment {}".format(self.exper),
+                    "#  Control for bandpass mask generation for experiment {}".format(
+                        self.exper
+                    ),
                     file=file,
                 )
                 print("#", file=file)
@@ -1090,7 +1122,7 @@ def fits_to_txt(fits_file: str) -> str:
 
 
 class ActaFile:
-    """This class represents PIMA ``ACTA`` file."""
+    """Represents PIMA ``ACTA`` file format and its contents."""
 
     supported_versions = (
         "# ACTA Output.  Format version of 2014.04.19",
@@ -1134,12 +1166,12 @@ class ActaFile:
                     elif cols[1] == "Station:":
                         self._header["station"] = cols[2]
                     elif cols[1] == "Scan_name:":
-                        self.header["scan_name"] = cols[2]
+                        self._header["scan_name"] = cols[2]
                         logging.debug("scan_name = %s", cols[2])
                     elif cols[1] == "Scan_index:":
-                        self.header["scan"] = int(cols[2])
+                        self._header["scan"] = int(cols[2])
                     elif cols[1] == "Observation_index:":
-                        self.header["obs"] = int(cols[2])
+                        self._header["obs"] = int(cols[2])
                     elif cols[1] == "Start_date:":
                         self._header["start_date"] = datetime.strptime(
                             cols[2][:23], "%Y.%m.%d-%H:%M:%S.%f"
@@ -1153,7 +1185,7 @@ class ActaFile:
                         if utc_tai:
                             self._header["stop_date"] += utc_tai
                     elif cols[1] == "Number_of_points:":
-                        self.header["num_of_points"] = int(cols[2])
+                        self._header["num_of_points"] = int(cols[2])
                 elif cols[0] == "ACRL":
                     self._if.append(int(cols[2]))
                     self._channel.append(int(cols[4]))
@@ -1302,18 +1334,12 @@ class Text1D:
 
     @property
     def axis1_data(self):
-        """
-        Return axis 1 array.
-
-        """
+        """Return axis 1 array."""
         return self._ax1
 
     @property
     def axis2_data(self):
-        """
-        Return axis 2 array.
-
-        """
+        """Return axis 2 array."""
         return self._ax2
 
 
@@ -1328,7 +1354,7 @@ def acta_plot(input_file: str, output_file: str) -> str:
     return out
 
 
-def bpas_log_snr_new(file_name: str, mode: str = "INIT"):
+def bpas_log_snr_new(file_name: str, mode: str = "INIT") -> dict[int, float]:
     """
     Retrieve ``new`` SNR values from bandpass log file.
 
