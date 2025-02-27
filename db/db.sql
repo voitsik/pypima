@@ -158,7 +158,7 @@ CREATE TABLE ra_uvfits (
     sta2 char(2),
     u real,
     v real,
-    freq real,
+    freq double precision,
     ampl real,
     weight real,
     inttime real,
