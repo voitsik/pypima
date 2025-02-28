@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+
+
 Created on 18.02.2014
 
 @author: Petr Voytsik
@@ -15,7 +17,7 @@ from collections import namedtuple
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from pypima import DB, PimaError, RaExperiment, RaExperimentError
+from pypima import DataBase, PimaError, RaExperiment, RaExperimentError
 
 
 def download_it(ra_exps, force_small):
@@ -550,7 +552,7 @@ def main() -> int:
 
     # Connect to database
     try:
-        database = DB()
+        database = DataBase()
     except SQLAlchemyError as err:
         logging.error("DBError: %s", err)
         return 1
@@ -628,7 +630,7 @@ def main() -> int:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()
             continue
-        except RaExperimentError as err:
+        except RaExperimentError:
             continue
         except SQLAlchemyError as err:
             logging.error("DBError: %s", err)

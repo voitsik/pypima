@@ -20,7 +20,7 @@ from .uvfits import UVFits  # for type hints
 logger = logging.getLogger(__name__)
 
 
-class DB:
+class DataBase:
     """Interface to the "ra_results" database."""
 
     def __init__(self):
@@ -270,7 +270,7 @@ class DB:
         self, exper: str, band: str, uv_fits: str, scan_part: int
     ) -> int:
         """
-        Add experiment record to the DB.
+        Add experiment record to the database.
 
         Parameters
         ----------
@@ -331,7 +331,7 @@ class DB:
         return run_id
 
     def update_exper_info(self, exper_info: ExperInfo, run_id: int) -> None:
-        """Add extended experiment information to the DB."""
+        """Add extended experiment information to the database."""
         update_stmt = (
             self.pima_runs.update()
             .where(self.pima_runs.c.id == run_id)

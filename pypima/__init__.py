@@ -1,11 +1,8 @@
-"""
-PyPIMA
-
-"""
+"""PyPIMA"""
 
 __version__ = "2.3"
 
-from .db import DB
+from .db import DataBase
 from .fri import Fri
 from .pima import Error as PimaError
 from .pima import Pima

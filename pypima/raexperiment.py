@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 import pycurl
 
-from .db import DB
+from .db import DataBase
 from .fri import Fri, PFDRec
 from .pima import MAX_UVFILE_NAME_LEN, ActaFile, Pima, bpas_log_snr_new, fits_to_txt
 from .pima import Error as PimaError
@@ -48,7 +48,7 @@ class RaExperiment:
         self,
         experiment_code: str,
         band: str,
-        data_base: DB,
+        data_base: DataBase,
         data_dir: Optional[str] = None,
         uv_fits: Optional[str | list] = None,
         orbit: Optional[str] = None,
@@ -64,8 +64,8 @@ class RaExperiment:
             Experiment code.
         band : srt
             One letter frequency band code.
-        data_base : pypima.db.DB
-            pypima.db.DB instance.
+        data_base : pypima.db.DataBase
+            pypima.db.DataBase instance.
         data_dir : str, optional
             Directory for FITS-IDI. If ``None`` working directory of the
             current experiment is used.
@@ -259,7 +259,7 @@ class RaExperiment:
         )
 
         if not fits_path_remote or not ftp_host:
-            self._error("Could not find FITS file name in DB")
+            self._error("Could not find FITS file name in the database")
 
         # Delete spaces in filename
         fits_path_local = os.path.join(

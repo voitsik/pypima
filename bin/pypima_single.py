@@ -18,7 +18,7 @@ import tempfile
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from pypima import DB, PimaError, RaExperiment, RaExperimentError
+from pypima import DataBase, PimaError, RaExperiment, RaExperimentError
 from pypima.fri import PFDRec
 
 
@@ -230,7 +230,7 @@ def main() -> int:
     else:
         source_names = None
 
-    database = DB()
+    database = DataBase()
 
     try:
         ra_exp = RaExperiment(
