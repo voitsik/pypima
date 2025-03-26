@@ -18,6 +18,7 @@ from collections import namedtuple
 from sqlalchemy.exc import SQLAlchemyError
 
 from pypima import DataBase, PimaError, RaExperiment, RaExperimentError
+from pypima.config import load_config
 
 
 def download_it(ra_exps, force_small):
@@ -49,23 +50,20 @@ def download_it(ra_exps, force_small):
             raise
 
 
-def generate_autospec(ra_exp, spec_out_dir, force_small=False):
+def generate_autospec(ra_exp, force_small=False):
     """
-    Run **PIMA** only for average autocorrelation spectrum computing by
-    ``acta`` task.
+    Run **PIMA** only for average autocorrelation spectrum computing.
 
     Parameters
     ----------
     ra_exp : RaExperiment object
         Experiment setup.
-    spec_out_dir : str
-        Directory name for autocorrelation plots.
     force_small : bool
         Use FITS-IDI with 64 spectarl channels only.
 
     """
     ra_exp.load(update_db=False, scan_part=1, force_small=force_small)
-    ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
+    ra_exp.generate_autospectra(plot=True, db=True)
     ra_exp.delete_uvfits()
 
 
@@ -150,7 +148,7 @@ def process_ind_ifs(ra_exp, **kwargs):
     ra_exp.delete_uvfits()
 
 
-def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
+def process_radioastron(ra_exp, **kwargs):
     """
     Process space-ground part of the experiment.
 
@@ -158,10 +156,6 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
     ----------
     ra_exp : RaExperiment object
         Experiment setup.
-    uv_fits_out_dir : str
-        Directory name for final UV-FITS files.
-    spec_out_dir : str
-        Directory name for autocorrelation plots.
     accel : bool, optional
         If True, do the parabolic term fitting.
     bandpass_mode : str, optional
@@ -232,7 +226,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             ra_exp.pima.set_polar(polar)
 
             if scan_part == 1:
-                ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
+                ra_exp.generate_autospectra(plot=True, db=True)
             fri = ra_exp.fringe_fitting(**ff_params)
             print(fri)
             scan_len_list.append(fri.max_scan_length())
@@ -246,7 +240,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
             ):
                 for aver in (False, True):
                     ra_exp.split(average=aver)
-                    ra_exp.copy_uvfits(uv_fits_out_dir)
+                    ra_exp.copy_uvfits()
 
     #
     # Second run on a scan half
@@ -280,7 +274,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
                 and polar in polars_to_split
             ):
                 ra_exp.split(average=True)
-                ra_exp.copy_uvfits(uv_fits_out_dir)
+                ra_exp.copy_uvfits()
 
     #
     # For good experiments more runs
@@ -312,7 +306,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
 
                     if ra_exp.calibration_loaded:
                         ra_exp.split(average=True)
-                        ra_exp.copy_uvfits(uv_fits_out_dir)
+                        ra_exp.copy_uvfits()
 
             scan_part += 1
             scan_len = round(max_scan_len / (scan_part - scan_part_base))
@@ -342,7 +336,7 @@ def process_radioastron(ra_exp, uv_fits_out_dir, spec_out_dir, **kwargs):
 
                 if ra_exp.calibration_loaded:
                     ra_exp.split(average=True)
-                    ra_exp.copy_uvfits(uv_fits_out_dir)
+                    ra_exp.copy_uvfits()
 
     ra_exp.delete_uvfits()
 
@@ -421,6 +415,7 @@ def parse_args():
 
     # Optional arguments
     parser.add_argument("-l", "--log-file", metavar="LOG", help="log file")
+    parser.add_argument("-c", "--config", help="configuration file")
     parser.add_argument(
         "--gvlbi",
         "-g",
@@ -541,6 +536,12 @@ def main() -> int:
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    try:
+        config = load_config(args.config)
+    except OSError as err:
+        logging.error("Could not load configuration file: %s", err)
+        return 1
+
     # Check input parameters
     if args.max_scan_length <= 0:
         logging.error("Max scan length must be positive")
@@ -552,14 +553,10 @@ def main() -> int:
 
     # Connect to database
     try:
-        database = DataBase()
+        database = DataBase(config)
     except SQLAlchemyError as err:
         logging.error("DBError: %s", err)
         return 1
-
-    data_dir = os.getenv(
-        "PYPIMA_DATA_DIR", default=os.path.join(os.getenv("HOME"), "data", "pima_data")
-    )
 
     exp_list = []
 
@@ -569,9 +566,9 @@ def main() -> int:
                 RaExperiment(
                     rec.exper_name,
                     rec.band,
+                    config,
                     database,
                     uv_fits=rec.fits_list,
-                    data_dir=data_dir,
                     gvlbi=args.gvlbi,
                     orbit=args.orbit,
                 )
@@ -582,15 +579,6 @@ def main() -> int:
     except InvalidInputFile as err:
         logging.error("InvalidInputFile: %s", err)
         return 1
-
-    out_dir = os.getenv(
-        "PYPIMA_SPLIT_DIR", default=os.path.join(os.getenv("HOME"), "pima_auto_split")
-    )
-
-    # Define and create directory for auto spectrum plot files
-    spec_out_dir = os.getenv(
-        "PYPIMA_AUTOSPEC_DIR", default=os.path.join(os.getenv("HOME"), "pima_autospec")
-    )
 
     load_thread = threading.Thread(
         target=download_it, args=(exp_list, args.force_small)
@@ -619,13 +607,13 @@ def main() -> int:
             ra_exp.init_workdir()
 
             if args.autospec_only:
-                generate_autospec(ra_exp, spec_out_dir, args.force_small)
+                generate_autospec(ra_exp, args.force_small)
             elif args.individual_ifs:
                 process_ind_ifs(ra_exp, **params)
             elif args.gvlbi and not args.gvlbi_split:
                 process_gvlbi(ra_exp, **params)
             else:
-                process_radioastron(ra_exp, out_dir, spec_out_dir, **params)
+                process_radioastron(ra_exp, **params)
         except PimaError as err:
             database.set_error_msg(ra_exp.run_id, str(err))
             ra_exp.delete_uvfits()

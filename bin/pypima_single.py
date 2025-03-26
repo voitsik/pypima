@@ -19,6 +19,7 @@ import tempfile
 from sqlalchemy.exc import SQLAlchemyError
 
 from pypima import DataBase, PimaError, RaExperiment, RaExperimentError
+from pypima.config import load_config
 from pypima.fri import PFDRec
 
 
@@ -44,6 +45,8 @@ def parse_args():
     parser.add_argument("band", type=str.lower, help="frequency band")
 
     # Optional arguments
+    parser.add_argument("-c", "--config", help="configuration file")
+
     parser.add_argument("--polar", help="polarization")
     parser.add_argument(
         "--gvlbi", "-g", action="store_true", help="process GVLBI FITS-file"
@@ -177,9 +180,14 @@ def main() -> int:
     band = args.band.lower()
     polar = args.polar
 
-    data_dir = os.getenv(
-        "PYPIMA_DATA_DIR", default=os.path.join(os.getenv("HOME"), "data", "pima_data")
-    )
+    try:
+        config = load_config(args.config)
+    except OSError as err:
+        logging.error("Could not load configuration file: %s", err)
+        return 1
+
+    # Dump configuration to the log
+    config.write(sys.stderr)
 
     #
     # Check command line arguments
@@ -191,7 +199,7 @@ def main() -> int:
 
         scan_length = args.scan_length
     else:
-        scan_length = 1500
+        scan_length = 1500  # 25 min
 
     if args.beg_frq is not None and args.beg_frq <= 0:
         logging.error("beg_frq must be positive")
@@ -230,15 +238,15 @@ def main() -> int:
     else:
         source_names = None
 
-    database = DataBase()
+    database = DataBase(config)
 
     try:
         ra_exp = RaExperiment(
             exper,
             band,
+            config,
             database,
             gvlbi=args.gvlbi,
-            data_dir=data_dir,
             uv_fits=args.fits,
             orbit=orbit,
             source_names=source_names,

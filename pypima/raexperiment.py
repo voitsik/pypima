@@ -11,8 +11,10 @@ import os.path
 import shutil
 import subprocess
 import threading
+from configparser import Error as ConfigError
 from datetime import datetime
 from io import BytesIO
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlunsplit
 
@@ -20,6 +22,7 @@ import numpy as np
 import pandas as pd
 import pycurl
 
+from .config import QuoteStrippingConfigParser
 from .db import DataBase
 from .fri import Fri, PFDRec
 from .pima import MAX_UVFILE_NAME_LEN, ActaFile, Pima, bpas_log_snr_new, fits_to_txt
@@ -48,8 +51,9 @@ class RaExperiment:
         self,
         experiment_code: str,
         band: str,
+        config: QuoteStrippingConfigParser,
         data_base: DataBase,
-        data_dir: Optional[str] = None,
+        # data_dir: Optional[str] = None,
         uv_fits: Optional[str | list] = None,
         orbit: Optional[str] = None,
         source_names: Optional[str] = None,
@@ -64,6 +68,8 @@ class RaExperiment:
             Experiment code.
         band : srt
             One letter frequency band code.
+        config : QuoteStrippingConfigParser
+            Configuration object.
         data_base : pypima.db.DataBase
             pypima.db.DataBase instance.
         data_dir : str, optional
@@ -89,6 +95,7 @@ class RaExperiment:
         # First, set common variables
         self.exper = experiment_code.lower()
         self.band = band.lower()
+        self.config = config
         self.db = data_base
         self.gvlbi = gvlbi
         self.sta_ref = reference_station
@@ -119,40 +126,64 @@ class RaExperiment:
             self._error(f"unknown band {band}")
 
         self.pima_dir = os.getenv("PIMA_DIR")
-        self.exp_dir = os.getenv("pima_exp_dir")
-        if not self.exp_dir:
-            self._error("Environment variable $pima_exp_dir is not set")
+        if not self.pima_dir:
+            self._error("Environment variable $PIMA_DIR is not set")
 
-        self.pima_scr = os.getenv("pima_scr_dir")
+        # Working directory path
+        try:
+            pima_work_base = self.config.getpath("directories", "pima_work")
+        except ConfigError:
+            self._error("Could not get 'pima_work' directory path from config")
 
-        # Work directory path
-        self.work_dir = os.path.join(self.exp_dir, self.exper + "_auto")
         if self.gvlbi:
-            self.work_dir += "_gvlbi"
+            self.work_dir = pima_work_base / f"{self.exper}_auto_gvlbi"
+        else:
+            self.work_dir = pima_work_base / f"{self.exper}_auto"
+
+        # PIMA exper directory
+        try:
+            self.pima_exper = self.config.getpath("directories", "pima_exper")
+        except ConfigError:
+            self._error("Could not get 'pima_exper' directory path from config")
 
         #  Select directory for raw data from a correlator
-        if data_dir:
-            self.data_dir = os.path.join(data_dir, self.exper)
-        else:
+        try:
+            self.data_dir = self.config.getpath("directories", "data") / self.exper
+        except ConfigError:
+            self.logger.warning("Could not get 'data' directory path from config")
             self.data_dir = self.work_dir
 
-        if len(self.data_dir) >= MAX_UVFILE_NAME_LEN - 1:
+        if len(str(self.data_dir)) >= MAX_UVFILE_NAME_LEN - 1:
             self._error(
                 "Length of the data_dir path must be less than "
                 f"{MAX_UVFILE_NAME_LEN - 1} bytes"
             )
 
-        # Local archive of FITS-IDI files
-        self.archive_dir = os.getenv("PYPIMA_ARCHIVE")
+        # Local archive of FITS-IDI files if available
+        try:
+            self.archive_dir = self.config.getpath("directories", "archive")
+        except ConfigError:
+            self.logger.warning("Could not get 'archive' directory path from config")
+            self.archive_dir = None
+
+        # Split directory for calibrated UV-FITS files
+        try:
+            self.split_dir = self.config.getpath("directories", "split")
+        except ConfigError:
+            self._error("Could not get 'split' directory path from config")
+
+        # Autospectra plot directory
+        try:
+            self.autospec_dir = self.config.getpath("directories", "autospec")
+        except ConfigError:
+            self._error("Could not get 'autospec' directory path from config")
 
         # PIMA control file path
-        self.cnt_file_name = os.path.join(
-            self.work_dir, f"{self.exper}_{self.band}_pima.cnt"
-        )
+        self.cnt_file_name = self.work_dir / f"{self.exper}_{self.band}_pima.cnt"
 
     def init_workdir(self):
         """Create working directory and PIMA control file."""
-        # Create work directory
+        # Create working directory
         os.makedirs(self.work_dir, exist_ok=True)
 
         # Create data directory for FITS-IDI files
@@ -181,14 +212,14 @@ class RaExperiment:
         # Do not restrict delay rate window
         self.pima.update_cnt({"FRIB.RATE_WINDOW_WIDTH:": "1.0D-8"})
 
-        # Setup staging dir
-        staging_dir = os.getenv("PYPIMA_STAGING_DIR")
-
-        if staging_dir:
-            staging_dir = os.path.join(staging_dir, self.exper)
-            os.makedirs(staging_dir, exist_ok=True)
-            self.pima.update_cnt({"STAGING_DIR:": staging_dir})
-        else:
+        # Set up PIMA staging directory
+        try:
+            staging_dir = self.config.getpath("directories", "staging")
+            staging_dir = staging_dir / self.exper
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            self.pima.update_cnt({"STAGING_DIR:": str(staging_dir)})
+        except ConfigError:
+            self.logger.debug("Could not get 'staging' directory path from config")
             self.pima.update_cnt({"STAGING_DIR:": "NO"})
 
         # Select the best fftw wisdom file
@@ -202,6 +233,7 @@ class RaExperiment:
                         {"FFT_CONFIG_FILE:": wis_file, "NUM_THREADS:": thread_num}
                     )
                     os.environ["OMP_NUM_THREADS"] = str(thread_num)
+                    self.logger.debug("Use wisdom file: %s", wis_file)
 
                     return
 
@@ -239,7 +271,7 @@ class RaExperiment:
                 elif line.startswith("BAND:"):
                     line = line.replace("@band@", self.band.upper())
                 elif line.startswith("EXPER_DIR:"):
-                    line = line.replace("@exper_dir@", self.pima_scr)
+                    line = line.replace("@exper_dir@", str(self.pima_exper))
                 elif line.startswith("FRINGE_FILE:"):
                     line = line.replace("@fringe_file@", fringe_file)
                 elif line.startswith("FRIRES_FILE:"):
@@ -1275,12 +1307,13 @@ class RaExperiment:
         self.split_time_aver = time_segments * ap_len
         self.pima.split(tim_mseg=time_segments, params=split_params)
 
-    def copy_uvfits(self, out_dir):
+    def copy_uvfits(self, out_dir: str | None = None):
         """Copy calibrated uv-fits files from pima scratch dir to `out_dir`."""
         exper_dir = self.pima.cnt_params["EXPER_DIR:"]
         sess_code = self.pima.cnt_params["SESS_CODE:"]
         band = self.pima.cnt_params["BAND:"]
         polar = self.pima.cnt_params["POLAR:"]
+        out_dir = out_dir or self.split_dir
 
         pima_fits_dir = os.path.join(exper_dir, sess_code + "_uvs")
 
@@ -1352,7 +1385,7 @@ class RaExperiment:
         if (
             isinstance(self.uv_fits, str)
             and os.path.isfile(self.uv_fits)
-            and self.uv_fits.startswith(self.data_dir)
+            and Path(self.uv_fits).is_relative_to(self.data_dir)
         ):
             os.remove(self.uv_fits)
 
@@ -1367,26 +1400,31 @@ class RaExperiment:
         if os.path.isdir(staging_dir):
             shutil.rmtree(staging_dir)
 
-    def generate_autospectra(self, plot=False, out_dir=None, db=False) -> None:
+    def generate_autospectra(
+        self, plot: bool = False, out_dir: str | None = None, db: bool = False
+    ) -> None:
         """
         Generate autocorrelation spectrum.
 
-        Thist function generates autocorrelation spectrum for each station for each
+        This function generates autocorrelation spectrum for each station for each
         scan using ``acta`` **PIMA** task and fill `self.acta_files` dict.
 
         Parameters
         ----------
-        plot : bool
+        plot : bool, optional
             If ``True`` plot autospectra.
-        out_dir : str
-            Plot output directory.
-        db : bool
-            If ``True`` store autospectra to the database.
+        out_dir : str, optional
+            Plot output directory. If ``None`` use ``autospec`` directory from config
+            file.
+        db : bool, optional
+            If ``True`` store autospectrum data to the database.
 
         """
         if self.acta_files:
             self.logger.debug("acta has already been called")
             return
+
+        out_dir = out_dir or self.autospec_dir
 
         for polar in ("RR", "LL"):
             # Sometimes PIMA crashes on `acta` task

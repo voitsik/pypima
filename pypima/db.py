@@ -8,6 +8,7 @@ Created on Thu Oct 30 14:23:23 2014
 
 import logging
 import os.path
+from configparser import ConfigParser
 from datetime import datetime
 from typing import Optional
 
@@ -23,10 +24,12 @@ logger = logging.getLogger(__name__)
 class DataBase:
     """Interface to the "ra_results" database."""
 
-    def __init__(self):
+    def __init__(self, config: ConfigParser):
         """Connect to the database."""
+        user = config.get("database", "user")
+        host = config.get("database", "host")
         self.engine = create_engine(
-            "postgresql://editor@localhost/ra_results",
+            f"postgresql://{user}@{host}/ra_results",
             insertmanyvalues_page_size=2048,
         )
         self.metadata = MetaData()
