@@ -274,15 +274,7 @@ def main() -> int:
         ra_exp.pima.set_frq_grp(args.frequency_group)
 
         if args.autospec_only:
-            # Define and create directory for auto spectrum plot files
-            spec_out_dir = os.getenv(
-                "PYPIMA_AUTOSPEC_DIR",
-                default=os.path.join(os.getenv("HOME"), "pima_autospec"),
-            )
-            if not os.path.exists(spec_out_dir):
-                os.mkdir(spec_out_dir)
-
-            ra_exp.generate_autospectra(plot=True, out_dir=spec_out_dir, db=True)
+            ra_exp.generate_autospectra(plot=True, db=True)
         else:
             ra_exp.load_antab(antab_file)
 
@@ -328,7 +320,7 @@ def main() -> int:
             print(fri)
 
             max_scan_len = fri.max_scan_length()
-            logging.debug("DEBUG: max_scan_len = %s", max_scan_len)
+            logging.debug("max_scan_len = %s", max_scan_len)
             if args.split:
                 ra_exp.split(average=True)
 
