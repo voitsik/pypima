@@ -15,7 +15,7 @@ from typing import Optional
 from sqlalchemy import MetaData, Table, create_engine, func, select
 
 from .fri import Fri  # for type hints
-from .pima import ActaFile, ExperInfo  # for type hints
+from .pima import ActaFile, ExperInfo, ObsFriPlots  # for type hints
 from .uvfits import UVFits  # for type hints
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ class DataBase:
         self.autospec = Table("autospec", self.metadata, autoload_with=self.engine)
         self.scf_files = Table("scf_files", self.metadata, autoload_with=self.engine)
         self.vex_files = Table("vex_files", self.metadata, autoload_with=self.engine)
+        self.cross_spec = Table("cross_spec", self.metadata, autoload_with=self.engine)
 
     def get_uvfits_path(
         self, exper: str, band: str, gvlbi: bool = False, small: bool = False
@@ -331,6 +332,9 @@ class DataBase:
             result = conn.execute(insert_stmt)
             run_id = result.scalar()
 
+        if run_id is None:
+            raise ValueError("add_exper_info: Failed to get ID after insert")
+
         return run_id
 
     def update_exper_info(self, exper_info: ExperInfo, run_id: int) -> None:
@@ -465,21 +469,15 @@ class DataBase:
 
     def autospec2db(self, acta_file: ActaFile) -> None:
         """Store autocorrelation spectrum to the database."""
-        exper, band = acta_file.header["experiment"].split("_")
-        polar = acta_file.header["polar"]
-        sta = acta_file.header["station"]
-        start_date = acta_file.header["start_date"]
-        stop_date = acta_file.header["stop_date"]
-        obs = acta_file.header["obs"]
-        scan_name = acta_file.header["scan_name"]
+        exper, band = acta_file.header.experiment.split("_")
 
         # Delete existing records
         delete_stmt = self.autospec_info.delete().where(
             self.autospec_info.c.exper_name == exper,
             self.autospec_info.c.band == band,
-            self.autospec_info.c.polar == polar,
-            self.autospec_info.c.sta == sta,
-            self.autospec_info.c.scan_name == scan_name,
+            self.autospec_info.c.polar == acta_file.header.polar,
+            self.autospec_info.c.sta == acta_file.header.station,
+            self.autospec_info.c.scan_name == acta_file.header.scan_name,
         )
 
         # Insert new info record
@@ -488,12 +486,12 @@ class DataBase:
             .values(
                 exper_name=exper,
                 band=band,
-                polar=polar,
-                sta=sta,
-                start_date=start_date,
-                stop_date=stop_date,
-                obs=obs,
-                scan_name=scan_name,
+                polar=acta_file.header.polar,
+                sta=acta_file.header.station,
+                start_date=acta_file.header.start_date,
+                stop_date=acta_file.header.stop_date,
+                obs=acta_file.header.obs,
+                scan_name=acta_file.header.scan_name,
             )
             .returning(self.autospec_info.c.id)
         )
@@ -512,11 +510,66 @@ class DataBase:
                     "ampl": acta_file.ampl[ind],
                     "info_id": info_id,
                 }
-                for ind in range(acta_file.header["num_of_points"])
+                for ind in range(acta_file.header.num_of_points)
             ]
 
             if data:
                 conn.execute(self.autospec.insert(), data)
+
+    def crossspec2db(
+        self,
+        exper: str,
+        band: str,
+        polar: str,
+        run_id: int,
+        obs_plots: list[ObsFriPlots],
+    ) -> None:
+        """Store cross-correlation spectrum to the database."""
+        logger.debug("crossspec2db: %s %s %s", exper, band, polar)
+        data = []
+
+        for rec in obs_plots:
+            if rec.frq_amp_data is None or rec.frq_phs_data is None:
+                continue
+
+            assert rec.frq_amp_data.axis1_data == rec.frq_phs_data.axis1_data, (
+                "crossspec2db: frequency axis mismatch"
+            )
+
+            data.append(
+                {
+                    "exper_name": exper,
+                    "band": band,
+                    "polar": polar,
+                    "sta1": rec.obs.sta1,
+                    "sta2": rec.obs.sta2,
+                    "obs": rec.obs.obs,
+                    "scan_name": rec.obs.time_code,
+                    "start_time": rec.obs.start_time,
+                    "stop_time": rec.obs.stop_time,
+                    "freq": rec.frq_amp_data.axis1_data,
+                    "ampl": rec.frq_amp_data.axis2_data,
+                    "phase": rec.frq_phs_data.axis2_data,
+                    "run_id": run_id,
+                }
+            )
+
+        if not data:
+            return
+
+        delete_stmt = self.cross_spec.delete().where(
+            self.cross_spec.c.exper_name == exper,
+            self.cross_spec.c.band == band,
+            self.cross_spec.c.polar == polar,
+        )
+        logger.debug("crossspec2db: delete_stmt:\n%s", delete_stmt)
+
+        with self.engine.begin() as conn:
+            # Delete existing records
+            conn.execute(delete_stmt)
+
+            # Insert new cross-spec data
+            conn.execute(self.cross_spec.insert(), data)
 
     def close(self):
         """Close connections."""

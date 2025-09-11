@@ -7,6 +7,7 @@ Created on Sun Dec 29 04:02:35 2013
 """
 
 import logging
+import os
 import os.path
 import shutil
 import subprocess
@@ -1144,9 +1145,10 @@ class RaExperiment:
                 if self.run_id > 0 and fri:
                     if self.pima.exper_info.sp_chann_num <= 128:
                         fri.update_status(64)
-                        self.db.fri2db(
-                            fri, self.pima.exper_info, self.run_id, nobps=True
-                        )
+
+                        # Save coarse fringe fitting results to the ``pima_obs_nobps``
+                        # database table
+                        self.fringes2db(fri, nobps=True)
 
                 # Exclude suspicious observations
                 obs_list = []
@@ -1201,11 +1203,23 @@ class RaExperiment:
                 ch_num = 2048
 
             self.fri.update_status(ch_num, snr_det_limits)
-
-            if self.run_id > 0:
-                self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
+            self.fringes2db(self.fri)
 
         return self.fri
+
+    def fringes2db(self, fri: Fri, nobps: bool = False) -> None:
+        """Put fringe fitting information to the database."""
+        if self.run_id > 0 and fri:
+            self.db.fri2db(fri, self.pima.exper_info, self.run_id, nobps=nobps)
+
+            if self.scan_part == 1 and self.pima.chan_number <= 256 and not nobps:
+                self.db.crossspec2db(
+                    self.exper,
+                    self.band,
+                    fri.header["polar"],
+                    self.run_id,
+                    self.pima.fringe_plots(),
+                )
 
     def flag_edge_chann(self, number):
         """
@@ -1374,11 +1388,6 @@ class RaExperiment:
                     with UVFits(out_fits_path) as uvfits_file:
                         self.db.uvfits2db(uvfits_file, b1950_name, self.run_id)
 
-    def fringes2db(self):
-        """Put fringe fitting information to the database."""
-        if self.run_id > 0 and self.fri:
-            self.db.fri2db(self.fri, self.pima.exper_info, self.run_id)
-
     def delete_uvfits(self):
         """Delete UV-FITS file."""
         # Delete FITS file in `data_dir` only
@@ -1401,7 +1410,10 @@ class RaExperiment:
             shutil.rmtree(staging_dir)
 
     def generate_autospectra(
-        self, plot: bool = False, out_dir: str | None = None, db: bool = False
+        self,
+        plot: bool = False,
+        out_dir: str | os.PathLike | None = None,
+        db: bool = False,
     ) -> None:
         """
         Generate autocorrelation spectrum.
@@ -1413,7 +1425,7 @@ class RaExperiment:
         ----------
         plot : bool, optional
             If ``True`` plot autospectra.
-        out_dir : str, optional
+        out_dir : str or Path, optional
             Plot output directory. If ``None`` use ``autospec`` directory from config
             file.
         db : bool, optional
@@ -1442,8 +1454,8 @@ class RaExperiment:
                     file_name, polar, self.pima.exper_info.utc_minus_tai
                 )
 
-                sta = acta_file.header["station"]
-                scan_name = acta_file.header["scan_name"]
+                sta = acta_file.header.station
+                scan_name = acta_file.header.scan_name
 
                 assert (polar, scan_name, sta) not in self.acta_files
 

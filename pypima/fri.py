@@ -280,7 +280,7 @@ class Fri:
     def parse_file(self, file_name):
         """Parse PIMA fri-file."""
         started = False
-        header = {}
+        self.header = {}
         self.records.clear()
 
         with open(file_name) as fil:
@@ -291,7 +291,7 @@ class Fri:
             for line in fil:
                 if line.startswith("# PIMA_FRINGE started"):
                     started = True
-                    header.clear()
+                    self.header.clear()
                     continue
                 if line.startswith("# PIMA_FRINGE ended"):
                     started = False
@@ -303,26 +303,26 @@ class Fri:
                     continue
                 if toks[0] == "#":
                     if toks[1] == "Control":
-                        header["cnt_file"] = toks[-1]
+                        self.header["cnt_file"] = toks[-1]
                     elif toks[1] == "Experiment":
-                        header["exper_code"] = toks[-1]
+                        self.header["exper_code"] = toks[-1]
                     elif toks[1] == "Session":
-                        header["session_code"] = toks[-1]
+                        self.header["session_code"] = toks[-1]
                     elif toks[1] == "FRINGE_FITTING_STYLE:":
-                        header["FRINGE_FITTING_STYLE"] = toks[-1]
+                        self.header["FRINGE_FITTING_STYLE"] = toks[-1]
                     elif toks[1] == "FRIB.POLAR:":
-                        header["polar"] = toks[2]
+                        self.header["polar"] = toks[2]
                     elif toks[1] == "FRIB.FINE_SEARCH:":
-                        header["FRIB.FINE_SEARCH"] = toks[-1]
+                        self.header["FRIB.FINE_SEARCH"] = toks[-1]
                     elif toks[1] == "PHASE_ACCELERATION:":
-                        header["accel"] = float(toks[2].replace("D", "e"))
+                        self.header["accel"] = float(toks[2].replace("D", "e"))
                     elif toks[1] == "FRIB.BEG_IFRQ:":
-                        header["beg_ifrq"] = int(toks[2])
+                        self.header["beg_ifrq"] = int(toks[2])
                     elif toks[1] == "FRIB.END_IFRQ:":
-                        header["end_ifrq"] = int(toks[2])
+                        self.header["end_ifrq"] = int(toks[2])
                 elif toks[6] != "FAILURE":
                     self.records.append({"status": "u", "pfd": -1.0})
-                    self.records[-1].update(header)
+                    self.records[-1].update(self.header)
                     self.records[-1]["obs"] = int(toks[0])
                     self.records[-1]["scan"] = int(toks[1])
                     self.records[-1]["time_code"] = toks[2]

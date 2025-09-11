@@ -225,3 +225,27 @@ GRANT USAGE, SELECT ON SEQUENCE autospec_id_seq TO editor;
 
 CREATE INDEX autospec_ampl_idx ON autospec (ampl);
 CREATE INDEX autospec_info_id_idx ON autospec (info_id);
+
+
+--
+-- Cross-power spectra - the visibilities averaged over time as a function of frequency
+--
+CREATE TABLE cross_spec (
+    id serial primary key,
+    exper_name varchar(20) references vex_files(exper_name),
+    band band_type NOT NULL,
+    polar polar_type NOT NULL,
+    sta1 varchar(8) NOT NULL,
+    sta2 varchar(8) NOT NULL,
+    obs integer CHECK (obs > 0),
+    scan_name varchar(10) NOT NULL,
+    start_time timestamp NOT NULL,
+    stop_time timestamp NOT NULL,
+    freq double precision ARRAY,
+    ampl double precision ARRAY,
+    phase double precision ARRAY,
+    run_id int references pima_runs(id) ON DELETE CASCADE
+);
+GRANT SELECT ON cross_spec TO guest;
+GRANT SELECT, UPDATE, INSERT, DELETE ON cross_spec TO editor;
+GRANT USAGE, SELECT ON SEQUENCE cross_spec_id_seq TO editor;
