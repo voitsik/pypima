@@ -5,7 +5,11 @@ Created on Thu Feb 11 14:00:15 2016
 @author: Petr Voytsik
 """
 
+import os
+from dataclasses import InitVar, dataclass, field
+
 import numpy as np
+import numpy.typing as npt
 from astropy.io import fits
 from astropy.time import Time
 
@@ -21,7 +25,29 @@ class UVFitsError(Exception):
         return f"{self.message}: {self.file_name}"
 
 
-def baseline_decode(baseline):
+def get_float(header: fits.Header, key: str) -> float:
+    """Get float value from FITS header."""
+    val = header[key]  # Will raise KeyError if not found
+
+    if not isinstance(val, float):
+        raise TypeError(f"Invalid {key} value: {val}")
+
+    return val
+
+
+def get_int(header: fits.Header, key: str) -> int:
+    """Get int value from FITS header."""
+    val = header[key]
+
+    if not isinstance(val, int):
+        raise TypeError(f"Invalid {key} value: {val}")
+
+    return val
+
+
+def baseline_decode(
+    baseline: npt.NDArray,
+) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
     """Decode `baseline` index and return subarray and antennas numbers."""
     ant1 = np.asarray(baseline, dtype=int) // 256
     ant2 = np.mod(np.asarray(baseline, dtype=int), 256)
@@ -30,54 +56,59 @@ def baseline_decode(baseline):
     return subarr, ant1, ant2
 
 
+NUM2STOKES = {
+    1: "I",
+    2: "Q",
+    3: "U",
+    4: "V",
+    -1: "RR",
+    -2: "LL",
+    -3: "RL",
+    -4: "LR",
+    -5: "XX",
+    -6: "YY",
+    -7: "XY",
+    -8: "YX",
+}
+
+
+@dataclass
 class UVFits:
     """Class for reading and handling UVFITS data files."""
 
-    NUM2STOKES = {
-        1: "I",
-        2: "Q",
-        3: "U",
-        4: "V",
-        -1: "RR",
-        -2: "LL",
-        -3: "RL",
-        -4: "LR",
-        -5: "XX",
-        -6: "YY",
-        -7: "XY",
-        -8: "YX",
-    }
+    hdulist: fits.HDUList = field(init=False, compare=False, repr=False)
+    antenna_table: list[dict] = field(init=False, default_factory=list)
+    freq_table: list[dict] = field(init=False, default_factory=list)
 
-    def __init__(self, file_name: str):
-        # Init class variables
-        self.file_name = file_name
-        self.antenna_table = []
-        self.freq_table = []
+    # Header
+    freq: float = field(init=False, default=0.0)
+    no_if: int = field(init=False, default=0)
+    gcount: int = field(init=False, default=0)
+    source: str = field(init=False, default="")
+    exper_name: str = field(init=False, default="")
+    band: str = field(init=False, default="")
+    stokes: str = field(init=False, default="")
 
-        # Header
-        self.freq = 0.0
-        self.no_if = 0
-        self.gcount = 0
-        self.source = None
-        self.exper_name = None
-        self.band = None
+    # UV-data
+    u_raw: npt.NDArray = field(init=False)
+    v_raw: npt.NDArray = field(init=False)
+    baselines: npt.NDArray = field(init=False)
+    ant1_inds: npt.NDArray = field(init=False)
+    ant2_inds: npt.NDArray = field(init=False)
+    subarrays: npt.NDArray = field(init=False)
+    # self.dates1 = None
+    # self.dates2 = None
+    dates: npt.NDArray = field(init=False)
+    amplitudes: npt.NDArray = field(init=False)
+    phases: npt.NDArray = field(init=False)
+    weights: npt.NDArray = field(init=False)
+    inttime: npt.NDArray = field(init=False)
 
-        # UV-data
-        self.u_raw = None
-        self.v_raw = None
-        self.baselines = None
-        self.ant1_inds = None
-        self.ant2_inds = None
-        self.subarrays = None
-        self.dates1 = None
-        self.dates2 = None
-        self.dates = None
-        self.amplitudes = None
-        self.phases = None
-        self.weights = None
-        self.inttime = None
+    # Input
+    path: InitVar[str | os.PathLike]
 
-        self.hdulist = fits.open(file_name)
+    def __post_init__(self, path: str | os.PathLike) -> None:
+        self.hdulist = fits.open(path)
 
         self._read_header()
         self._read_an_table()
@@ -91,29 +122,44 @@ class UVFits:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def _read_header(self):
-        """Read FITS file head."""
-        header = self.hdulist[0].header
+    def _read_header(self) -> None:
+        """Read UVFITS file header."""
+        primary_hdu = self.hdulist[0]
 
-        if not header["groups"] or header["NAXIS1"] != 0:
-            raise UVFitsError("", self.file_name)
+        if not isinstance(primary_hdu, fits.GroupsHDU):
+            raise UVFitsError(
+                "Invalid UVFITS file: Primary HDU is not GroupsHDU", self.file_name
+            )
 
-        toks = header["OBSERVER"].split("_")
+        header = primary_hdu.header
+
+        if "GROUPS" not in header or not header["GROUPS"]:
+            raise UVFitsError(
+                "Invalid UVFITS file: no GROUPS in header", self.file_name
+            )
+
+        if header["NAXIS1"] != 0:
+            raise UVFitsError("Invalid UVFITS file: NAXIS1 is not zero", self.file_name)
+
+        toks = str(header["OBSERVER"]).split("_")
         if len(toks) == 2:  # Exper code in RA AGN survey format
             self.exper_name = toks[0]
             self.band = toks[1]
         else:  # General case
-            self.exper_name = header["OBSERVER"]
+            self.exper_name = str(header["OBSERVER"])
 
-        self.source = header["OBJECT"]
-        self.gcount = header["GCOUNT"]
+        self.source = str(header["OBJECT"])
+        self.gcount = get_int(header, "GCOUNT")
+        if self.gcount <= 0:
+            raise UVFitsError(f"Invalid GCOUNT value: {self.gcount}", self.file_name)
+
         # Go through the array axis
-        for ind in range(2, 1 + header["NAXIS"]):
-            naxis = header[f"NAXIS{ind}"]
+        for ind in range(2, 1 + get_int(header, "NAXIS")):
+            naxis = get_int(header, f"NAXIS{ind}")
             ctype = header[f"CTYPE{ind}"]
-            crval = header[f"CRVAL{ind}"]
-            crpix = header[f"CRPIX{ind}"]
-            cdelt = header[f"CDELT{ind}"]
+            crval = get_float(header, f"CRVAL{ind}")
+            crpix = get_float(header, f"CRPIX{ind}")
+            cdelt = get_float(header, f"CDELT{ind}")
 
             if ctype == "FREQ":
                 if naxis != 1:
@@ -127,30 +173,37 @@ class UVFits:
             elif ctype == "STOKES":
                 if naxis != 1:
                     raise UVFitsError("Multiple Stokes not supported", self.file_name)
-                val = crval + (1 - crpix) * cdelt
-                self.stokes = self.NUM2STOKES[val]
+                val = int(crval + (1 - crpix) * cdelt)
+                self.stokes = NUM2STOKES[val]
 
-    def _read_an_table(self):
-        """Read antenna table."""
-        subarray = 0
+    def _read_an_table(self) -> None:
+        """Read antenna table(s)."""
+        # Look for all AIPS AN tables
         for hdu in self.hdulist:
-            if hdu.name == "AIPS AN":
-                self.antenna_table.append({})
-                for row in hdu.data:
-                    anname = row["ANNAME"]
-                    nosta = row["NOSTA"]
-                    self.antenna_table[subarray][nosta] = anname
-                subarray += 1
+            if isinstance(hdu, fits.BinTableHDU):
+                if "EXTNAME" in hdu.header and hdu.header["EXTNAME"] == "AIPS AN":
+                    anname = hdu.data.field("ANNAME")
+                    nosta = hdu.data.field("NOSTA").tolist()
+                    self.antenna_table.append(dict(zip(nosta, anname)))
 
         if not self.antenna_table:
             raise UVFitsError("Could not find AN table", self.file_name)
 
-    def _read_fq_table(self):
+    def _read_fq_table(self) -> None:
         """Read frequency table."""
-        self.no_if = self.hdulist["AIPS FQ"].header["NO_IF"]
+        fq_table = self.hdulist["AIPS FQ"]
+
+        if not isinstance(fq_table, fits.BinTableHDU):
+            raise UVFitsError("Invalid FQ table: not BinTableHDU", self.file_name)
+
+        self.no_if = get_int(fq_table.header, "NO_IF")
+        if self.no_if <= 0:
+            raise UVFitsError(
+                f"Invalid NO_IF value in FQ table: {self.no_if}", self.file_name
+            )
 
         # Assume we have only one frequency setup
-        freq_data = self.hdulist["AIPS FQ"].data[0]
+        freq_data = fq_table.data[0]
 
         if self.no_if == 1:
             self.freq_table.append(
@@ -169,18 +222,23 @@ class UVFits:
                         "sideband": freq_data["SIDEBAND"][if_num],
                     }
                 )
-        else:
-            raise UVFitsError(f"Invalid NO_IF value: {self.no_if}", self.file_name)
 
     def _read_uv_data(self):
         """Read UV data."""
-        data = self.hdulist[0].data
+        primary_hdu = self.hdulist[0]
+        assert isinstance(primary_hdu, fits.GroupsHDU), "Primary HDU is not GroupsHDU"
+        data = primary_hdu.data
+        assert isinstance(data, fits.GroupData), "Primary HDU data is not GroupsData"
+
+        # Assume we have only files produced by PIMA
         self.u_raw = data.par("UU")
         self.v_raw = data.par("VV")
-        self.dates1 = data.par(4)
-        self.dates2 = data.par(5)
+        # self.dates1 = data.par(4)
+        # self.dates2 = data.par(5)
         self.inttime = data.par("INTTIM")
-        self.dates = Time(self.dates1, self.dates2, scale="utc", format="jd").datetime
+        self.dates = np.asarray(
+            Time(data.par(4), data.par(5), scale="utc", format="jd").datetime
+        )
         self.baselines = data.par("BASELINE")
         self.subarrays, self.ant1_inds, self.ant2_inds = baseline_decode(self.baselines)
 
@@ -189,7 +247,16 @@ class UVFits:
         self.phases = np.angle(vis)
         self.weights = data.data[:, 0, 0, :, 0, 0, 2]
 
-    def get_ant_by_ind(self, ind):
+    @property
+    def file_name(self) -> str:
+        """Return file name."""
+        filename = self.hdulist.filename()
+        if not isinstance(filename, str):
+            raise RuntimeError("Invalid filename type")
+
+        return filename
+
+    def get_ant_by_ind(self, ind: int) -> tuple[str, str]:
         """Return antenna names for given baseline."""
         subarr = self.subarrays[ind]
         ant1 = self.ant1_inds[ind]
@@ -198,46 +265,6 @@ class UVFits:
         ant2_name = self.antenna_table[subarr][ant2]
 
         return ant1_name, ant2_name
-
-    def print_info(self):
-        """Print FITS file info to the standard output."""
-        self.hdulist.info()
-
-    def print_uv(self):
-        """Print UV data to the standard output."""
-        for ind in range(self.gcount):
-            ant1_name, ant2_name = self.get_ant_by_ind(ind)
-
-            for if_num in range(self.no_if):
-                uu = self.u_raw[ind] * (self.freq + self.freq_table[if_num]["if_freq"])
-                vv = self.v_raw[ind] * (self.freq + self.freq_table[if_num]["if_freq"])
-
-                amp = self.amplitudes[ind, if_num]
-                pha = self.phases[ind, if_num]
-                weight = self.weights[ind, if_num]
-
-                print(
-                    ind + 1,
-                    if_num + 1,
-                    ant1_name,
-                    ant2_name,
-                    self.dates[ind],
-                    f"{amp:10.6f} {pha:8.5f} {weight:10.1f}",
-                    f"{uu:15.1f} {vv:15.1f}",
-                )
-
-    def useful_antennas(self):
-        """Return set of antenna names."""
-        antennas = set()
-
-        for ind in range(self.gcount):
-            ant1_name, ant2_name = self.get_ant_by_ind(ind)
-            for if_num in range(self.no_if):
-                if self.amplitudes[ind, if_num] > 0 and self.weights[ind, if_num] > 0:
-                    antennas.add(ant1_name)
-                    antennas.add(ant2_name)
-
-        return antennas
 
     def close(self):
         """Close HDU list."""
