@@ -1,4 +1,6 @@
 """
+Module to run PIMA tasks and handle PIMA-related files.
+
 Created on Tue Dec 10 17:21:29 2013
 
 @author: Petr Voytsik
@@ -13,7 +15,7 @@ from collections import namedtuple
 from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple, NoReturn
 
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -454,7 +456,7 @@ class Pima:
         self.cnt_file_name = f"{self.exper}_{self.band}_pima.cnt"
         self.cnt_file_name = os.path.join(self.work_dir, self.cnt_file_name)
 
-        # Dictionary with all parameters from cnt-file
+        # Dictionary with all parameters from PIMA control file
         self.cnt_params = {}
         self._update_cnt_params()
         self.exper_info = ExperInfo(self.exper, self.band)
@@ -465,8 +467,8 @@ class Pima:
         if os.path.isfile(stt_file):
             self.exper_info.update(stt_file)
 
-    def _update_cnt_params(self):
-        """Read cnt-file and fill cnt_params dictionary."""
+    def _update_cnt_params(self) -> None:
+        """Read *PIMA* control file and fill cnt_params dictionary."""
         self.cnt_params.clear()
         self.cnt_params["UV_FITS:"] = []
 
@@ -483,8 +485,8 @@ class Pima:
                 else:
                     self.cnt_params[key] = val
 
-    def update_cnt(self, opts):
-        """Update pima control file according to `opts` dictionary."""
+    def update_cnt(self, opts: dict[str, Any]) -> None:
+        """Update *PIMA* control file according to `opts` dictionary."""
         if not opts:
             return
 
@@ -525,7 +527,12 @@ class Pima:
 
         self._update_cnt_params()
 
-    def _exec(self, operation, options=None, log_name=None) -> int:
+    def _exec(
+        self,
+        operation: str,
+        options: dict[str, Any] | None = None,
+        log_name: str | None = None,
+    ) -> int:
         """
         Execute PIMA binary.
 
@@ -574,17 +581,17 @@ class Pima:
 
         return ret
 
-    def _error(self, msg):
+    def _error(self, msg: str) -> NoReturn:
         """Raise pima.Error exception."""
         self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
 
-    def load(self):
+    def load(self) -> None:
         """
         Run pima load.
 
         This function removes all existing index files of the current session and
-        the runs ``load`` task.
+        runs ``load`` task.
 
         """
         exper_dir_path = Path(self.cnt_params["EXPER_DIR:"])
@@ -608,7 +615,7 @@ class Pima:
 
         self.logger.info("load ok")
 
-    def coarse(self, params=None):
+    def coarse(self, params: dict[str, Any] | None = None) -> str:
         """
         Do coarse fringe fitting.
 
@@ -681,7 +688,7 @@ class Pima:
 
         return fri_file
 
-    def fine(self, params=None):
+    def fine(self, params: dict[str, Any] | None = None) -> str:
         """
         Do file fringe fitting.
 
@@ -742,7 +749,7 @@ class Pima:
 
         return fri_file
 
-    def bpas(self, params=None) -> str:
+    def bpas(self, params: dict[str, Any] | None = None) -> str:
         """
         Do bandpass calibration.
 
@@ -808,7 +815,7 @@ class Pima:
 
         return log_file
 
-    def split(self, tim_mseg=1, params=None):
+    def split(self, tim_mseg: int = 1, params: dict[str, Any] | None = None):
         """
         Do SPLIT.
 
@@ -848,7 +855,7 @@ class Pima:
 
         self.logger.info("split ok")
 
-    def load_gains(self, gain_file, params=None) -> None:
+    def load_gains(self, gain_file: str, params: dict[str, Any] | None = None) -> None:
         """
         Load antenna gains from the `gain_file`.
 
@@ -876,7 +883,7 @@ class Pima:
 
         self.logger.info("evn_gain ok")
 
-    def load_tsys(self, tsys_file, params=None) -> None:
+    def load_tsys(self, tsys_file: str, params: dict[str, Any] | None = None) -> None:
         """
         Load Tsys from the `tsys_file`.
 
@@ -904,7 +911,7 @@ class Pima:
 
         self.logger.info("vlba_log_file ok")
 
-    def acta(self, params=None):
+    def acta(self, params: dict[str, Any] | None = None) -> list[str]:
         """
         Run `acta` pima task for autocorrelation spectrum generation.
 
@@ -949,7 +956,7 @@ class Pima:
         return file_list
 
     # Additional useful utilites
-    def set_polar(self, polar):
+    def set_polar(self, polar: str) -> None:
         """
         Set polarization in control file.
 
@@ -967,7 +974,7 @@ class Pima:
         self.logger.info("Set polarization to %s", polar)
         self.update_cnt({"POLAR:": polar, "SPLT.POLAR:": polar})
 
-    def set_frq_grp(self, frq_grp):
+    def set_frq_grp(self, frq_grp: int) -> None:
         """
         Set frequency group in control file.
 
@@ -984,9 +991,9 @@ class Pima:
         self.update_cnt({"FRQ_GRP:": frq_grp})
 
     @property
-    def ap_minmax(self):
+    def ap_minmax(self) -> tuple[float, float]:
         """Return minimum and maximum accummulation periods in experiment."""
-        ap_min = ap_max = 0
+        ap_min = ap_max = 0.0
         stt_file = os.path.join(
             self.cnt_params["EXPER_DIR:"], self.cnt_params["SESS_CODE:"] + ".stt"
         )
@@ -1002,11 +1009,11 @@ class Pima:
         return ap_min, ap_max
 
     @property
-    def number_of_deselected_points(self):
+    def number_of_deselected_points(self) -> int:
         """Return total number of deselected points."""
         return self.exper_info.deselected_points_num
 
-    def station_list(self, ivs_name=True):
+    def station_list(self, ivs_name=True) -> list[str]:
         """
         Return a list of the station names.
 
@@ -1042,7 +1049,7 @@ class Pima:
         return sta_l
 
     @property
-    def source_list(self):
+    def source_list(self) -> list[tuple[str, str, str]]:
         """
         Return a list of the source names.
 
@@ -1065,7 +1072,7 @@ class Pima:
 
         return sou_list
 
-    def source_dist(self):
+    def source_dist(self) -> dict[str, float]:
         """Return distance between correlator phase center and source position."""
         dist = {}
         sou_file = os.path.join(
@@ -1084,17 +1091,17 @@ class Pima:
         return dist
 
     @property
-    def obs_number(self):
+    def obs_number(self) -> int:
         """Return number of observations in the experiment."""
         return self.exper_info.obs_num
 
     @property
-    def chan_number(self):
+    def chan_number(self) -> int:
         """Return number of spectral channels in uv-data."""
         return self.exper_info.sp_chann_num
 
     @property
-    def frequencies(self):
+    def frequencies(self) -> list:
         """
         Return list of frequencies used in the experiment.
 
@@ -1228,7 +1235,9 @@ class Pima:
 
         return clock_model
 
-    def mk_exclude_obs_file(self, obs_list, suffix, polar=None):
+    def mk_exclude_obs_file(
+        self, obs_list: list[int], suffix: str, polar: str | None = None
+    ) -> str:
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.
 
@@ -1276,7 +1285,7 @@ class Pima:
 
         return exc_obs_file
 
-    def set_mask_file(self, mask_gen_file):
+    def set_mask_file(self, mask_gen_file: str | None) -> str | None:
         """
         Create mask file based on `mask_gen_file` and update control file.
 
@@ -1308,7 +1317,7 @@ class Pima:
 
         return mask_file
 
-    def mk_bpass_mask_gen(self, params):
+    def mk_bpass_mask_gen(self, params: list[tuple]) -> str | None:
         """
         Create PIMA ``BPASS_MASK_GEN`` file.
 
