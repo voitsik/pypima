@@ -15,7 +15,7 @@ from collections import namedtuple
 from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, NamedTuple, NoReturn
+from typing import Any, Iterable, NamedTuple, NoReturn
 
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -1236,7 +1236,7 @@ class Pima:
         return clock_model
 
     def mk_exclude_obs_file(
-        self, obs_list: list[int], suffix: str, polar: str | None = None
+        self, obs_list: Iterable[int] | None, suffix: str, polar: str | None = None
     ) -> str:
         """
         Create ``EXCLUDE_OBS_FILE`` file using list of the observation indices.

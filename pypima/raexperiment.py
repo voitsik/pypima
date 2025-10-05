@@ -16,7 +16,7 @@ from configparser import Error as ConfigError
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Optional
+from typing import NoReturn, Optional
 from urllib.parse import urlunsplit
 
 import numpy as np
@@ -35,7 +35,7 @@ from .uvfits import UVFits
 class Error(Exception):
     """Raised when RaExperiment error occurs."""
 
-    def __init__(self, exper, band, msg):
+    def __init__(self, exper: str, band: str, msg: str):
         self.exper = exper
         self.band = band
         self.msg = msg
@@ -106,7 +106,7 @@ class RaExperiment:
         self.antab = None
         self.calibration_loaded = False
         self.split_time_aver = 0
-        self.pima = None
+        self.pima: Pima
         self.uv_fits = uv_fits
         self.orbit = orbit
         self.source_names = source_names
@@ -124,11 +124,15 @@ class RaExperiment:
         }
 
         if self.band not in ("p", "l", "c", "x", "k"):
-            self._error(f"unknown band {band}")
+            self._error(f"Unknown band {band}")
 
-        self.pima_dir = os.getenv("PIMA_DIR")
-        if not self.pima_dir:
+        pima_dir = os.getenv("PIMA_DIR")
+        if pima_dir is None:
             self._error("Environment variable $PIMA_DIR is not set")
+
+        self.pima_dir = Path(pima_dir)
+        if not self.pima_dir.is_dir():
+            self._error(f"$PIMA_DIR={pima_dir} is not a directory")
 
         # Working directory path
         try:
@@ -189,7 +193,6 @@ class RaExperiment:
 
         # Create data directory for FITS-IDI files
         os.makedirs(self.data_dir, exist_ok=True)
-
         os.chdir(self.work_dir)
 
         # Create PIMA control file
@@ -238,7 +241,7 @@ class RaExperiment:
 
                     return
 
-    def _error(self, msg):
+    def _error(self, msg: str) -> NoReturn:
         """Raise raexperiment.Error exception."""
         self.logger.error(msg)
         raise Error(self.exper, self.band, msg)
@@ -266,7 +269,7 @@ class RaExperiment:
                 if "@CDATE@" in line:
                     line = line.replace("@CDATE@", str(datetime.now()))
                 elif "@pima_dir@" in line:
-                    line = line.replace("@pima_dir@", self.pima_dir)
+                    line = line.replace("@pima_dir@", str(self.pima_dir))
                 elif line.startswith("SESS_CODE:"):
                     line = line.replace("@sess_code@", sess_code)
                 elif line.startswith("BAND:"):
@@ -285,7 +288,7 @@ class RaExperiment:
                     line = line.replace("@polar@", polar)
                 cnt_file.write(line)
 
-    def _download_fits(self, force_small=False):
+    def _download_fits(self, force_small: bool = False):
         """Download FITS-file from the FTP archive."""
         fits_path_remote, ftp_host, size = self.db.get_uvfits_path(
             self.exper, self.band, self.gvlbi, force_small
@@ -335,7 +338,7 @@ class RaExperiment:
         """Download reconstructed orbit file from FTP server."""
         orbit_url = self.db.get_orbit_url(self.exper)
 
-        if not orbit_url:
+        if orbit_url is None:
             self._error("Could not find reconstructed orbit")
 
         self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
@@ -553,6 +556,9 @@ class RaExperiment:
             if not self.uv_fits:
                 self._download_fits(force_small)
 
+        # Ensure self.uv_fits is set
+        assert self.uv_fits is not None, "self.uv_fits is None"
+
         if download_only:
             return
 
@@ -682,7 +688,7 @@ class RaExperiment:
         else:
             self.calibration_loaded = False
 
-    def load_antab(self, antab_file=None) -> None:
+    def load_antab(self, antab_file: str | None = None) -> None:
         """Download ANTAB file and load calibration information to PIMA."""
         if self.calibration_loaded:
             self.logger.info(
@@ -705,7 +711,7 @@ class RaExperiment:
                 self.logger.warning("Could not load calibration information")
                 self.calibration_loaded = False
 
-    def _select_ref_sta(self, fri, ref_sta=None):
+    def _select_ref_sta(self, fri: Fri, ref_sta: str | None = None) -> bool:
         """
         Select reference station for bandpass calibration.
 
@@ -771,7 +777,7 @@ class RaExperiment:
         else:
             return False
 
-    def _check_bad_autospec_obs(self):
+    def _check_bad_autospec_obs(self) -> set[int] | None:
         """Return set of observation numbers with bad autospectrum."""
         self.generate_autospectra()
 
@@ -1221,7 +1227,7 @@ class RaExperiment:
                     self.pima.fringe_plots(),
                 )
 
-    def flag_edge_chann(self, number):
+    def flag_edge_chann(self, number: int) -> None:
         """
         Flag `number` spectral channels at the edges of the bandpass.
 
@@ -1251,7 +1257,7 @@ class RaExperiment:
         if mask_file:
             self.logger.info("Set %s as new mask file", mask_file)
 
-    def split(self, source=None, average=False):
+    def split(self, source: str | None = None, average: bool = False):
         """
         Split a multi-source uv data set into single-source data files.
 
@@ -1277,6 +1283,11 @@ class RaExperiment:
                 "Could not do splitting due to absence of calibration information"
             )
             return
+
+        if self.fri is None:
+            self._error(
+                "Could not do splitting due to absence of fringe fitting results"
+            )
 
         if not self.fri.any_detections():
             self.logger.warning("No useful scans for splitting")
@@ -1321,7 +1332,7 @@ class RaExperiment:
         self.split_time_aver = time_segments * ap_len
         self.pima.split(tim_mseg=time_segments, params=split_params)
 
-    def copy_uvfits(self, out_dir: str | None = None):
+    def copy_uvfits(self, out_dir: str | os.PathLike | None = None):
         """Copy calibrated uv-fits files from pima scratch dir to `out_dir`."""
         exper_dir = self.pima.cnt_params["EXPER_DIR:"]
         sess_code = self.pima.cnt_params["SESS_CODE:"]
@@ -1468,7 +1479,7 @@ class RaExperiment:
                     self.db.autospec2db(acta_file)
 
 
-def _download_it(url, buffer, max_retries=0, ftp_user=None):
+def _download_it(url: str, buffer, max_retries: int = 0, ftp_user: str | None = None):
     """
     Download data from `url` and write it to `buffer` using pycurl.
 
