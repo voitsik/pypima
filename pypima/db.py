@@ -9,16 +9,62 @@ Created on Thu Oct 30 14:23:23 2014
 import logging
 import os.path
 from configparser import ConfigParser
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import MetaData, Table, create_engine, func, select
+from sqlalchemy import Column, MetaData, Table, create_engine, func, select, text
+from sqlalchemy.types import REAL, String, Text, UserDefinedType
 
 from .fri import Fri  # for type hints
 from .pima import ActaFile, ExperInfo, ObsFriPlots  # for type hints
 from .uvfits import UVFits  # for type hints
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Point:
+    """Just 2D point: object with two coordinates."""
+
+    x: float = 0.0
+    y: float = 0.0
+
+
+def parse_point(s: str) -> Point:
+    """Parse string obtained from database and return ``Point`` object."""
+    x, y = (float(ss.strip("()")) for ss in s.split(","))
+    return Point(x, y)
+
+
+class PointType(UserDefinedType):
+    """SQLAlchemy type which represents PostgreSQL point type."""
+
+    cache_ok = True
+
+    def get_col_spec(self, **kw):
+        """Return the database type name."""
+        return "point"
+
+    def bind_processor(self, dialect):
+        """Return a parameter processing function."""
+
+        def process(value: Optional[Point]):
+            if value is None:
+                return value
+            return f"({value.x}, {value.y})"
+
+        return process
+
+    def result_processor(self, dialect, coltype):
+        """Return a result processing function."""
+
+        def process(value):
+            if value is None:
+                return None
+            return parse_point(value)
+
+        return process
 
 
 class DataBase:
@@ -33,6 +79,19 @@ class DataBase:
             insertmanyvalues_page_size=2048,
         )
         self.metadata = MetaData()
+
+        self.sources = Table(
+            "sources",
+            self.metadata,
+            Column("ivs_name", String(20), primary_key=True),
+            Column("j2000_name", String(20)),
+            Column("b1950_name", String(20)),
+            Column("aips_name", String(20)),
+            Column("coordinates", PointType, nullable=False),
+            Column("comments", Text),
+            Column("z", REAL, server_default=text("'-1'::real")),
+            Column("z_ref", String(30)),
+        )
 
         self.fits_files = Table("fits_files", self.metadata, autoload_with=self.engine)
         self.pima_runs = Table("pima_runs", self.metadata, autoload_with=self.engine)
@@ -140,8 +199,9 @@ class DataBase:
 
         query = (
             select(self.scf_files.c.file_name)
-            .join(self.vex_files, self.vex_files.c.exper_name == exper)
+            .select_from(self.scf_files, self.vex_files)
             .where(
+                self.vex_files.c.exper_name == exper,
                 self.scf_files.c.start_time <= self.vex_files.c.exper_nominal_start,
                 self.scf_files.c.stop_time >= self.vex_files.c.exper_nominal_stop,
                 self.scf_files.c.step == 1,
