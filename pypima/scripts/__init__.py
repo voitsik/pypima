@@ -1,1 +1,1 @@
-#
+"""Command-line script."""

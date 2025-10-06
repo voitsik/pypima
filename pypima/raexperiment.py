@@ -6,6 +6,7 @@ Created on Sun Dec 29 04:02:35 2013
 @author: Petr Voytsik
 """
 
+import contextlib
 import logging
 import os
 import os.path
@@ -16,7 +17,7 @@ from configparser import Error as ConfigError
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import NoReturn, Optional
+from typing import NoReturn
 from urllib.parse import urlunsplit
 
 import numpy as np
@@ -56,11 +57,11 @@ class RaExperiment:
         config: QuoteStrippingConfigParser,
         data_base: DataBase,
         # data_dir: Optional[str] = None,
-        uv_fits: Optional[str | list] = None,
-        orbit: Optional[str] = None,
-        source_names: Optional[str] = None,
+        uv_fits: str | list | None = None,
+        orbit: str | None = None,
+        source_names: str | None = None,
         gvlbi: bool = False,
-        reference_station: Optional[str] = None,
+        reference_station: str | None = None,
     ):
         """Init experiment object.
 
@@ -292,7 +293,7 @@ class RaExperiment:
                     line = "{:<20}{}\n".format("STA_REF:", self.sta_ref)
                 elif line.startswith("EPHEMERIDES_FILE:") and self.orbit:
                     line = line.replace("@ephemerides_file@", self.orbit)
-                elif line.startswith("POLAR:") or line.startswith("SPLT.POLAR:"):
+                elif line.startswith(("POLAR:", "SPLT.POLAR:")):
                     line = line.replace("@polar@", polar)
                 cnt_file.write(line)
 
@@ -342,12 +343,13 @@ class RaExperiment:
         # the end of this function
         self.uv_fits = fits_path_local
 
-    def _get_orbit(self):
+    def _get_orbit(self) -> None:
         """Download reconstructed orbit file from FTP server."""
         orbit_url = get_orbit_path(self.exper, self.db, self.webinet_dir)
 
         if orbit_url is None:
             self._error("Could not find reconstructed orbit")
+            return
 
         self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
 
@@ -427,10 +429,10 @@ class RaExperiment:
 
         self.antab = self._fix_antab(antab_file)
 
-    def _fix_antab(self, antab: str) -> Optional[str]:
+    def _fix_antab(self, antab: str) -> str | None:
         """Fix ANTAB file."""
         if not antab or not os.path.isfile(antab):
-            return
+            return None
 
         new_antab = antab.replace(".orig", "")
 
@@ -455,7 +457,7 @@ class RaExperiment:
                 self.logger.warning(
                     "antab file %s does NOT have magic in the first line", antab
                 )
-                return
+                return None
 
             # Do not forget to write a 'magic' line to the output file
             out.write(magic)
@@ -491,10 +493,9 @@ class RaExperiment:
                 #     self.logger.warning("fix EF C-band channels table")
                 #     toks.insert(2, "6cm")
 
-                if fix_freq and len(toks) > 9 and toks[1].isdigit():
-                    if toks[6] == "L":
-                        toks[6] = "U"
-                        toks[9] = "{:.2f}MHz".format(freq_list[0])
+                if fix_freq and len(toks) > 9 and toks[1].isdigit() and toks[6] == "L":
+                    toks[6] = "U"
+                    toks[9] = f"{freq_list[0]:.2f}MHz"
 
                 # Deselect stations
                 if toks[0] == "TSYS" and len(toks) > 4:
@@ -541,8 +542,8 @@ class RaExperiment:
         scan_length: int = 1200,
         scan_part: int = 1,
         force_small: bool = False,
-        beg_frq: Optional[int] = None,
-        end_frq: Optional[int] = None,
+        beg_frq: int | None = None,
+        end_frq: int | None = None,
         pcal: str = "NO",
     ):
         """
@@ -652,9 +653,7 @@ class RaExperiment:
         if beg_frq:
             if beg_frq < 1 or beg_frq > self.pima.exper_info.if_num:
                 self._error(
-                    "beg_frq must be in range [1, {}]".format(
-                        self.pima.exper_info.if_num
-                    )
+                    f"beg_frq must be in range [1, {self.pima.exper_info.if_num}]"
                 )
             else:
                 self.pima.update_cnt({"BEG_FRQ:": beg_frq})
@@ -796,15 +795,15 @@ class RaExperiment:
             self.logger.info("New reference station is %s", self.sta_ref)
 
             return True
-        else:
-            return False
+
+        return False
 
     def _check_bad_autospec_obs(self) -> set[int] | None:
         """Return set of observation numbers with bad autospectrum."""
         self.generate_autospectra()
 
         if not self.acta_files:
-            return
+            return None
 
         bad_obs_set = set()
 
@@ -823,9 +822,8 @@ class RaExperiment:
                     else:
                         sta_pol = "RR"
                 else:
-                    raise RuntimeError(
-                        "unsupported polar {}".format(self.pima.cnt_params["POLAR:"])
-                    )
+                    msg = "unsupported polar {}".format(self.pima.cnt_params["POLAR:"])
+                    raise RuntimeError(msg)
 
                 try:
                     acta_file = self.acta_files[sta_pol, obs.time_code, sta]
@@ -1054,14 +1052,14 @@ class RaExperiment:
         self,
         bandpass: bool = False,
         accel: bool = False,
-        bandpass_mode: Optional[str] = None,
+        bandpass_mode: str | None = None,
         ampl_bandpass: bool = True,
         bandpass_var: int = 0,
-        bandpass_use: Optional[str] = None,
+        bandpass_use: str | None = None,
         bandpass_norm: str = "IF",
         bandpass_renorm: bool = True,
-        reference_station: Optional[str] = None,
-        snr_det_limits: Optional[PFDRec] = None,
+        reference_station: str | None = None,
+        snr_det_limits: PFDRec | None = None,
     ) -> Fri:
         """
         Perform a fringe fitting.
@@ -1170,13 +1168,12 @@ class RaExperiment:
                 fri_file = self.pima.coarse(coarse_params)
                 fri = Fri(fri_file)
 
-                if self.run_id > 0 and fri:
-                    if self.pima.exper_info.sp_chann_num <= 128:
-                        fri.update_status(64)
+                if self.run_id > 0 and fri and self.pima.exper_info.sp_chann_num <= 128:
+                    fri.update_status(64)
 
-                        # Save coarse fringe fitting results to the ``pima_obs_nobps``
-                        # database table
-                        self.fringes2db(fri, nobps=True)
+                    # Save coarse fringe fitting results to the ``pima_obs_nobps``
+                    # database table
+                    self.fringes2db(fri, nobps=True)
 
                 # Exclude suspicious observations
                 obs_list = []
@@ -1264,9 +1261,9 @@ class RaExperiment:
         if number < 0 or number >= chann_num / 2:
             self._error(f"invald number of channels to flag: {number}")
         elif number > 0:
-            ind_frq = "1-{}".format(self.pima.exper_info.if_num)
+            ind_frq = f"1-{self.pima.exper_info.if_num}"
             ind_chn1 = f"1-{number}"
-            ind_chn2 = "{}-{}".format(chann_num - number + 1, chann_num)
+            ind_chn2 = f"{chann_num - number + 1}-{chann_num}"
 
             mask = [
                 ("ALL", "ALL", ind_frq, ind_chn1, "OFF"),
@@ -1373,7 +1370,7 @@ class RaExperiment:
             if splt_sou_name != "ALL" and splt_sou_name not in source_names:
                 continue
 
-            pima_fits_name = "{}_{}_uva.fits".format(source_names[1], band)
+            pima_fits_name = f"{source_names[1]}_{band}_uva.fits"
             pima_fits_path = os.path.join(pima_fits_dir, pima_fits_name)
 
             if not os.path.isfile(pima_fits_path):
@@ -1432,10 +1429,8 @@ class RaExperiment:
             os.remove(self.uv_fits)
 
             # Delete data directory if empty
-            try:
+            with contextlib.suppress(OSError):
                 os.rmdir(self.data_dir)
-            except OSError:
-                pass
 
         # Delete staging directory
         staging_dir = self.pima.cnt_params["STAGING_DIR:"]

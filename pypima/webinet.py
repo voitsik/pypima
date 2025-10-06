@@ -35,7 +35,8 @@ def get_orbit_path(
 
     if webinet_dir is not None:
         if not os.path.isdir(webinet_dir):
-            raise ValueError(f"Directory {webinet_dir} does not exist.")
+            msg = f"Directory {webinet_dir} does not exist."
+            raise ValueError(msg)
 
         orbit_path = os.path.join(webinet_dir, orbit_dir, orbit_name)
     else:
@@ -77,7 +78,8 @@ def get_antab_path(
 
     if webinet_dir is not None:
         if not os.path.isdir(webinet_dir):
-            raise ValueError(f"Directory {webinet_dir} does not exist.")
+            msg = f"Directory {webinet_dir} does not exist."
+            raise ValueError(msg)
 
         antab_path = os.path.join(webinet_dir, antab_path)
     else:

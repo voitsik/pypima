@@ -4,9 +4,10 @@ Read and analyze PIMA fri-files.
 @author: Petr Voytsik
 """
 
+import contextlib
 import math
 from datetime import datetime
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 import numpy as np
 from scipy.stats import rv_continuous
@@ -263,8 +264,10 @@ class Fri:
         "# PIMA Fringe results  v  1.3   Format version of 2022.12.15",
     )
 
-    def __init__(self, file_name=None):
+    def __init__(self, file_name: str | None = None):
         """
+        Create empty object or parse input file.
+
         Parameters
         ----------
         file_name : str
@@ -277,7 +280,7 @@ class Fri:
         if file_name:
             self.parse_file(file_name)
 
-    def parse_file(self, file_name):
+    def parse_file(self, file_name: str):
         """Parse PIMA fri-file."""
         started = False
         self.header = {}
@@ -286,7 +289,8 @@ class Fri:
         with open(file_name) as fil:
             line = fil.readline()
             if not line.startswith(self.supported_versions):
-                raise ValueError(f"{file_name} is not PIMA fri-file")
+                msg = f"{file_name} is not PIMA fri-file"
+                raise ValueError(msg)
 
             for line in fil:
                 if line.startswith("# PIMA_FRINGE started"):
@@ -351,10 +355,8 @@ class Fri:
                     self.records[-1]["ref_freq"] = float(toks[94].replace("D", "e"))
                     self.records[-1]["elevation"] = [float(toks[89]), float(toks[90])]
 
-                    try:
+                    with contextlib.suppress(ValueError):
                         self.records[-1]["polar"] = toks[toks.index("Polar:") + 1]
-                    except ValueError:
-                        pass
 
                     # Calculated parameters
                     # UV-radius in lambda
@@ -371,7 +373,7 @@ class Fri:
                         self.records[-1]["uv_rad"] * wave_len / ED
                     )
 
-    def update_status(self, ch_num: int, snr_det_limits: Optional[PFDRec] = None):
+    def update_status(self, ch_num: int, snr_det_limits: PFDRec | None = None):
         """Update observations statuses acording to PFD.
 
         Parameters
@@ -449,7 +451,7 @@ class Fri:
 
         return result
 
-    def max_snr(self, station: Optional[str] = None):
+    def max_snr(self, station: str | None = None):
         """
         Return observation record with maximum SNR.
 
@@ -512,7 +514,7 @@ class Fri:
 
         return result
 
-    def any_detections(self, station: Optional[str] = None):
+    def any_detections(self, station: str | None = None):
         """Return ``True`` if there is at least one observation with status 'y'.
 
         Parameters

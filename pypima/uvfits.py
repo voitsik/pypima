@@ -30,7 +30,8 @@ def get_float(header: fits.Header, key: str) -> float:
     val = header[key]  # Will raise KeyError if not found
 
     if not isinstance(val, float):
-        raise TypeError(f"Invalid {key} value: {val}")
+        msg = f"Invalid {key} value: {val}"
+        raise TypeError(msg)
 
     return val
 
@@ -40,7 +41,8 @@ def get_int(header: fits.Header, key: str) -> int:
     val = header[key]
 
     if not isinstance(val, int):
-        raise TypeError(f"Invalid {key} value: {val}")
+        msg = f"Invalid {key} value: {val}"
+        raise TypeError(msg)
 
     return val
 
@@ -127,19 +129,18 @@ class UVFits:
         primary_hdu = self.hdulist[0]
 
         if not isinstance(primary_hdu, fits.GroupsHDU):
-            raise UVFitsError(
-                "Invalid UVFITS file: Primary HDU is not GroupsHDU", self.file_name
-            )
+            msg = "Invalid UVFITS file: Primary HDU is not GroupsHDU"
+            raise UVFitsError(msg, self.file_name)
 
         header = primary_hdu.header
 
         if "GROUPS" not in header or not header["GROUPS"]:
-            raise UVFitsError(
-                "Invalid UVFITS file: no GROUPS in header", self.file_name
-            )
+            msg = "Invalid UVFITS file: no GROUPS in header"
+            raise UVFitsError(msg, self.file_name)
 
         if header["NAXIS1"] != 0:
-            raise UVFitsError("Invalid UVFITS file: NAXIS1 is not zero", self.file_name)
+            msg = "Invalid UVFITS file: NAXIS1 is not zero"
+            raise UVFitsError(msg, self.file_name)
 
         toks = str(header["OBSERVER"]).split("_")
         if len(toks) == 2:  # Exper code in RA AGN survey format
@@ -151,7 +152,8 @@ class UVFits:
         self.source = str(header["OBJECT"])
         self.gcount = get_int(header, "GCOUNT")
         if self.gcount <= 0:
-            raise UVFitsError(f"Invalid GCOUNT value: {self.gcount}", self.file_name)
+            msg = f"Invalid GCOUNT value: {self.gcount}"
+            raise UVFitsError(msg, self.file_name)
 
         # Go through the array axis
         for ind in range(2, 1 + get_int(header, "NAXIS")):
@@ -163,16 +165,17 @@ class UVFits:
 
             if ctype == "FREQ":
                 if naxis != 1:
-                    raise UVFitsError(
-                        "Multiple frequency setup not supported", self.file_name
-                    )
+                    msg = "Multiple frequency setup not supported"
+                    raise UVFitsError(msg, self.file_name)
                 self.freq = crval
             elif ctype == "RA" or ctype == "DEC":
                 if naxis != 1:
-                    raise UVFitsError("Multi source file not supported", self.file_name)
+                    msg = "Multi source file not supported"
+                    raise UVFitsError(msg, self.file_name)
             elif ctype == "STOKES":
                 if naxis != 1:
-                    raise UVFitsError("Multiple Stokes not supported", self.file_name)
+                    msg = "Multiple Stokes not supported"
+                    raise UVFitsError(msg, self.file_name)
                 val = int(crval + (1 - crpix) * cdelt)
                 self.stokes = NUM2STOKES[val]
 
@@ -180,27 +183,31 @@ class UVFits:
         """Read antenna table(s)."""
         # Look for all AIPS AN tables
         for hdu in self.hdulist:
-            if isinstance(hdu, fits.BinTableHDU):
-                if "EXTNAME" in hdu.header and hdu.header["EXTNAME"] == "AIPS AN":
-                    anname = hdu.data.field("ANNAME")
-                    nosta = hdu.data.field("NOSTA").tolist()
-                    self.antenna_table.append(dict(zip(nosta, anname)))
+            if (
+                isinstance(hdu, fits.BinTableHDU)
+                and "EXTNAME" in hdu.header
+                and hdu.header["EXTNAME"] == "AIPS AN"
+            ):
+                anname = hdu.data.field("ANNAME")
+                nosta = hdu.data.field("NOSTA").tolist()
+                self.antenna_table.append(dict(zip(nosta, anname, strict=True)))
 
         if not self.antenna_table:
-            raise UVFitsError("Could not find AN table", self.file_name)
+            msg = "Could not find AN table"
+            raise UVFitsError(msg, self.file_name)
 
     def _read_fq_table(self) -> None:
         """Read frequency table."""
         fq_table = self.hdulist["AIPS FQ"]
 
         if not isinstance(fq_table, fits.BinTableHDU):
-            raise UVFitsError("Invalid FQ table: not BinTableHDU", self.file_name)
+            msg = "Invalid FQ table: not BinTableHDU"
+            raise UVFitsError(msg, self.file_name)
 
         self.no_if = get_int(fq_table.header, "NO_IF")
         if self.no_if <= 0:
-            raise UVFitsError(
-                f"Invalid NO_IF value in FQ table: {self.no_if}", self.file_name
-            )
+            msg = f"Invalid NO_IF value in FQ table: {self.no_if}"
+            raise UVFitsError(msg, self.file_name)
 
         # Assume we have only one frequency setup
         freq_data = fq_table.data[0]
@@ -252,7 +259,8 @@ class UVFits:
         """Return file name."""
         filename = self.hdulist.filename()
         if not isinstance(filename, str):
-            raise RuntimeError("Invalid filename type")
+            msg = "Invalid filename type"
+            raise RuntimeError(msg)
 
         return filename
 

@@ -11,7 +11,6 @@ import os.path
 from configparser import ConfigParser
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import Column, MetaData, Table, create_engine, func, select, text
 from sqlalchemy.types import REAL, String, Text, UserDefinedType
@@ -42,21 +41,21 @@ class PointType(UserDefinedType):
 
     cache_ok = True
 
-    def get_col_spec(self, **kw):
+    def get_col_spec(self, **kw):  # noqa: ARG002
         """Return the database type name."""
         return "point"
 
-    def bind_processor(self, dialect):
+    def bind_processor(self, dialect):  # noqa: ARG002
         """Return a parameter processing function."""
 
-        def process(value: Optional[Point]):
+        def process(value: Point | None):
             if value is None:
                 return value
             return f"({value.x}, {value.y})"
 
         return process
 
-    def result_processor(self, dialect, coltype):
+    def result_processor(self, dialect, coltype):  # noqa: ARG002
         """Return a result processing function."""
 
         def process(value):
@@ -179,7 +178,7 @@ class DataBase:
 
         return path, host, size
 
-    def get_orbit_file(self, exper: str) -> Optional[str]:
+    def get_orbit_file(self, exper: str) -> str | None:
         """
         Return reconstructed orbit file name for given experiment `exper`.
 
@@ -195,8 +194,6 @@ class DataBase:
             the database.
 
         """
-        filename = None
-
         query = (
             select(self.scf_files.c.file_name)
             .select_from(self.scf_files, self.vex_files)
@@ -214,9 +211,7 @@ class DataBase:
         logger.debug("%s: query:\n%s", "get_orbit_url", query)
 
         with self.engine.connect() as conn:
-            filename = conn.execute(query).scalar()
-
-        return filename
+            return conn.execute(query).scalar()
 
     def fri2db(
         self, fri: Fri, exper_info: ExperInfo, run_id: int, nobps: bool = False
@@ -350,7 +345,8 @@ class DataBase:
             run_id = result.scalar()
 
         if run_id is None:
-            raise ValueError("add_exper_info: Failed to get ID after insert")
+            msg = "add_exper_info: Failed to get ID after insert"
+            raise ValueError(msg)
 
         return run_id
 

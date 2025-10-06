@@ -41,23 +41,45 @@ namespaces = true
 [tool.setuptools.dynamic]
 version = { attr = "pypima.__version__" }
 
-[tool.ruff]
-lint.select = [
-    # Doc
-    "D",
-    # Pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # isort
-    "I001",
-    "W",
+[tool.ruff.lint]
+extend-select = [
+    "A",    # flake8-builtins
+    "ARG",  # flake8-unused-arguments
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "D",    # pydocstyle
+    "E",    # pycodestyle errors
+    "EM",   # flake8-errmsg
+    "EXE",  # flake8-executable
+    "F",    # Pyflakes
+    "FURB", # refurb
+    "G",    # flake8-logging-format
+    "I",    # isort
+    "ICN",  # flake8-import-conventions
+    "LOG",  # flake8-logging
+    "NPY",  # NumPy specific rules
+    "PD",   # pandas-vet
+    "PGH",  # pygrep-hooks
+    "PIE",  # flake8-pie
+    # "PL",   # pylint
+    "PT", # flake8-pytest-style
+    # "PTH",  # flake8-use-pathlib
+    "PYI", # flake8-pyi
+    "Q",   # flake8-quotes
+    "RET", # flake8-return
+    "RUF", # Ruff-specific
+    "SIM", # flake8-simplify
+    "T20", # flake8-print
+    "TID", # flake8-tidy-imports
+    "UP",  # pyupgrade
+    "YTT", # flake8-2020
 ]
-lint.ignore = [
-    # Missing docstring in magic method
-    "D105",
+ignore = [
+    "D105",   # Missing docstring in magic method
+    "SIM108", # if-else-block-instead-of-if-exp
+    "RUF059", # unused-unpacked-variable
 ]
-lint.pydocstyle.convention = "numpy"
+pydocstyle.convention = "numpy"
 
 [tool.isort]
 profile = "black"

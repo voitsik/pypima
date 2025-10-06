@@ -14,7 +14,7 @@ import shutil
 import sys
 import threading
 from collections import namedtuple
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -385,9 +385,8 @@ def parser_input_file(file_name: str | os.PathLike) -> list:
             columns = line.split()
 
             if len(columns) < 2:
-                raise InvalidInputFile(
-                    "file should contain at least two columns", file_name
-                )
+                msg = "file should contain at least two columns"
+                raise InvalidInputFile(msg, file_name)
 
             exper_name = columns[0]
             band = columns[1]
@@ -398,7 +397,8 @@ def parser_input_file(file_name: str | os.PathLike) -> list:
                 # Check FITS file existence
                 for fits_file in fits_list:
                     if not os.path.exists(fits_file):
-                        raise FileNotFoundError(f"File {fits_file} does not exist")
+                        msg = f"File {fits_file} does not exist"
+                        raise FileNotFoundError(msg)
             else:
                 fits_list = None
 

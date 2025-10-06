@@ -11,11 +11,11 @@ import os
 import os.path
 import shutil
 import subprocess
-from collections import namedtuple
+from collections.abc import Iterable
 from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Iterable, NamedTuple, NoReturn
+from typing import Any, NamedTuple, NoReturn
 
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -215,7 +215,8 @@ class ActaFile:
         with open(input_file_name) as file:
             magic = file.readline().strip()
             if not magic.startswith(self.supported_versions):
-                raise ValueError(f"{input_file_name} is not PIMA ACTA-file")
+                msg = f"{input_file_name} is not PIMA ACTA-file"
+                raise ValueError(msg)
 
             for line in file:
                 if line.startswith("#"):
@@ -286,30 +287,22 @@ class ActaFile:
         exper, band = self.header.experiment.split("_")
 
         ax.set_title(
-            "{} - {}({}) - {} - {}".format(
-                self.header.station,
-                exper,
-                band.upper(),
-                self.header.polar,
-                date_str,
-            )
+            f"{self.header.station} - {exper}({band.upper()}) - "
+            f"{self.header.polar} - {date_str}"
         )
         ax.set_xlabel("Frequency (MHz)")
         ax.set_ylabel("Amplitude")
         ax.grid(True)
         central_freq = np.mean(self.freq)
-        logger.debug("plot_autospectra: central_freq = %s", central_freq)
+        logger.debug("ActaFile.plot: central_freq = %s", central_freq)
         freq = np.asarray(self.freq) - central_freq
         ax.plot(freq, self.ampl, marker="o", ms=2)
         ax.set_xlim(-16, 16)
 
         date_str = date.strftime("%Y%m%dT%H%M")
-        out_file = "AUTOSPEC_{}_{}_{}_{}.{}".format(
-            date_str,
-            self.header.experiment,
-            self.header.polar,
-            self.header.station,
-            out_format,
+        out_file = (
+            f"AUTOSPEC_{date_str}_{self.header.experiment}_"
+            f"{self.header.polar}_{self.header.station}.{out_format}"
         )
 
         out_dir = os.path.join(out_dir_base, self.header.experiment)
@@ -344,7 +337,8 @@ class TextTable1D:
         with open(file_path) as file:
             magic = file.readline().strip()
             if magic != FORMAT_STRING:
-                raise ValueError(f'Bad format string in file "{file_path}"')
+                msg = f'Bad format string in file "{file_path}"'
+                raise ValueError(msg)
             for line in file:
                 if line.startswith("#"):
                     continue
@@ -420,6 +414,15 @@ class ClockModelRec(NamedTuple):
     clock_rate: float
     group_delay: float
     delay_rate: float
+
+
+class Freq(NamedTuple):
+    """Frequency channel information."""
+
+    freq: float
+    band_width: float
+    chan_width: float
+    side_band: int
 
 
 class Pima:
@@ -498,7 +501,7 @@ class Pima:
             for line in file:
                 key = line.split()[0].strip()
 
-                if key in opts.keys():
+                if key in opts:
                     val = opts[key]
 
                     # Skip empty values
@@ -509,8 +512,8 @@ class Pima:
                     if key == "UV_FITS:":
                         if uv_fits_flag:
                             continue
-                        else:
-                            uv_fits_flag = True
+
+                        uv_fits_flag = True
 
                     # In case of many FITS-files
                     if key == "UV_FITS:" and isinstance(val, list):
@@ -518,7 +521,7 @@ class Pima:
                     else:
                         line = f"{key:<20} {val}\n"
                 elif line.startswith("# Last update on"):
-                    line = f"# Last update on  {str(datetime.now())}\n"
+                    line = f"# Last update on  {datetime.now()!s}\n"
 
                 lines.append(line)
 
@@ -576,7 +579,7 @@ class Pima:
                 os.sched_setscheduler(proc.pid, os.SCHED_BATCH, os.sched_param(0))
                 ret = proc.wait()
 
-            print("", file=log)
+            print(file=log)
             print(datetime.now(), file=log)
 
         return ret
@@ -1101,17 +1104,16 @@ class Pima:
         return self.exper_info.sp_chann_num
 
     @property
-    def frequencies(self) -> list:
+    def frequencies(self) -> list[Freq]:
         """
-        Return list of frequencies used in the experiment.
+        Return list of frequency channels used in the experiment.
 
         Returns
         -------
         freqs : list
-            The function returns a list of named tuples.
+            List of named tuples with frequency channel information.
 
         """
-        Freq = namedtuple("Freq", "freq band_width chan_width side_band")
         freqs = []
 
         frq_file = os.path.join(
@@ -1317,7 +1319,7 @@ class Pima:
 
         return mask_file
 
-    def mk_bpass_mask_gen(self, params: list[tuple]) -> str | None:
+    def mk_bpass_mask_gen(self, params: Iterable[tuple] | None) -> str | None:
         """
         Create PIMA ``BPASS_MASK_GEN`` file.
 
@@ -1338,9 +1340,8 @@ class Pima:
                 print("# PIMA BPASS_MASK_GEN  v 0.90 2009.02.05", file=file)
                 print("#", file=file)
                 print(
-                    "#  Control for bandpass mask generation for experiment {}".format(
-                        self.exper
-                    ),
+                    "#  Control for bandpass mask generation for experiment "
+                    f"{self.exper}",
                     file=file,
                 )
                 print("#", file=file)
@@ -1400,9 +1401,7 @@ class Pima:
             if frq_extention:
                 frq_amp_file = os.path.join(
                     fpl_dir,
-                    "fr1d_frq_{}_{}_{}_{}_amp.{}".format(
-                        time_code, self.band, sta1, sta2, frq_extention
-                    ),
+                    f"fr1d_frq_{time_code}_{self.band}_{sta1}_{sta2}_amp.{frq_extention}",
                 )
                 self.logger.debug("fringe_plots: frq_amp_file: %s", frq_amp_file)
                 if not os.path.isfile(frq_amp_file):
@@ -1412,9 +1411,7 @@ class Pima:
 
                 frq_phs_file = os.path.join(
                     fpl_dir,
-                    "fr1d_frq_{}_{}_{}_{}_phs.{}".format(
-                        time_code, self.band, sta1, sta2, frq_extention
-                    ),
+                    f"fr1d_frq_{time_code}_{self.band}_{sta1}_{sta2}_phs.{frq_extention}",
                 )
                 self.logger.debug("fringe_plots: frq_phs_file: %s", frq_phs_file)
                 if not os.path.isfile(frq_phs_file):
@@ -1425,9 +1422,7 @@ class Pima:
             if tim_extention:
                 tim_amp_file = os.path.join(
                     fpl_dir,
-                    "fr1d_tim_{}_{}_{}_{}_amp.{}".format(
-                        time_code, self.band, sta1, sta2, tim_extention
-                    ),
+                    f"fr1d_tim_{time_code}_{self.band}_{sta1}_{sta2}_amp.{tim_extention}",
                 )
                 if not os.path.isfile(tim_amp_file):
                     tim_amp_file = None
@@ -1436,9 +1431,7 @@ class Pima:
 
                 tim_phs_file = os.path.join(
                     fpl_dir,
-                    "fr1d_tim_{}_{}_{}_{}_phs.{}".format(
-                        time_code, self.band, sta1, sta2, tim_extention
-                    ),
+                    f"fr1d_tim_{time_code}_{self.band}_{sta1}_{sta2}_phs.{tim_extention}",
                 )
                 if not os.path.isfile(tim_phs_file):
                     tim_phs_file = None
@@ -1483,7 +1476,8 @@ def fits_to_txt(fits_file: str) -> str:
     fits_file_path = Path(fits_file)
 
     if not fits_file_path.is_file():
-        raise FileNotFoundError(f"file {fits_file_path} does not exist")
+        msg = f"file {fits_file_path} does not exist"
+        raise FileNotFoundError(msg)
 
     txt_file = str(fits_file_path.with_suffix(".txt"))
 
@@ -1495,12 +1489,11 @@ def fits_to_txt(fits_file: str) -> str:
 def acta_plot(input_file: str, output_file: str) -> str:
     """Run ``acta_plot``."""
     if not os.path.isfile(input_file):
-        raise FileNotFoundError(f"file {input_file} does not exist")
+        msg = f"file {input_file} does not exist"
+        raise FileNotFoundError(msg)
 
     cmd_line = ["acta_plot", input_file, output_file]
-    out = subprocess.check_output(cmd_line, text=True)
-
-    return out
+    return subprocess.check_output(cmd_line, text=True)
 
 
 def bpas_log_snr_new(file_name: str, mode: str = "INIT") -> dict[int, float]:

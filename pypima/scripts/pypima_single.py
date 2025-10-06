@@ -27,12 +27,12 @@ def string_to_pfdrec(string: str) -> PFDRec:
     """Convert a string with comma-separated values to ``PFDRec``."""
     try:
         values = [float(x) for x in string.split(",")]
-    except ValueError:
-        msg = "Not a valid comma-separated list of floats: '{}'.".format(string)
-        raise argparse.ArgumentTypeError(msg)
+    except ValueError as e:
+        msg = f"Not a valid comma-separated list of floats: '{string}'."
+        raise argparse.ArgumentTypeError(msg) from e
 
     if len(values) != 6:
-        msg = "Expected six values, got {}.".format(len(values))
+        msg = f"Expected six values, got {len(values)}."
         raise argparse.ArgumentTypeError(msg)
 
     return PFDRec(*values)
