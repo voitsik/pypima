@@ -1,13 +1,13 @@
 """Load configuration file for pypima."""
 
 import os
-import sys
 from configparser import ConfigParser
-from io import StringIO
 from pathlib import Path
 
 
 class QuoteStrippingConfigParser(ConfigParser):
+    """ConfigParser subclass that strips quotes from option values."""
+
     def get(self, section: str, option: str, *args, **kwargs) -> str:
         """Get an option value for a given section stripping quotes."""
         value = super().get(section, option, *args, **kwargs)
@@ -33,20 +33,3 @@ def load_config(
         config.read_file(file)
 
     return config
-
-
-if __name__ == "__main__":
-    config = load_config("pypima/pypima.cfg")
-    # print(config.sections())
-    # for option in config["directories"]:
-    #     directory = config.getpath("directories", option)
-    #     print(f"{option} = {directory}")
-    #     if directory.is_dir():
-    #         print("Directory exists")
-
-    # for option in config["database"]:
-    #     print(f"{option} = {config['database'][option]}")
-
-    with StringIO() as buffer:
-        config.write(buffer)
-        print(buffer.getvalue())

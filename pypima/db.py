@@ -179,9 +179,9 @@ class DataBase:
 
         return path, host, size
 
-    def get_orbit_url(self, exper: str) -> Optional[str]:
+    def get_orbit_file(self, exper: str) -> Optional[str]:
         """
-        Return reconstructed orbit file URL for the given experiment `exper`.
+        Return reconstructed orbit file name for given experiment `exper`.
 
         Parameters
         ----------
@@ -190,12 +190,12 @@ class DataBase:
 
         Returns
         -------
-        url : str
-            File URL on FTP server. Returns ``None`` the database reply is empty.
+        filename : str
+            Name of the orbit file. Returns ``None`` if orbit file name is not found in
+            the database.
 
         """
-        url = None
-        url_base = "ftp://webinet.asc.rssi.ru/radioastron/oddata/reconstr"
+        filename = None
 
         query = (
             select(self.scf_files.c.file_name)
@@ -214,52 +214,9 @@ class DataBase:
         logger.debug("%s: query:\n%s", "get_orbit_url", query)
 
         with self.engine.connect() as conn:
-            reply = conn.execute(query).scalar()
+            filename = conn.execute(query).scalar()
 
-        if reply:
-            url = f"{url_base}/{reply}"
-
-        return url
-
-    def get_antab_url(self, exper: str, band: str) -> Optional[str]:
-        """
-        Return ANTAB-file URL for the given experiment and band.
-
-        Parameters
-        ----------
-        exper : str
-            Experiment name.
-        band : str
-            Frequency band.
-
-        Returns
-        -------
-        url : str
-            File URL on FTP server. Returns ``None`` if database reply is empty.
-
-        """
-        url = None
-        url_base = "ftp://webinet.asc.rssi.ru/radioastron/ampcal"
-
-        query = select(
-            func.to_char(self.vex_files.c.exper_nominal_start, "YYYY_MM_DD").label(
-                "date"
-            )
-        ).where(self.vex_files.c.exper_name == exper)
-
-        logger.debug("%s: query:\n%s", "get_antab_url", query)
-
-        with self.engine.connect() as conn:
-            reply = conn.execute(query).scalar()
-
-        if reply:
-            date_year_month_day = reply
-            date_year_month = date_year_month_day[0:7]
-            url = "{0}/{1}/{2}_{3}/{3}{4}.antab2".format(
-                url_base, date_year_month, date_year_month_day, exper, band
-            )
-
-        return url
+        return filename
 
     def fri2db(
         self, fri: Fri, exper_info: ExperInfo, run_id: int, nobps: bool = False

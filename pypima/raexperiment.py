@@ -28,8 +28,9 @@ from .db import DataBase
 from .fri import Fri, PFDRec
 from .pima import MAX_UVFILE_NAME_LEN, ActaFile, Pima, bpas_log_snr_new, fits_to_txt
 from .pima import Error as PimaError
-from .tools import check_fits_has_calib_tables
+from .tools import check_fits_has_calib_tables, download_file
 from .uvfits import UVFits
+from .webinet import get_antab_path, get_orbit_path
 
 
 class Error(Exception):
@@ -170,6 +171,13 @@ class RaExperiment:
         except ConfigError:
             self.logger.warning("Could not get 'archive' directory path from config")
             self.archive_dir = None
+
+        # Local Webinet archive
+        try:
+            self.webinet_dir = self.config.getpath("directories", "webinet")
+        except ConfigError:
+            self.logger.warning("Could not get 'webinet' directory path from config")
+            self.webinet_dir = None
 
         # Split directory for calibrated UV-FITS files
         try:
@@ -324,7 +332,7 @@ class RaExperiment:
             self.logger.info("Start downloading file %s...", fits_url)
             try:
                 with open(fits_path_local, "wb") as fil:
-                    _download_it(fits_url, fil, max_retries=2)
+                    download_file(fits_url, fil, max_retries=2)
             except pycurl.error as err:
                 self._error(f"Could not download file {fits_url}: {err}")
 
@@ -336,22 +344,32 @@ class RaExperiment:
 
     def _get_orbit(self):
         """Download reconstructed orbit file from FTP server."""
-        orbit_url = self.db.get_orbit_url(self.exper)
+        orbit_url = get_orbit_path(self.exper, self.db, self.webinet_dir)
 
         if orbit_url is None:
             self._error("Could not find reconstructed orbit")
 
         self.orbit = os.path.join(self.work_dir, os.path.basename(orbit_url))
 
-        self.logger.info("Start downloading orbit file %s ...", orbit_url)
+        if orbit_url.startswith("ftp://"):
+            self.logger.info("Start downloading orbit file %s ...", orbit_url)
 
-        buffer = BytesIO()
-        try:
-            _download_it(orbit_url, buffer)
-        except pycurl.error as err:
-            self._error(f"Could not download file {orbit_url}: {err}")
+            buffer = BytesIO()
+            try:
+                download_file(orbit_url, buffer)
+            except pycurl.error as err:
+                self._error(f"Could not download file {orbit_url}: {err}")
 
-        orb_data = buffer.getvalue().decode().splitlines()
+            orb_data = buffer.getvalue().decode().splitlines()
+            self.logger.info("Orbit downloading is complete")
+        else:
+            if not os.path.isfile(orbit_url):
+                self._error(f"Local orbit file {orbit_url} does not exist")
+
+            self.logger.info("Use local orbit file %s", orbit_url)
+
+            with open(orbit_url) as orb_file:
+                orb_data = orb_file.read().splitlines()
 
         with open(self.orbit, "w") as orb_file:
             if not orb_data[0].startswith("CCSDS_OEM_VERS"):
@@ -374,38 +392,42 @@ class RaExperiment:
 
                 orb_file.write(line + "\n")
 
-        self.logger.info("Orbit downloading is complete")
         self.pima.update_cnt({"EPHEMERIDES_FILE:": self.orbit})
 
     def _get_antab(self):
         """Download ANTAB-file from the FTP server."""
-        # antab_url = self.db.get_antab_url(self.exper, self.band)
-
-        # Make ANTAB url
-        date_str1 = self.pima.exper_info.nominal_start.strftime("%Y_%m")
-        date_str2 = self.pima.exper_info.nominal_start.strftime("%Y_%m_%d")
-        url_base = "ftp://webinet.asc.rssi.ru/radioastron/ampcal"
-        antab_url = "{0}/{1}/{2}_{3}/{3}{4}.antab2".format(
-            url_base, date_str1, date_str2, self.exper, self.band
+        antab_url = get_antab_path(
+            self.exper, self.band, self.pima.exper_info.nominal_start, self.webinet_dir
         )
 
         antab_dir = os.path.join(self.work_dir, "antab")
         os.makedirs(antab_dir, exist_ok=True)
 
         antab_file = os.path.join(antab_dir, os.path.basename(antab_url) + ".orig")
-        self.logger.info("Start downloading file %s", antab_url)
 
-        try:
-            with open(antab_file, "wb") as fil:
-                _download_it(antab_url, fil)
+        if antab_url.startswith("ftp://"):
+            self.logger.info("Start downloading file %s", antab_url)
+            try:
+                with open(antab_file, "wb") as fil:
+                    download_file(antab_url, fil)
 
-            self.logger.info("ANTAB-file downloading is complete.")
-            self.antab = self._fix_antab(antab_file)
-        except pycurl.error as err:
-            self.antab = None
-            self.logger.warning("Could not download file %s: %s", antab_url, err)
+                self.logger.info("ANTAB file downloading is complete.")
+            except pycurl.error as err:
+                self.antab = None
+                self.logger.warning("Could not download file %s: %s", antab_url, err)
+                return
+        else:
+            if not os.path.isfile(antab_url):
+                self.antab = None
+                self.logger.warning("Local ANTAB file %s does not exist", antab_url)
+                return
 
-    def _fix_antab(self, antab):
+            shutil.copyfile(antab_url, antab_file)
+            self.logger.info("Use local ANTAB file %s", antab_url)
+
+        self.antab = self._fix_antab(antab_file)
+
+    def _fix_antab(self, antab: str) -> Optional[str]:
         """Fix ANTAB file."""
         if not antab or not os.path.isfile(antab):
             return
@@ -1477,49 +1499,3 @@ class RaExperiment:
 
                 if db:
                     self.db.autospec2db(acta_file)
-
-
-def _download_it(url: str, buffer, max_retries: int = 0, ftp_user: str | None = None):
-    """
-    Download data from `url` and write it to `buffer` using pycurl.
-
-    Parameters
-    ----------
-    url : str
-        URL
-    buffer : object
-        Object with `write` function. For inctance, BytesIO or file descriptor.
-    max_retries : int
-        Number of attempts to download.
-
-    """
-    done = False
-    retries = 0
-
-    curl = pycurl.Curl()
-    curl.setopt(pycurl.URL, url)
-    curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-    curl.setopt(pycurl.LOW_SPEED_LIMIT, 10000)
-    curl.setopt(pycurl.LOW_SPEED_TIME, 60)
-    curl.setopt(pycurl.NETRC, 1)
-    if ftp_user:
-        curl.setopt(pycurl.USERNAME, ftp_user)
-    curl.setopt(pycurl.WRITEDATA, buffer)
-
-    while not done:
-        try:
-            curl.perform()
-        except pycurl.error as err:
-            errno, errstr = err.args
-
-            if errno == pycurl.E_OPERATION_TIMEDOUT and retries < max_retries:
-                retries += 1
-
-                # Try to continue data transfer
-                curl.setopt(pycurl.RESUME_FROM_LARGE, buffer.tell())
-            else:
-                raise
-        else:
-            done = True
-
-    curl.close()
