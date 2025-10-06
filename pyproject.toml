@@ -1,27 +1,66 @@
 [build-system]
-requires = ["setuptools >= 40.9.0", "wheel"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pypima"
+description = "Python interface to PIMA"
+readme = "README.rst"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["astronomy", "astrophysics", "PIMA", "VLBI"]
+authors = [{ name = "Petr Voitsik", email = "voitsik@asc.rssi.ru" }]
+requires-python = ">=3.10"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Astronomy",
+]
+dynamic = ["version"]
+dependencies = ["astropy", "matplotlib", "numpy", "pandas", "pycurl", "scipy"]
+
+[project.urls]
+Homepage = "https://github.com/voitsik/pypima"
+
+[project.scripts]
+# pima_coher = "pypima.scripts.pima_coher:main"
+# pima_plot_fringe3d = "pypima.scripts.pima_plot_fringe3d:main"
+pypima_batch = "pypima.scripts.pypima_batch:main"
+pypima_single = "pypima.scripts.pypima_single:main"
+
+[tool.setuptools.packages.find]
+include = ["pypima*"]
+namespaces = true
+
+[tool.setuptools.dynamic]
+version = { attr = "pypima.__version__" }
+
+[tool.ruff]
+lint.select = [
+    # Doc
+    "D",
+    # Pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # isort
+    "I001",
+    "W",
+]
+lint.ignore = [
+    # Missing docstring in magic method
+    "D105",
+]
+lint.pydocstyle.convention = "numpy"
 
 [tool.isort]
 profile = "black"
 
-[tool.ruff.lint]
-select = [
-    # Pyflakes
-    "F",
-    # Pycodestyle
-    "E",
-    "W",
-    # isort
-    "I001",
-    # Doc
-    "D"
-]
-
-ignore = [
-    # Missing docstring in magic method
-    "D105"
-]
-
-[tool.ruff.lint.pydocstyle]
-convention = "numpy"
+[tool.pytest.ini_options]
+testpaths = ["pypima/tests"]

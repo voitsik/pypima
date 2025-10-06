@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-
+Script for batch processing of RadioAstron experiments.
 
 Created on 18.02.2014
 
@@ -14,6 +14,7 @@ import shutil
 import sys
 import threading
 from collections import namedtuple
+from typing import Iterable
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -21,7 +22,7 @@ from pypima import DataBase, PimaError, RaExperiment, RaExperimentError
 from pypima.config import load_config
 
 
-def download_it(ra_exps, force_small):
+def download_it(ra_exps: Iterable[RaExperiment], force_small: bool):
     """Download FITS files from the list of experiments."""
     logger = logging.getLogger("download_thread")
 
@@ -148,7 +149,7 @@ def process_ind_ifs(ra_exp, **kwargs):
     ra_exp.delete_uvfits()
 
 
-def process_radioastron(ra_exp, **kwargs):
+def process_radioastron(ra_exp: RaExperiment, **kwargs):
     """
     Process space-ground part of the experiment.
 
@@ -352,7 +353,7 @@ class InvalidInputFile(Exception):
         return f"{self.message}: {self.file_name}"
 
 
-def parser_input_file(file_name):
+def parser_input_file(file_name: str | os.PathLike) -> list:
     """
     Parse input file and return list of records.
 
