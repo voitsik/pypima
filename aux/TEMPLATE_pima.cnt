@@ -1,4 +1,4 @@
-# PIMA_CONTROL file.  Format Version of 2016.02.29
+# PIMA_CONTROL file.  Format Version of 2020.04.19
 #
 # Created     on  @CDATE@
 # Last update on
@@ -9,8 +9,8 @@ BAND:           @band@
 UV_FITS:            @uv_fits@
 #
 STAGING_DIR:        NO
-SOU_NAMES:          /home/pima/share/vtd_data/source.names
-STA_NAMES:          /home/pima/share/pima/ra_station.names
+SOU_NAMES:          @pima_dir@/share/vtd_data/source.names
+STA_NAMES:          @pima_dir@/share/pima/ra_station.names
 PCAL:               NO
 TSYS:               INTRP
 GAIN:               USE
@@ -21,8 +21,8 @@ DEBUG_LEVEL:        2
 CHECK_SEVERITY:     1
 FRINGE_ERRORS:      IGNORE
 FFT_METHOD:         MEASURE
-FFT_CONFIG_FILE:    /home/pima/share/pima/pima_big_measure_6thr.wis
-NUM_THREADS:        6
+FFT_CONFIG_FILE:    @pima_dir@/share/pima/pima_small_measure_1thr.wis
+NUM_THREADS:        1
 #
 AP_TOLERANCE:       2.D-6
 MIN_SCAN_LEN:       20.0
@@ -31,8 +31,8 @@ MAX_SCAN_GAP:       10.0
 SCAN_LEN_USED:      1200.0
 SCAN_LEN_SKIP:        0.0
 FRT_OFFSET:         AUTO
-STA_REF:            EFLSBERG
-VTD_CONFIG_FILE:    /home/pima/share/vtd_data/vtd_v2m.cnf
+STA_REF:            RADIO-AS
+VTD_CONFIG_FILE:    @pima_dir@/share/vtd_data/vtd_pima.cnf
 EXPER_DIR:          @exper_dir@
 UV_EXCLUDE_FILE:    AUTO
 INCLUDE_OBS_FILE:   NO
@@ -63,20 +63,21 @@ WVR_USE:                NO
 WVR_SMOOTHING_INTERVAL: 0.0
 WVR_SMOOTHING_SIGMA:    0.0
 #
-BPS.MODE:           FINE
+BPS.MODE:           ACCUM
 BPS.NOBS_ACCUM:     4
-BPS.MSEG_ACCUM:     4
-BPS.NOBS_FINE:      6
-BPS.MINOBS_FINE:    4
-BPS.MSEG_FINE:      4
+BPS.MSEG_ACCUM:     32
+BPS.NOBS_FINE:      12
+BPS.MINOBS_FINE:    8
+BPS.MSEG_FINE:      32
 BPS.SNR_MIN_ACCUM:  10.0
 BPS.SNR_MIN_FINE:   10.0
+BPS.DECOR_TIM_MIN:  0.06
 BPS.AMPL_REJECT:    0.4
 BPS.PHAS_REJECT:    0.2
-BPS.INTRP_METHOD:   LEGENDRE
-BPS.DEG_AMP:        5
-BPS.DEG_PHS:        5
-BPS.AMP_MIN:        0.1
+BPS.INTRP_METHOD:   LINEAR
+BPS.DEG_AMP:        0
+BPS.DEG_PHS:        1
+BPS.AMP_MIN:        0.01
 BPS.NORML:          IF
 BPS.SEFD_USE:       NO
 #
@@ -92,20 +93,22 @@ FRIB.AMPL_EDGE_BEAM_COR:      NO
 #
 FRIB.OVERSAMPLE_MD:           4
 FRIB.OVERSAMPLE_RT:           4
-FRIB.SECONDARY_SNR_MIN:       0.0
-FRIB.SECONDARY_MAX_TRIES:     0
 FRIB.FINE_SEARCH:             ACC
 #
 FRIB.AUTOCORR_THRESHOLD:      0.2
 FRIB.WEIGHTS_THRESHOLD:       0.2
 FRIB.NOISE_NSIGMA:            4.0
 FRIB.SNR_DETECTION:           5.7
+FRIB.FRQ_TRANSFER_BAND:       NO
+FRIB.FRQ_TRANSFER_METHOD:     NO
+FRIB.FRQ_TRANSFER_DEG:        1
+FRIB.FRQ_TRANSFER_MSEG:       1
 #
 FRIB.2D_FRINGE_PLOT:          NO
 FRIB.1D_RESFRQ_PLOT:          GIF
 FRIB.1D_RESTIM_PLOT:          GIF
 FRIB.1D_DRF_PLOT:             NO
-FRIB.PLOT_DELAY_WINDOW_WIDTH: 400.0D-9
+FRIB.PLOT_DELAY_WINDOW_WIDTH: 1.0D-6
 FRIB.PLOT_RATE_WINDOW_WIDTH:  20.D-12
 FRIB.OVERSAMPLE_PLOT_MD:      1
 FRIB.OVERSAMPLE_PLOT_RT:      1
@@ -153,7 +156,9 @@ SPLT.POLAR:                   @polar@
 SPLT.AUTOCORR_NRML_METHOD:    AVERAGED
 SPLT.BPASS_NRML_METHOD:       WEIGHTED
 SPLT.BPASS_NRML_RANGE:        0.25:0.75
-SPLT.SUBARRY_CONSOLIDATION:   NO
+SPLT.SUBARRY_CONSOLIDATION:   MIN
+SPLT.TOTAL_UV:                YES
+SPLT.SNR_MIN:                 4.0
 SPLT.GAIN_CORR_FILE:          NO
 SPLT.STA_BASED:               NO
 #
@@ -164,8 +169,8 @@ MKDB.FRINGE_ALGORITHM: LSQ
 MKDB.GD_MAX_ADD_ERROR: 5.D-12
 MKDB.GD_MAX_SCL_ERROR: 0.2
 MKDB.2ND_BAND:         NO
-MKDB.VCAT_CONFIG:      /home/pima/share/pima/vcat.conf
+MKDB.VCAT_CONFIG:      @pima_dir@/share/pima/vcat.conf
 MKDB.OUTPUT_NAME:      p
 MKDB.DESC_FILE:        NO
 #
-# PIMA_CONTROL file.  Format Version of 2016.02.29
+# PIMA_CONTROL file.  Format Version of 2020.04.19
