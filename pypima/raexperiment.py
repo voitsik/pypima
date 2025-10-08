@@ -29,7 +29,7 @@ from .db import DataBase
 from .fri import Fri, PFDRec
 from .pima import MAX_UVFILE_NAME_LEN, ActaFile, Pima, bpas_log_snr_new, fits_to_txt
 from .pima import Error as PimaError
-from .tools import check_fits_has_calib_tables, download_file
+from .tools import download_file, fits_has_calib_tables, fits_has_orbiting_antenna
 from .uvfits import UVFits
 from .webinet import get_antab_path, get_orbit_path
 
@@ -57,7 +57,7 @@ class RaExperiment:
         config: QuoteStrippingConfigParser,
         data_base: DataBase,
         # data_dir: Optional[str] = None,
-        uv_fits: str | list | None = None,
+        uv_fits: str | list[str] | None = None,
         orbit: str | None = None,
         source_names: str | None = None,
         gvlbi: bool = False,
@@ -114,7 +114,7 @@ class RaExperiment:
         self.source_names = source_names
         self.fri = None  # Result of last fringe fitting
         self.scan_part = 0
-        self.bad_obs_set = set()  # Set of bad obs (autospec)
+        self.bad_obs_set = set()  # Set of excluded observation numbers
         self.acta_files = {}  # Store autospectra data
 
         # dict (POLAR, frq_grp) -> BANDPASS_FILE
@@ -345,7 +345,12 @@ class RaExperiment:
 
     def _get_orbit(self) -> None:
         """Download reconstructed orbit file from FTP server."""
-        orbit_url = get_orbit_path(self.exper, self.db, self.webinet_dir)
+        if not self.orbit:
+            orbit_url = get_orbit_path(self.exper, self.db, self.webinet_dir)
+        elif self.orbit and not Path(self.orbit).is_relative_to(self.work_dir):
+            orbit_url = self.orbit  # Use provided external orbit path
+        else:
+            return  # Orbit already set and in the work_dir
 
         if orbit_url is None:
             self._error("Could not find reconstructed orbit")
@@ -609,8 +614,15 @@ class RaExperiment:
                 self.pima.update_cnt({"STAGING_DIR:": "NO"})
                 shutil.rmtree(staging_dir)
 
-        if self.orbit is None:
+        # Get orbit file if needed
+        if fits_has_orbiting_antenna(self.pima.cnt_params["UV_FITS:"]):
             self._get_orbit()
+        elif self.orbit is not None:
+            self.logger.warning(
+                "FITS file does not have orbiting antenna, ignore provided orbit"
+            )
+            self.orbit = None
+            self.pima.update_cnt({"EPHEMERIDES_FILE:": "NO"})
 
         # Set maximum scan length
         self.logger.info("Set maximum scan length to %s s", scan_length)
@@ -704,7 +716,7 @@ class RaExperiment:
             )
 
         # Check if FITS file has calibration tables
-        if check_fits_has_calib_tables(self.pima.cnt_params["UV_FITS:"][0]):
+        if fits_has_calib_tables(self.pima.cnt_params["UV_FITS:"][0]):
             self.calibration_loaded = True
         else:
             self.calibration_loaded = False
@@ -1133,6 +1145,9 @@ class RaExperiment:
         polar = self.pima.cnt_params["POLAR:"]
         frq_grp = int(self.pima.cnt_params["FRQ_GRP:"])
 
+        exclude_fringe_obs = set()
+        exclude_fringe_obs.update(self.bad_obs_set)
+
         if bandpass:
             if bandpass_renorm:
                 self.pima.update_cnt({"SPLT.BPASS_NRML_METHOD:": "WEIGHTED"})
@@ -1140,11 +1155,9 @@ class RaExperiment:
                 self.pima.update_cnt({"SPLT.BPASS_NRML_METHOD:": "NO"})
 
             # Update list of obs with bad autospectrum
-            bad_obs = self._check_bad_autospec_obs()
-            if bad_obs:
-                self.bad_obs_set = bad_obs
-            else:
-                self.bad_obs_set.clear()
+            bad_auto_obs = self._check_bad_autospec_obs()
+            if bad_auto_obs:
+                exclude_fringe_obs.update(bad_auto_obs)
 
             # If bps-file already exists -- use it
             if (polar, frq_grp) in self.bpass_files and os.path.isfile(
@@ -1154,7 +1167,7 @@ class RaExperiment:
                     {"BANDPASS_FILE:": self.bpass_files[polar, frq_grp]}
                 )
             else:
-                self.pima.mk_exclude_obs_file(self.bad_obs_set, "coarse")
+                self.pima.mk_exclude_obs_file(exclude_fringe_obs, "coarse")
 
                 coarse_params = {
                     "FRIB.FINE_SEARCH:": "LSQ",
@@ -1200,7 +1213,7 @@ class RaExperiment:
                     self.bpass_files[polar] = ""
                     self.pima.update_cnt({"BANDPASS_FILE:": "NO"})
 
-        self.pima.mk_exclude_obs_file(self.bad_obs_set, "fine")
+        self.pima.mk_exclude_obs_file(exclude_fringe_obs, "fine")
 
         if frq_grp > 1:
             fri_file = f"{self.exper}_{self.band}_{polar}_{frq_grp}.fri"
@@ -1260,7 +1273,8 @@ class RaExperiment:
 
         if number < 0 or number >= chann_num / 2:
             self._error(f"invald number of channels to flag: {number}")
-        elif number > 0:
+
+        if number > 0:
             ind_frq = f"1-{self.pima.exper_info.if_num}"
             ind_chn1 = f"1-{number}"
             ind_chn2 = f"{chann_num - number + 1}-{chann_num}"
