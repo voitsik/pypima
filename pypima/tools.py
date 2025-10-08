@@ -1,24 +1,46 @@
 """Some useful tools for PIMA data analysis."""
 
 import io
+from collections.abc import Iterable
 
 import pycurl
 from astropy.io import fits
 
 
-def check_fits_has_calib_tables(file_name: str) -> bool:
-    """Check FITS file for existence of calibration tables."""
+def fits_has_calib_tables(file_name: str) -> bool:
+    """Check FITS-IDI file for existence of calibration tables."""
     has_gain_curves = False
     has_sys_temperatures = False
 
     with fits.open(file_name, mode="denywrite") as hdulist:
         for hdu in hdulist:
-            if hdu.name == "SYSTEM_TEMPERATURE":
-                has_sys_temperatures = True
-            elif hdu.name == "GAIN_CURVE":
-                has_gain_curves = True
+            if isinstance(hdu, fits.BinTableHDU):
+                if hdu.name == "SYSTEM_TEMPERATURE":
+                    has_sys_temperatures = True
+                elif hdu.name == "GAIN_CURVE":
+                    has_gain_curves = True
 
     return has_gain_curves and has_sys_temperatures
+
+
+def fits_has_orbiting_antenna(file_name_list: Iterable[str]) -> bool:
+    """Check FITS-IDI files for existence of orbiting antenna."""
+    has_orbit_table = False
+    has_ra_in_array_table = False
+    has_ra_in_antenna_table = False
+
+    for file_name in file_name_list:
+        with fits.open(file_name, mode="denywrite") as hdulist:
+            for hdu in hdulist:
+                if isinstance(hdu, fits.BinTableHDU):
+                    if hdu.name == "ARRAY_GEOMETRY" and "RA" in hdu.data["ANNAME"]:
+                        has_ra_in_array_table = True
+                    elif hdu.name == "ANTENNA" and "RA" in hdu.data["ANNAME"]:
+                        has_ra_in_antenna_table = True
+                    elif hdu.name == "SPACECRAFT_ORBIT":
+                        has_orbit_table = True
+
+    return has_orbit_table or has_ra_in_array_table or has_ra_in_antenna_table
 
 
 def download_file(
