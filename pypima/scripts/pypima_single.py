@@ -15,6 +15,7 @@ import logging
 import os.path
 import sys
 import tempfile
+from datetime import datetime
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -36,6 +37,19 @@ def string_to_pfdrec(string: str) -> PFDRec:
         raise argparse.ArgumentTypeError(msg)
 
     return PFDRec(*values)
+
+
+def string_to_flag(string: str) -> tuple[str, datetime, datetime]:
+    """Convert a string with three space-separated values to a tuple."""
+    try:
+        sta, beg, end = string.split(",")
+        beg_time = datetime.fromisoformat(beg)
+        end_time = datetime.fromisoformat(end)
+    except ValueError as e:
+        msg = f"Not a valid flag specification: '{string}'."
+        raise argparse.ArgumentTypeError(msg) from e
+
+    return sta, beg_time, end_time
 
 
 def parse_args():
@@ -95,6 +109,13 @@ def parse_args():
         "--snr-det-limits",
         type=string_to_pfdrec,
         help="SNR destribution parameters: six comma-separated values",
+    )
+    parser.add_argument(
+        "--flag-sta",
+        metavar="STA,BEG,END",
+        type=string_to_flag,
+        nargs="+",
+        help="stations with time range to be flagged",
     )
     parser.add_argument(
         "--debug", "-d", action="store_true", help="enable debug output"
@@ -272,6 +293,10 @@ def main() -> int:
 
         ra_exp.pima.set_polar(polar)
         ra_exp.pima.set_frq_grp(args.frequency_group)
+
+        if args.flag_sta:
+            for sta, beg, end in args.flag_sta:
+                ra_exp.flag_time_range(sta, beg, end)
 
         if args.autospec_only:
             ra_exp.generate_autospectra(plot=True, db=True)

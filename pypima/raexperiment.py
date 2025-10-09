@@ -744,6 +744,57 @@ class RaExperiment:
                 self.logger.warning("Could not load calibration information")
                 self.calibration_loaded = False
 
+    def flag_time_range(self, sta: str, beg: datetime, end: datetime) -> None:
+        """Flag time range for a station."""
+        if sta not in self.pima.station_list():
+            self._error(f"Station {sta} is not in station list")
+
+        if beg >= end:
+            self._error("End time must be greater than begin time")
+
+        for obs in self.pima.observations:
+            if sta != obs.sta1 and sta != obs.sta2:
+                continue
+
+            obs_beg = obs.start_time + self.pima.exper_info.utc_minus_tai
+            obs_end = obs.stop_time + self.pima.exper_info.utc_minus_tai
+
+            if beg >= obs_end or end <= obs_beg:
+                continue
+
+            if beg <= obs_beg and end >= obs_end:
+                self.bad_obs_set.add(obs.obs)
+                self.logger.info(
+                    "Flag observation %d (%s: %s/%s)",
+                    obs.obs,
+                    obs.time_code,
+                    obs.sta1,
+                    obs.sta2,
+                )
+            elif beg < obs_beg < end < obs_end:
+                interval = (end - obs_beg).total_seconds()
+                self.pima.mk_time_flag_file(obs.obs, interval)
+                self.logger.info(
+                    "Flag first %.1f s of observation %d (%s: %s/%s)",
+                    interval,
+                    obs.obs,
+                    obs.time_code,
+                    obs.sta1,
+                    obs.sta2,
+                )
+            elif obs_beg < beg < obs_end < end:
+                interval = (beg - obs_beg).total_seconds()
+                self.pima.mk_time_flag_file(obs.obs, interval)
+                self.logger.info(
+                    "Flag last %.1f s of observation %d (%s: %s/%s)",
+                    interval,
+                    obs.obs,
+                    obs.time_code,
+                    obs.sta1,
+                    obs.sta2,
+                )
+            # TODO: should we flag middle part of scan?
+
     def _select_ref_sta(self, fri: Fri, ref_sta: str | None = None) -> bool:
         """
         Select reference station for bandpass calibration.
