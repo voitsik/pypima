@@ -519,8 +519,10 @@ class Pima:
                     # In case of many FITS-files
                     if key == "UV_FITS:" and isinstance(val, list):
                         line = "".join([f"{key:<10} {item}\n" for item in val])
-                    else:
+                    elif len(key) < 20:
                         line = f"{key:<20} {val}\n"
+                    else:
+                        line = f"{key:<30} {val}\n"
                 elif line.startswith("# Last update on"):
                     line = f"# Last update on  {datetime.now()!s}\n"
 
