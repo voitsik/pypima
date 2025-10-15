@@ -209,6 +209,31 @@ class RaExperiment:
 
         self.pima = Pima(self.exper, self.band, self.work_dir)
 
+        # Set default delay/rate search window
+        self.pima.update_cnt(
+            {
+                "FRIB.DELAY_WINDOW_CENTER:": "0.0",
+                "FRIB.RATE_WINDOW_CENTER:": "0.0",
+                "PHASE_ACCELERATION:": "0.0",
+                "FRIB.DELAY_WINDOW_WIDTH:": "-1.0D0",
+                "FRIB.RATE_WINDOW_WIDTH:": "-1.0D0",
+            }
+        )
+
+        # Set default acceleration search window
+        if self.band == "l":
+            self.pima.update_cnt(
+                {"PHASE_ACCEL_MIN:": "-1.D-13", "PHASE_ACCEL_MAX:": "1.D-13"}
+            )
+        elif self.band == "k":
+            self.pima.update_cnt(
+                {"PHASE_ACCEL_MIN:": "-5.D-15", "PHASE_ACCEL_MAX:": "5.D-15"}
+            )
+        else:
+            self.pima.update_cnt(
+                {"PHASE_ACCEL_MIN:": "-1.D-14", "PHASE_ACCEL_MAX:": "1.D-14"}
+            )
+
         if not self.sta_ref:
             self.sta_ref = self.pima.cnt_params["STA_REF:"]
 
@@ -221,9 +246,6 @@ class RaExperiment:
         # Only one sideband at P-band
         if self.band == "p":
             self.pima.update_cnt({"END_FRQ:": "1"})
-
-        # Do not restrict delay rate window
-        self.pima.update_cnt({"FRIB.RATE_WINDOW_WIDTH:": "1.0D-8"})
 
         # Set up PIMA staging directory
         try:
@@ -795,6 +817,31 @@ class RaExperiment:
                 )
             # TODO: should we flag middle part of scan?
 
+    def set_fringe_window(
+        self,
+        delay: float | None = None,
+        rate: float | None = None,
+        accel: float | None = None,
+    ) -> None:
+        """Set fringe search window."""
+        params = {}
+
+        if delay is not None:
+            self.logger.info("Set delay search window: %s us", delay)
+            params["FRIB.DELAY_WINDOW_WIDTH:"] = f"{delay * 1e-6:.2e}"
+
+        if rate is not None:
+            self.logger.info("Set fringe rate search window: %s s/s", rate)
+            params["FRIB.RATE_WINDOW_WIDTH:"] = f"{rate:.2e}"
+
+        if accel is not None:
+            self.logger.info("Set acceleration search window: %s s/s^2", accel)
+            params["PHASE_ACCEL_MIN:"] = f"{-accel:.2e}"
+            params["PHASE_ACCEL_MAX:"] = f"{accel:.2e}"
+
+        if params:
+            self.pima.update_cnt(params)
+
     def _select_ref_sta(self, fri: Fri, ref_sta: str | None = None) -> bool:
         """
         Select reference station for bandpass calibration.
@@ -1160,24 +1207,13 @@ class RaExperiment:
         """
         if accel:
             self.pima.update_cnt({"FRIB.FINE_SEARCH:": "ACC"})
-            if self.band == "l":
-                self.pima.update_cnt(
-                    {"PHASE_ACCEL_MIN:": "-1.D-13", "PHASE_ACCEL_MAX:": "1.D-13"}
-                )
-            elif self.band == "k":
-                self.pima.update_cnt(
-                    {"PHASE_ACCEL_MIN:": "-5.D-15", "PHASE_ACCEL_MAX:": "5.D-15"}
-                )
-            else:
-                self.pima.update_cnt(
-                    {"PHASE_ACCEL_MIN:": "-1.D-14", "PHASE_ACCEL_MAX:": "1.D-14"}
-                )
         else:
+            self.logger.info("Disable phase acceleration fitting")
             self.pima.update_cnt(
                 {
                     "FRIB.FINE_SEARCH:": "LSQ",
-                    "PHASE_ACCEL_MIN:": "0",
-                    "PHASE_ACCEL_MAX:": "0",
+                    "PHASE_ACCEL_MIN:": "0.0",
+                    "PHASE_ACCEL_MAX:": "0.0",
                 }
             )
 
