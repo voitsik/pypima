@@ -173,15 +173,19 @@ def parse_args():
         "--delay-window-width",
         metavar="DELAY_WIDTH",
         type=float,
-        default=64.0,
         help="delay window width in microseconds",
     )
     ff_group.add_argument(
         "--rate-window-width",
         metavar="RATE_WIDTH",
         type=float,
-        default=1e-8,
         help="rate window width in s/s",
+    )
+    ff_group.add_argument(
+        "--accel-window-width",
+        metavar="ACCEL_WIDTH",
+        type=float,
+        help="acceleration window width in s/s^2",
     )
 
     return parser.parse_args()
@@ -304,11 +308,8 @@ def main() -> int:
             ra_exp.load_antab(antab_file)
 
             # Set fringe fitting window
-            ra_exp.pima.update_cnt(
-                {
-                    "FRIB.DELAY_WINDOW_WIDTH:": f"{args.delay_window_width * 1e-6:e}",
-                    "FRIB.RATE_WINDOW_WIDTH:": f"{args.rate_window_width:e}",
-                }
+            ra_exp.set_fringe_window(
+                args.delay_window_width, args.rate_window_width, args.accel_window_width
             )
 
             if args.individual_ifs:
