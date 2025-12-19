@@ -15,11 +15,14 @@ import sys
 import threading
 from collections import namedtuple
 from collections.abc import Iterable
+from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from pypima import DataBase, PimaError, RaExperiment, RaExperimentError
 from pypima.config import load_config
+
+logger = logging.getLogger("pypima_batch")
 
 
 def download_it(ra_exps: Iterable[RaExperiment], force_small: bool):
@@ -139,7 +142,7 @@ def process_ind_ifs(ra_exp, **kwargs):
         for ind in range(if_num):
             ra_exp.pima.update_cnt({"BEG_FRQ:": str(ind + 1), "END_FRQ:": str(ind + 1)})
             fri = ra_exp.fringe_fitting(**ff_params)
-            print("IF #{}".format(ind + 1))
+            print(f"IF #{ind + 1}")
             print(fri)
             # ra_exp.fringes2db()
 
@@ -407,6 +410,29 @@ def parser_input_file(file_name: str | os.PathLike) -> list:
     return exp_list
 
 
+def setup_logging(args):
+    """Set up logging."""
+    root = logging.getLogger()
+    root.setLevel(logging.WARNING)  # Use WARNING by default
+
+    if not args.log_file:
+        # log_file = args.file_name.rsplit(".", 1)[0] + ".log"
+        log_file = Path(args.file_name).with_suffix(".log")
+    else:
+        log_file = args.log_file
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
+    # handler = logging.StreamHandler()
+    handler = logging.FileHandler(log_file)
+    formatter = logging.Formatter("%(asctime)s %(levelname)s: %(name)s: %(message)s")
+    handler.setFormatter(formatter)
+    root.addHandler(handler)
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser()
@@ -526,37 +552,28 @@ def parse_args():
 def main() -> int:
     """Run main."""
     args = parse_args()
-
-    if not args.log_file:
-        log_file = args.file_name.rsplit(".", 1)[0] + ".log"
-    else:
-        log_file = args.log_file
-
-    log_format = "%(asctime)s %(levelname)s: %(name)s: %(message)s"
-    logging.basicConfig(format=log_format, level=logging.INFO, filename=log_file)
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
+    setup_logging(args)
 
     try:
         config = load_config(args.config)
     except OSError as err:
-        logging.error("Could not load configuration file: %s", err)
+        logger.error("Could not load configuration file: %s", err)
         return 1
 
     # Check input parameters
     if args.max_scan_length <= 0:
-        logging.error("Max scan length must be positive")
+        logger.error("Max scan length must be positive")
         return 1
 
     if args.flag_chann < 0:
-        logging.error("Number of flagged channels must not be negative")
+        logger.error("Number of flagged channels must not be negative")
         return 1
 
     # Connect to database
     try:
         database = DataBase(config)
     except SQLAlchemyError as err:
-        logging.error("DBError: %s", err)
+        logger.error("DBError: %s", err)
         return 1
 
     exp_list = []
@@ -572,13 +589,14 @@ def main() -> int:
                     uv_fits=rec.fits_list,
                     gvlbi=args.gvlbi,
                     orbit=args.orbit,
+                    debug=args.debug,
                 )
             )
     except OSError as err:
-        logging.error("OSError: %s", err)
+        logger.error("OSError: %s", err)
         return 1
     except InvalidInputFile as err:
-        logging.error("InvalidInputFile: %s", err)
+        logger.error("InvalidInputFile: %s", err)
         return 1
 
     load_thread = threading.Thread(
@@ -622,22 +640,22 @@ def main() -> int:
         except RaExperimentError:
             continue
         except SQLAlchemyError as err:
-            logging.error("DBError: %s", err)
+            logger.error("DBError: %s", err)
             return 1
         except OSError as err:
-            logging.error("OSError: %s", err)
+            logger.error("OSError: %s", err)
             return 1
         except KeyboardInterrupt:
-            logging.warning("KeyboardInterrupt")
+            logger.warning("KeyboardInterrupt")
             return 1
         except Exception:
-            logging.error("Unexpected error: %s", sys.exc_info()[0])
+            logger.error("Unexpected error: %s", sys.exc_info()[0])
             raise
 
     load_thread.join()
     database.close()
 
-    logging.info("Quitting normally")
+    logger.info("Quitting normally")
 
     return 0
 

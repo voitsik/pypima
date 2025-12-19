@@ -62,6 +62,7 @@ class RaExperiment:
         source_names: str | None = None,
         gvlbi: bool = False,
         reference_station: str | None = None,
+        debug: bool = False,
     ):
         """Init experiment object.
 
@@ -94,6 +95,8 @@ class RaExperiment:
             Default reference station. If ``None`` use value from the cnt-file
             template and update it to the first station from station list after
             ``load`` task.
+        debug : bool, optional
+            If ``True``, enable debug mode.
         """
         # First, set common variables
         self.exper = experiment_code.lower()
@@ -124,6 +127,11 @@ class RaExperiment:
             ("RL", 1): "",
             ("LR", 1): "",
         }
+
+        if debug:
+            self.logger.setLevel(logging.DEBUG)
+        else:
+            self.logger.setLevel(logging.INFO)
 
         if self.band not in ("p", "l", "c", "x", "k"):
             self._error(f"Unknown band {band}")
@@ -341,11 +349,14 @@ class RaExperiment:
             fits_path_archive = os.path.join(
                 self.archive_dir, f"{ftp_host}{fits_path_remote}"
             )
+        else:
+            fits_path_archive = None
 
         if os.path.isfile(fits_path_local) and os.path.getsize(fits_path_local) == size:
             self.logger.info("File %s already exists", fits_path_local)
         elif (
-            os.path.isfile(fits_path_archive)
+            fits_path_archive is not None
+            and os.path.isfile(fits_path_archive)
             and os.path.getsize(fits_path_archive) == size
         ):
             self.logger.info("Use %s from archive", fits_path_archive)
