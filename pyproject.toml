@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61"]
 
 [project]
 name = "pypima"
 description = "Python interface to PIMA"
 readme = "README.rst"
+keywords = ["astronomy", "astrophysics", "PIMA", "VLBI"]
 license = "MIT"
 license-files = ["LICENSE"]
-keywords = ["astronomy", "astrophysics", "PIMA", "VLBI"]
 authors = [{ name = "Petr Voitsik", email = "voitsik@asc.rssi.ru" }]
 requires-python = ">=3.10"
 classifiers = [
@@ -20,6 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Astronomy",
 ]
 dynamic = ["version"]
@@ -41,8 +42,8 @@ namespaces = true
 [tool.setuptools.dynamic]
 version = { attr = "pypima.__version__" }
 
-[tool.ruff.lint]
-extend-select = [
+[tool.ruff]
+lint.extend-select = [
     "A",    # flake8-builtins
     "ARG",  # flake8-unused-arguments
     "B",    # flake8-bugbear
@@ -75,16 +76,19 @@ extend-select = [
     "UP",  # pyupgrade
     "YTT", # flake8-2020
 ]
-ignore = [
+lint.ignore = [
     "D105",   # Missing docstring in magic method
-    "SIM108", # if-else-block-instead-of-if-exp
     "RUF059", # unused-unpacked-variable
+    "SIM108", # if-else-block-instead-of-if-exp
 ]
-pydocstyle.convention = "numpy"
-mccabe.max-complexity = 20
+lint.mccabe.max-complexity = 20
+lint.pydocstyle.convention = "numpy"
 
 [tool.isort]
 profile = "black"
 
 [tool.pytest.ini_options]
 testpaths = ["pypima/tests"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
