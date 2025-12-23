@@ -31,7 +31,7 @@ Homepage = "https://github.com/voitsik/pypima"
 
 [project.scripts]
 # pima_coher = "pypima.scripts.pima_coher:main"
-# pima_plot_fringe3d = "pypima.scripts.pima_plot_fringe3d:main"
+pypima_plot_fringe2d = "pypima.scripts.pypima_plot_fringe2d:main"
 pypima_batch = "pypima.scripts.pypima_batch:main"
 pypima_single = "pypima.scripts.pypima_single:main"
 
