@@ -378,6 +378,127 @@ class TextTable1D:
                         logger.debug("unknown key in file %s: %s", file_path, key)
 
 
+@dataclass
+class TextTable2D:
+    """Read PIMA 2D text table."""
+
+    file_path: InitVar[str | os.PathLike]
+
+    plot_title: str = ""
+    subtitle: str = ""
+    axis1_num_points: int = 0
+    axis1_title: str = ""
+    axis1_units: str = ""
+    axis1_min: float = 0.0
+    axis1_max: float = 0.0
+    axis2_num_points: int = 0
+    axis2_title: str = ""
+    axis2_units: str = ""
+    axis2_min: float = 0.0
+    axis2_max: float = 0.0
+    axis3_num_points: int = 0
+    axis3_title: str = ""
+    axis3_units: str = ""
+    axis3_min: float = 0.0
+    axis3_max: float = 0.0
+    axis1_data: np.ndarray = field(init=False)
+    axis2_data: np.ndarray = field(init=False)
+    axis3_data: np.ndarray = field(init=False)
+
+    def __post_init__(self, file_path: str | os.PathLike):
+        FORMAT_STRING = "# 2D text table.  Format version of 2012.12.30"
+
+        key = val = ""
+        point_counter = 0
+
+        with open(file_path) as file:
+            magic = file.readline().strip()
+            if magic != FORMAT_STRING:
+                msg = f'Bad format string in file "{file_path}"'
+                raise ValueError(msg)
+            for line in file:
+                if line.startswith("#"):
+                    continue
+
+                key, _, val = line.partition(":")
+                key = key.strip()
+                val = val.strip()
+                match key:
+                    case "PLOT_TITLE":
+                        self.plot_title = val
+                    case "SUBTITLE":
+                        self.subtitle = val
+                    case "AXIS1_NUM_POI":
+                        self.axis1_num_points = int(val)
+                    case "AXIS1_TITLE":
+                        self.axis1_title = val
+                    case "AXIS1_UNITS":
+                        self.axis1_units = val
+                    case "AXIS1_MIN":
+                        self.axis1_min = float(val.replace("D", "e"))
+                    case "AXIS1_MAX":
+                        self.axis1_max = float(val.replace("D", "e"))
+                    case "AXIS2_NUM_POI":
+                        self.axis2_num_points = int(val)
+                    case "AXIS2_NAME":
+                        self.axis2_title = val
+                    case "AXIS2_UNITS":
+                        self.axis2_units = val
+                    case "AXIS2_MIN":
+                        self.axis2_min = float(val.replace("D", "e"))
+                    case "AXIS2_MAX":
+                        self.axis2_max = float(val.replace("D", "e"))
+                    case "AXIS3_NUM_POI":
+                        self.axis3_num_points = int(val)
+                    case "AXIS3_TITLE":
+                        self.axis3_title = val
+                    case "AXIS3_UNITS":
+                        self.axis3_units = val
+                    case "AXIS3_MIN":
+                        self.axis3_min = float(val.replace("D", "e"))
+                    case "AXIS3_MAX":
+                        self.axis3_max = float(val.replace("D", "e"))
+                    case "POINT":
+                        point_counter += 1
+                        # data = val.split()
+                        # self.axis1_data.append(float(data[1].replace("D", "e")))
+                        # self.axis2_data.append(float(data[2].replace("D", "e")))
+                        break
+                    case _:
+                        logger.debug("unknown key in file %s: %s", file_path, key)
+
+            i, j, x, y, z = val.replace("D", "e").split()
+            self.axis1_data = np.zeros([self.axis1_num_points, self.axis2_num_points])
+            self.axis2_data = np.zeros([self.axis1_num_points, self.axis2_num_points])
+            self.axis3_data = np.zeros([self.axis1_num_points, self.axis2_num_points])
+            i = int(i) - 1
+            j = int(j) - 1
+            self.axis1_data[i, j] = float(x)
+            self.axis2_data[i, j] = float(y)
+            self.axis3_data[i, j] = float(z)
+
+            for line in file:
+                key, _, val = line.partition(":")
+                if key == "POINT":
+                    point_counter += 1
+                    i, j, x, y, z = val.replace("D", "e").split()
+                    i = int(i) - 1
+                    j = int(j) - 1
+                    self.axis1_data[i, j] = float(x)
+                    self.axis2_data[i, j] = float(y)
+                    self.axis3_data[i, j] = float(z)
+                else:
+                    if point_counter != self.axis3_num_points:
+                        logger.warning(
+                            'Bad number of points in file "%s": expected %s, got %s',
+                            file_path,
+                            self.axis3_num_points,
+                            point_counter,
+                        )
+
+                    break
+
+
 class Obs(NamedTuple):
     """PIMA observation information."""
 
