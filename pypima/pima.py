@@ -49,22 +49,22 @@ class ExperInfo:
     stt_file: InitVar[str] = ""
 
     correlator_name: str = field(init=False)
-    if_num: int = field(init=False)
-    frq_grp: int = field(init=False)
-    sp_chann_num: int = field(init=False)
-    time_epochs_num: int = field(init=False)
-    scans_num: int = field(init=False)
-    obs_num: int = field(init=False)
-    uv_points_num: int = field(init=False)
-    uv_points_used_num: int = field(init=False)
-    deselected_points_num: int = field(init=False)
+    if_num: int = field(default=0, init=False)
+    frq_grp: int = field(default=0, init=False)
+    sp_chann_num: int = field(default=0, init=False)
+    time_epochs_num: int = field(default=0, init=False)
+    scans_num: int = field(default=0, init=False)
+    obs_num: int = field(default=0, init=False)
+    uv_points_num: int = field(default=0, init=False)
+    uv_points_used_num: int = field(default=0, init=False)
+    deselected_points_num: int = field(default=0, init=False)
     utc_minus_tai: timedelta = field(init=False)
     nominal_start: datetime = field(init=False)
     nominal_end: datetime = field(init=False)
     hostname: str = field(init=False)
     pima_version: str = field(init=False)
-    accum_length: float = field(init=False)
-    no_auto_points_num: int = field(init=False)
+    accum_length: float = field(default=0.0, init=False)
+    no_auto_points_num: int = field(default=0, init=False)
 
     def __post_init__(self, stt_file: str) -> None:
         if stt_file:
