@@ -526,20 +526,19 @@ class RaExperiment:
 
                 toks = line.split()
 
-                # # Fix EF C-band channels table
-                # if len(toks) == 10 and toks[0] == "!" and toks[1].isdigit():
-                #     self.logger.warning("fix EF C-band channels table")
-                #     toks.insert(2, "6cm")
-
                 if fix_freq and len(toks) > 9 and toks[1].isdigit() and toks[6] == "L":
                     toks[6] = "U"
                     toks[9] = f"{freq_list[0]:.2f}MHz"
 
                 # Deselect stations
-                if toks[0] == "TSYS" and len(toks) > 4:
-                    toks[4] = toks[4].upper()
-                    if toks[4] not in sta_list:
-                        self.logger.warning("deselect %s from ANTAB", toks[4])
+                if toks[0] == "TSYS" and len(toks) >= 4:
+                    if toks[1] == "timeoff":
+                        sta = toks[4].upper()  # VLBA format
+                    else:
+                        sta = toks[1].upper()  # EVN format
+
+                    if sta not in sta_list:
+                        self.logger.warning("deselect %s from ANTAB", sta)
                         toks.insert(0, "!")
                 elif toks[0] == "GAIN":
                     # EF, L-band GAINs
